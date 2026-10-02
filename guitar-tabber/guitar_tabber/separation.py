@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import nullcontext
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ def separate_guitar_stem(
     output_dir: Path,
     model_name: str = DEFAULT_MODEL,
     device: str = "cpu",
+    timer=None,
 ) -> Path:
     """
     Run Demucs and return the path to the isolated guitar (or best-effort) stem WAV.
@@ -31,7 +33,7 @@ def separate_guitar_stem(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        return _run_demucs(wav_path, output_dir, model_name=model_name, device=device)
+        return _run_demucs(wav_path, output_dir, model_name=model_name, device=device, timer=timer)
     except Exception as exc:
         if model_name != FALLBACK_MODEL:
             logger.warning(
@@ -41,7 +43,7 @@ def separate_guitar_stem(
                 FALLBACK_MODEL,
             )
             return _run_demucs(
-                wav_path, output_dir, model_name=FALLBACK_MODEL, device=device
+                wav_path, output_dir, model_name=FALLBACK_MODEL, device=device, timer=timer
             )
         raise
 
@@ -51,21 +53,32 @@ def _run_demucs(
     output_dir: Path,
     model_name: str,
     device: str,
+    timer=None,
 ) -> Path:
     from demucs.audio import save_audio
     from demucs.separate import Separator
 
-    logger.info("Loading Demucs model '%s' (device=%s)...", model_name, device)
-    separator = Separator(
-        model=model_name,
-        device=device,
-        shifts=1,
-        split=True,
-        overlap=0.25,
-        progress=True,
+    stage = timer.stage if timer is not None else (lambda _name: nullcontext())
+    cached = _weights_cached()
+    logger.info(
+        "Loading Demucs model '%s' (device=%s, weights %s)...",
+        model_name,
+        device,
+        "cached locally" if cached else "downloading once from dl.fbaipublicfiles.com",
     )
+    load_label = "demucs: load model" + ("" if cached else " (+ first-time download)")
+    with stage(load_label):
+        separator = Separator(
+            model=model_name,
+            device=device,
+            shifts=1,
+            split=True,
+            overlap=0.25,
+            progress=True,
+        )
 
-    _origin, stems = separator.separate_audio_file(wav_path)
+    with stage(f"demucs: separate stems ({device})"):
+        _origin, stems = separator.separate_audio_file(wav_path)
     stem_names = list(stems.keys())
     logger.info("Demucs stems available: %s", stem_names)
 
@@ -87,3 +100,14 @@ def _run_demucs(
     save_audio(stem_tensor, str(out_path), samplerate=separator.samplerate)
     logger.info("Wrote guitar stem (%s): %s", chosen_name, out_path)
     return out_path
+
+
+def _weights_cached() -> bool:
+    """True if torch.hub already holds Demucs checkpoints (best effort)."""
+    try:
+        import torch
+
+        ckpt_dir = Path(torch.hub.get_dir()) / "checkpoints"
+        return any(ckpt_dir.glob("*.th"))
+    except Exception:
+        return False

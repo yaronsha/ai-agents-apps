@@ -127,6 +127,10 @@ def main(argv: list[str] | None = None) -> int:
     print(result.tab)
     print()
     print(f"(detected {result.note_count} notes)")
+    if result.timer is not None:
+        print()
+        print(result.timer.report())
+        print()
     if result.guitar_stem_path:
         print(f"(guitar stem saved: {result.guitar_stem_path})")
     if result.midi_path:

@@ -138,7 +138,7 @@ python -m guitar_tabber tests/fixtures/mixed_demo.mp3 --keep-stems -v
 | **Tuning** | Assumes **standard EADGBE** at A=440. Drop tunings / capos will map to wrong frets. |
 | **Fret choice** | Ambiguous pitches prefer **lower frets / open strings**. Alternate positions (e.g. 5th-fret A vs open A) may not match the original fingering. |
 | **Timing / rhythm** | The ASCII tab is one column per note, with no rhythm. The browser viewer snaps notes to a beat grid built from the estimated tempo (assumes 4/4). If the tempo estimate is off, bars will not line up with the music: fix it in the viewer's **Rhythm** bar or pass `--bpm`. |
-| **Speed / resources** | Demucs on CPU is slow for long tracks. Prefer short clips while experimenting. |
+| **Speed / resources** | Demucs on CPU is slow for long tracks. Prefer short clips while experimenting. Each run prints a **Timing** table (ffmpeg, Demucs model load / separation, tempo, pitch detection, output) so you can see where the time goes. Everything runs locally; the Demucs weights are downloaded once from Meta's server (`dl.fbaipublicfiles.com`) into `~/.cache/torch/hub/checkpoints` and reused after that. |
 
 ## Project layout
 
@@ -157,6 +157,7 @@ guitar-tabber/
     fretboard.py     # MIDI ↔ frets
     tab.py           # ASCII formatter
     midi_io.py       # notes ↔ .mid, tempo estimate
+    timing.py        # per-stage timing report
     viewer.py        # writes <input>.tab.html
     web/viewer.html  # browser viewer (alphaTab)
   tests/
