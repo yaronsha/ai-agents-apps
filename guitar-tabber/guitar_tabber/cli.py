@@ -16,14 +16,16 @@ def build_parser() -> argparse.ArgumentParser:
         prog="guitar_tabber",
         description=(
             "Convert a full-mix MP3/MP4 (guitar + other instruments/vocals) "
-            "into ASCII guitar tablature. Uses Demucs for guitar stem "
-            "separation, then librosa.pyin for pitch detection."
+            "into guitar tablature: ASCII text, a MIDI file and a browser "
+            "viewer with playback (<input>.tab.html). Uses Demucs for guitar "
+            "stem separation, then librosa.pyin for pitch detection. A .mid "
+            "input skips the audio analysis."
         ),
     )
     p.add_argument(
         "input",
         type=Path,
-        help="Input audio/video file (MP3, MP4, WAV, ...)",
+        help="Input audio/video file (MP3, MP4, WAV, ...) or MIDI file (.mid)",
     )
     p.add_argument(
         "-o",
@@ -52,6 +54,21 @@ def build_parser() -> argparse.ArgumentParser:
         default="cpu",
         choices=("cpu", "cuda"),
         help="Torch device for Demucs (default: cpu)",
+    )
+    p.add_argument(
+        "--no-html",
+        action="store_true",
+        help="Do not write the browser tab viewer (<input>.tab.html)",
+    )
+    p.add_argument(
+        "--no-midi",
+        action="store_true",
+        help="Do not write <input>.mid",
+    )
+    p.add_argument(
+        "--open",
+        action="store_true",
+        help="Open the browser tab viewer when done",
     )
     p.add_argument(
         "-v",
@@ -91,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
             output_tab_path=args.output,
             demucs_model=args.model,
             device=args.device,
+            write_midi=not args.no_midi,
+            write_html=not args.no_html,
         )
     except Exception as exc:
         logging.exception("Pipeline failed")
@@ -102,6 +121,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"(detected {result.note_count} notes)")
     if result.guitar_stem_path:
         print(f"(guitar stem saved: {result.guitar_stem_path})")
+    if result.midi_path:
+        print(f"(MIDI: {result.midi_path})")
+    if result.html_path:
+        print(f"(browser tab viewer: {result.html_path})")
+        if args.open:
+            import webbrowser
+
+            webbrowser.open(result.html_path.resolve().as_uri())
     return 0
 
 

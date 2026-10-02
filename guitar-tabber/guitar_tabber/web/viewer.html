@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guitar Tabber</title>
+<!--
+  Guitar Tabber – browser tab viewer & player.
+  Renders a MIDI file as guitar tablature (+ optional standard notation) with
+  alphaTab (https://alphatab.net), plays it back with a guitar soundfont and
+  highlights the notes being played, Guitar Pro style.
+
+  Open this file directly and drop a .mid file on it, or let
+  `python -m guitar_tabber song.mp3` write <song>.tab.html with the song embedded.
+-->
+<script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.min.js"></script>
+<style>
+  :root {
+    --bg: #1d2026;
+    --panel: #262a32;
+    --panel-2: #2f3440;
+    --line: #3a404d;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --accent: #ff7a1a;
+    --accent-2: #3d8bfd;
+    --paper: #ffffff;
+    --paper-text: #1d2026;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  button, select, input { font: inherit; color: inherit; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .brand { font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+  .brand span { color: var(--accent); }
+  .song-title { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 160px; min-width: 0; }
+  .group { display: flex; align-items: center; gap: 6px; }
+  .group label { color: var(--muted); font-size: 12px; }
+  .btn {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 5px 10px; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--muted); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.on { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
+  select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
+
+  /* ---------- score area ---------- */
+  .viewport { flex: 1 1 auto; overflow: auto; position: relative; padding: 16px; }
+  .paper {
+    background: var(--paper); color: var(--paper-text); border-radius: 6px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.35); max-width: 1300px; margin: 0 auto; min-height: 200px;
+    position: relative;
+  }
+  .paper.horizontal { max-width: none; }
+  #at { position: relative; }
+
+  /* alphaTab player cursor / highlighting */
+  .at-cursor-bar { background: rgba(255, 196, 0, .18); }
+  .at-cursor-beat { background: var(--accent); width: 3px; }
+  .at-selection div { background: rgba(61, 139, 253, .15); }
+  .at-highlight * { fill: var(--accent); stroke: var(--accent); }
+
+  /* ---------- empty state / overlays ---------- */
+  .empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 24px;
+  }
+  .empty .card { max-width: 440px; }
+  .empty h1 { font-size: 22px; margin: 0 0 8px; }
+  .empty p { color: var(--muted); margin: 0 0 16px; }
+  .dropzone {
+    position: fixed; inset: 0; background: rgba(29, 32, 38, .85); border: 3px dashed var(--accent);
+    display: none; align-items: center; justify-content: center; font-size: 20px; z-index: 50;
+  }
+  body.dragging .dropzone { display: flex; }
+  .status { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .error { color: #ff6b6b; }
+
+  /* ---------- bottom: fretboard + transport ---------- */
+  .bottom { background: var(--panel); border-top: 1px solid var(--line); }
+  .fretboard-wrap { overflow-x: auto; padding: 8px 16px 0; }
+  #fretboard { display: block; min-width: 760px; width: 100%; height: 130px; }
+  .transport {
+    display: flex; align-items: center; gap: 10px; padding: 8px 16px 10px; flex-wrap: wrap;
+  }
+  .play {
+    width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--accent);
+    color: #fff; font-size: 18px; cursor: pointer; display: grid; place-items: center;
+  }
+  .play:disabled { opacity: .45; cursor: default; }
+  .time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 92px; }
+  .seek { flex: 1 1 200px; accent-color: var(--accent); }
+  input[type=range] { accent-color: var(--accent); }
+  .speed-val { min-width: 40px; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+  @media (max-width: 640px) {
+    .topbar, .transport { padding-left: 16px; padding-right: 16px; }
+    .viewport { padding: 8px; }
+    .hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Guitar <span>Tabber</span></div>
+  <div class="song-title" id="songTitle">No song loaded</div>
+
+  <div class="group">
+    <label for="trackSel">Track</label>
+    <select id="trackSel" disabled></select>
+  </div>
+  <div class="group">
+    <label for="viewSel">View</label>
+    <select id="viewSel">
+      <option value="tab">Tab</option>
+      <option value="scoretab">Notes + Tab</option>
+      <option value="score">Notes</option>
+    </select>
+  </div>
+  <div class="group hide-sm">
+    <label for="layoutSel">Layout</label>
+    <select id="layoutSel">
+      <option value="page">Page</option>
+      <option value="horizontal">Horizontal</option>
+    </select>
+  </div>
+  <div class="group hide-sm">
+    <label for="gridSel">Grid</label>
+    <select id="gridSel" title="Rhythm quantisation for MIDI input">
+      <option value="8">1/8</option>
+      <option value="16" selected>1/16</option>
+      <option value="32">1/32</option>
+    </select>
+  </div>
+  <div class="group hide-sm">
+    <label for="zoomSel">Zoom</label>
+    <select id="zoomSel">
+      <option value="0.75">75%</option>
+      <option value="0.9">90%</option>
+      <option value="1" selected>100%</option>
+      <option value="1.25">125%</option>
+      <option value="1.5">150%</option>
+    </select>
+  </div>
+  <div class="group">
+    <button class="btn" id="openBtn" title="Open a MIDI file (.mid)">Open…</button>
+    <button class="btn hide-sm" id="gpBtn" disabled title="Download as Guitar Pro 7 (.gp)">Export .gp</button>
+    <button class="btn hide-sm" id="printBtn" disabled>Print</button>
+    <input type="file" id="fileInput" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+  </div>
+</header>
+
+<main class="viewport" id="viewport">
+  <div class="paper" id="paper">
+    <div id="at"></div>
+  </div>
+  <div class="empty" id="empty">
+    <div class="card">
+      <h1>Drop a MIDI file here</h1>
+      <p>Guitar tabs with playback and a moving cursor that shows which note is playing.
+         Or run <code>python -m guitar_tabber song.mp3</code> and open the generated <code>.tab.html</code>.</p>
+      <button class="btn" id="openBtn2">Open MIDI file…</button>
+    </div>
+  </div>
+</main>
+
+<footer class="bottom">
+  <div class="fretboard-wrap"><svg id="fretboard" aria-label="Fretboard showing the notes currently playing"></svg></div>
+  <div class="transport">
+    <button class="play" id="playBtn" disabled title="Play / pause (Space)">▶</button>
+    <button class="btn" id="stopBtn" disabled title="Back to start">■</button>
+    <span class="time" id="timeLbl">0:00 / 0:00</span>
+    <input class="seek" id="seek" type="range" min="0" max="1000" value="0" disabled aria-label="Song position">
+    <div class="group">
+      <label for="speed">Speed</label>
+      <input id="speed" type="range" min="25" max="150" step="5" value="100">
+      <span class="speed-val" id="speedVal">100%</span>
+    </div>
+    <button class="btn" id="loopBtn" title="Loop (select a range with shift-click to loop part of the song)">Loop</button>
+    <button class="btn" id="metroBtn">Metronome</button>
+    <button class="btn" id="countBtn">Count-in</button>
+    <span class="status" id="status"></span>
+  </div>
+</footer>
+
+<div class="dropzone">Drop the .mid file to load it</div>
+
+<script>
+/* Filled in by guitar_tabber.viewer when the page is generated for a song. */
+const EMBEDDED_SONG = /*__EMBEDDED_SONG__*/null;
+</script>
+<script>
+"use strict";
+
+const ALPHATAB_BASE = "https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/";
+
+// Standard tuning, low E → high e (MIDI numbers). Index 0 = low E.
+const OPEN_STRINGS = [40, 45, 50, 55, 59, 64];
+const MAX_FRET = 22;
+const MAX_SPAN = 4;
+
+/* =====================================================================
+ * MIDI parsing
+ * =================================================================== */
+
+function parseMidi(buffer) {
+  const data = new DataView(buffer);
+  let pos = 0;
+  const u8 = () => data.getUint8(pos++);
+  const u16 = () => { const v = data.getUint16(pos); pos += 2; return v; };
+  const u32 = () => { const v = data.getUint32(pos); pos += 4; return v; };
+  const str = (n) => { let s = ""; for (let i = 0; i < n; i++) s += String.fromCharCode(u8()); return s; };
+  const vlq = () => { let v = 0, b; do { b = u8(); v = (v << 7) | (b & 0x7f); } while (b & 0x80); return v; };
+
+  if (str(4) !== "MThd") throw new Error("Not a MIDI file (missing MThd header)");
+  const headerLen = u32();
+  const format = u16();
+  const nTracks = u16();
+  let division = u16();
+  pos = 8 + headerLen;
+  if (division & 0x8000) division = 480; // SMPTE timing: rare, treat as PPQ 480
+
+  const tempos = [];
+  const timeSigs = [];
+  const parts = new Map(); // "track:channel" → part
+  const trackNames = [];
+
+  for (let t = 0; t < nTracks && pos < data.byteLength; t++) {
+    const id = str(4);
+    const len = u32();
+    const end = pos + len;
+    if (id !== "MTrk") { pos = end; continue; }
+    let tick = 0, running = 0;
+    const open = new Map(); // "ch:pitch" → {tick, vel}
+    const programs = {};
+    while (pos < end) {
+      tick += vlq();
+      let status = data.getUint8(pos);
+      if (status & 0x80) pos++; else status = running;
+      if (status === 0xff) {
+        const type = u8(); const mlen = vlq(); const mstart = pos;
+        if (type === 0x51 && mlen === 3) {
+          const us = (data.getUint8(pos) << 16) | (data.getUint8(pos + 1) << 8) | data.getUint8(pos + 2);
+          tempos.push({ tick, bpm: 60000000 / us });
+        } else if (type === 0x58 && mlen >= 2) {
+          timeSigs.push({ tick, num: data.getUint8(pos), den: 2 ** data.getUint8(pos + 1) });
+        } else if (type === 0x03) {
+          trackNames[t] = decodeText(new Uint8Array(buffer, pos, mlen));
+        }
+        pos = mstart + mlen;
+        continue;
+      }
+      if (status === 0xf0 || status === 0xf7) { pos += vlq(); continue; }
+      running = status;
+      const kind = status & 0xf0, ch = status & 0x0f;
+      const d1 = u8();
+      const d2 = (kind === 0xc0 || kind === 0xd0) ? 0 : u8();
+      if (kind === 0xc0) { programs[ch] = d1; continue; }
+      if (kind !== 0x90 && kind !== 0x80) continue;
+      const key = ch + ":" + d1;
+      const closeNote = () => {
+        const o = open.get(key);
+        if (!o) return;
+        open.delete(key);
+        getPart(parts, t, ch, programs).notes.push({ tick: o.tick, end: tick, pitch: d1, vel: o.vel });
+      };
+      if (kind === 0x90 && d2 > 0) { closeNote(); open.set(key, { tick, vel: d2 }); }
+      else closeNote();
+    }
+    for (const [key, o] of open) {
+      const [ch, pitch] = key.split(":").map(Number);
+      getPart(parts, t, ch, programs).notes.push({ tick: o.tick, end: Math.max(tick, o.tick + 1), pitch, vel: o.vel });
+    }
+    for (const p of parts.values()) if (p.track === t && programs[p.channel] !== undefined) p.program = programs[p.channel];
+    pos = end;
+  }
+
+  const result = [];
+  for (const p of parts.values()) {
+    if (p.channel === 9 || !p.notes.length) continue; // skip drums
+    p.notes.sort((a, b) => a.tick - b.tick || a.pitch - b.pitch);
+    const base = trackNames[p.track] || (format === 0 ? "" : "Track " + (p.track + 1));
+    p.name = [base, multipleChannels(parts, p.track) ? "ch " + (p.channel + 1) : ""].filter(Boolean).join(" ") || "Guitar";
+    result.push(p);
+  }
+  if (!result.length) throw new Error("The MIDI file has no (non-drum) notes");
+  tempos.sort((a, b) => a.tick - b.tick);
+  timeSigs.sort((a, b) => a.tick - b.tick);
+  return { ppq: division, parts: result, tempos, timeSigs };
+}
+
+function getPart(parts, track, channel, programs) {
+  const key = track + ":" + channel;
+  if (!parts.has(key)) parts.set(key, { track, channel, program: programs[channel] ?? 25, notes: [] });
+  return parts.get(key);
+}
+function multipleChannels(parts, track) {
+  let n = 0;
+  for (const p of parts.values()) if (p.track === track && p.channel !== 9 && p.notes.length) n++;
+  return n > 1;
+}
+function decodeText(bytes) {
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes).trim(); }
+  catch { return new TextDecoder("latin1").decode(bytes).trim(); }
+}
+
+/* =====================================================================
+ * Fingering: choose string/fret for every note, Viterbi over the song so
+ * the hand stays in one position instead of jumping around.
+ * =================================================================== */
+
+function fitPitch(p) {
+  const lo = OPEN_STRINGS[0], hi = OPEN_STRINGS[5] + MAX_FRET;
+  while (p < lo) p += 12;
+  while (p > hi) p -= 12;
+  return p;
+}
+
+function chordCandidates(pitches) {
+  // Highest first; at most 6 notes (keep bass + top voices).
+  let ps = [...new Set(pitches.map(fitPitch))].sort((a, b) => b - a);
+  if (ps.length > 6) ps = ps.slice(0, 5).concat(ps[ps.length - 1]);
+  const out = [];
+  const assign = (i, maxString, notes) => {
+    if (out.length > 400) return;
+    if (i === ps.length) { out.push(notes.slice()); return; }
+    // Higher pitch → higher (or equal) string index; strings must be distinct.
+    for (let s = maxString; s >= 0; s--) {
+      const fret = ps[i] - OPEN_STRINGS[s];
+      if (fret < 0 || fret > MAX_FRET) continue;
+      notes.push({ string: s, fret, pitch: ps[i] });
+      assign(i + 1, s - 1, notes);
+      notes.pop();
+    }
+  };
+  assign(0, 5, []);
+  if (!out.length && ps.length > 1) return chordCandidates(ps.slice(0, -1)); // drop a voice and retry
+  return out.map((notes) => {
+    const fretted = notes.filter((n) => n.fret > 0).map((n) => n.fret);
+    const span = fretted.length ? Math.max(...fretted) - Math.min(...fretted) : 0;
+    const hand = fretted.length ? fretted.reduce((a, b) => a + b, 0) / fretted.length : null;
+    const cost = fretted.reduce((a, f) => a + f, 0) * 0.04
+      + Math.max(0, span - 2) * 0.6 + (span > MAX_SPAN ? 6 : 0)
+      + fretted.filter((f) => f > 12).length * 0.3;
+    return { notes, hand, cost };
+  }).sort((a, b) => a.cost - b.cost).slice(0, 40);
+}
+
+function assignFingerings(events) {
+  const cands = events.map((e) => (e.pitches ? chordCandidates(e.pitches) : null));
+  const idx = cands.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
+  if (!idx.length) return;
+  const move = (a, b) => (a.hand === null || b.hand === null ? 0 : Math.abs(a.hand - b.hand) * 0.8
+    + (Math.abs(a.hand - b.hand) > 4 ? 1.5 : 0));
+  let prevCost = cands[idx[0]].map((c) => c.cost);
+  const back = [];
+  for (let k = 1; k < idx.length; k++) {
+    const prev = cands[idx[k - 1]], cur = cands[idx[k]];
+    const cost = [], bp = [];
+    for (let j = 0; j < cur.length; j++) {
+      let best = Infinity, arg = 0;
+      for (let i = 0; i < prev.length; i++) {
+        const c = prevCost[i] + move(prev[i], cur[j]);
+        if (c < best) { best = c; arg = i; }
+      }
+      cost.push(best + cur[j].cost); bp.push(arg);
+    }
+    back.push(bp); prevCost = cost;
+  }
+  let j = prevCost.indexOf(Math.min(...prevCost));
+  for (let k = idx.length - 1; k >= 0; k--) {
+    events[idx[k]].fingering = cands[idx[k]][j].notes;
+    if (k > 0) j = back[k - 1][j];
+  }
+}
+
+/* =====================================================================
+ * MIDI → alphaTex (quantised rhythm, bars, ties, rests)
+ * =================================================================== */
+
+function texString(s) { return '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"'; }
+
+function songToTex(song, title, unitsPerWhole) {
+  const { ppq } = song;
+  // Grid in ticks; make sure every time-signature denominator fits the grid.
+  for (const ts of song.timeSigs) unitsPerWhole = Math.max(unitsPerWhole, ts.den);
+  const grid = (ppq * 4) / unitsPerWhole;
+  const q = (tick) => Math.round(tick / grid);
+
+  // Bars: [start, length] in grid units, following the time-signature map.
+  const lastUnit = Math.max(...song.parts.map((p) => Math.max(...p.notes.map((n) => q(n.end)))));
+  const tsAt = (unit) => {
+    let cur = { num: 4, den: 4 };
+    for (const ts of song.timeSigs) if (q(ts.tick) <= unit) cur = ts;
+    return cur;
+  };
+  const bars = [];
+  for (let start = 0; start < Math.max(lastUnit, 1);) {
+    const ts = tsAt(start);
+    const len = Math.max(1, Math.round((ts.num * unitsPerWhole) / ts.den));
+    bars.push({ start, len, num: ts.num, den: ts.den });
+    start += len;
+  }
+  const tempoAt = (bar) => {
+    let bpm = song.tempos.length ? song.tempos[0].bpm : 120;
+    for (const t of song.tempos) if (q(t.tick) <= bar.start) bpm = t.bpm;
+    return Math.round(bpm);
+  };
+
+  // Durations we can write, in grid units (with dotted variants), largest first.
+  const durs = [];
+  for (let d = unitsPerWhole; d >= 1; d /= 2) {
+    if (d >= 2 && unitsPerWhole / d <= 32) durs.push({ units: d * 1.5, value: unitsPerWhole / d, dotted: true });
+    durs.push({ units: d, value: unitsPerWhole / d, dotted: false });
+  }
+  durs.sort((a, b) => b.units - a.units);
+  const split = (len) => {
+    const out = [];
+    while (len > 0) {
+      const d = durs.find((x) => x.units <= len && Number.isInteger(x.units));
+      out.push(d); len -= d.units;
+    }
+    return out;
+  };
+
+  let tex = `\\title ${texString(title)}\n\\tempo ${tempoAt(bars[0])}\n.\n`;
+  song.parts.forEach((part) => {
+    // 1. chord events on the grid
+    const byStart = new Map();
+    for (const n of part.notes) {
+      const s = q(n.tick);
+      const e = Math.max(s + 1, q(n.end));
+      if (!byStart.has(s)) byStart.set(s, { start: s, end: e, pitches: [] });
+      const ev = byStart.get(s);
+      ev.pitches.push(n.pitch); ev.end = Math.max(ev.end, e);
+    }
+    const events = [...byStart.values()].sort((a, b) => a.start - b.start);
+    // 2. monophonic timeline: each event lasts until the next one starts
+    const timeline = [];
+    let cursor = 0;
+    events.forEach((ev, i) => {
+      if (ev.start > cursor) timeline.push({ start: cursor, len: ev.start - cursor, pitches: null });
+      const next = i + 1 < events.length ? events[i + 1].start : Infinity;
+      const end = Math.min(ev.end, next);
+      timeline.push({ start: ev.start, len: end - ev.start, pitches: ev.pitches });
+      cursor = end;
+    });
+    assignFingerings(timeline);
+
+    // 3. cut into bars and write
+    tex += `\\track ${texString(part.name)}\n\\staff {score tabs}\n\\instrument ${part.program}\n\\tuning (E4 B3 G3 D3 A2 E2)\n`;
+    let item = 0, offset = 0; // offset already written of timeline[item]
+    const barTexts = bars.map((bar, b) => {
+      const head = [];
+      const prev = bars[b - 1];
+      if (!prev || prev.num !== bar.num || prev.den !== bar.den) head.push(`\\ts ${bar.num} ${bar.den}`);
+      if (prev && tempoAt(prev) !== tempoAt(bar)) head.push(`\\tempo ${tempoAt(bar)}`);
+      const beats = [];
+      let pos = bar.start;
+      const barEnd = bar.start + bar.len;
+      while (pos < barEnd) {
+        const it = timeline[item];
+        if (!it) { split(barEnd - pos).forEach((d) => beats.push(rest(d))); break; }
+        const take = Math.min(it.len - offset, barEnd - pos);
+        split(take).forEach((d, k) => {
+          const tie = offset > 0 || k > 0;
+          beats.push(it.pitches ? beat(it.fingering, d, tie) : rest(d));
+        });
+        offset += take; pos += take;
+        if (offset >= it.len) { item++; offset = 0; }
+      }
+      return head.concat(beats).join(" ");
+    });
+    tex += barTexts.join(" |\n") + "\n";
+  });
+  return tex;
+}
+
+function durTex(d) { return "." + d.value + (d.dotted ? "{d}" : ""); }
+function rest(d) { return "r" + durTex(d); }
+function beat(fingering, d, tie) {
+  const notes = fingering.map((n) => (tie ? "-" : n.fret) + "." + (6 - n.string)); // alphaTex: string 1 = high e
+  return (notes.length === 1 ? notes[0] : "(" + notes.join(" ") + ")") + durTex(d);
+}
+
+/* =====================================================================
+ * UI
+ * =================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const ui = {
+  title: $("songTitle"), trackSel: $("trackSel"), viewSel: $("viewSel"), layoutSel: $("layoutSel"),
+  gridSel: $("gridSel"), zoomSel: $("zoomSel"), play: $("playBtn"), stop: $("stopBtn"), time: $("timeLbl"),
+  seek: $("seek"), speed: $("speed"), speedVal: $("speedVal"), loop: $("loopBtn"), metro: $("metroBtn"),
+  count: $("countBtn"), status: $("status"), empty: $("empty"), paper: $("paper"), fileInput: $("fileInput"),
+  gp: $("gpBtn"), print: $("printBtn"),
+};
+
+const PROFILES = { tab: "Tab", scoretab: "ScoreTab", score: "Score" };
+let api = null;
+let currentSong = null; // { title, midi: parsed }
+let duration = 0;
+let seeking = false;
+let playerReady = false;
+
+function setStatus(text, isError) {
+  ui.status.textContent = text || "";
+  ui.status.classList.toggle("error", !!isError);
+}
+
+function initAlphaTab() {
+  if (typeof alphaTab === "undefined") {
+    setStatus("Could not load alphaTab (needs an internet connection the first time).", true);
+    return null;
+  }
+  const a = new alphaTab.AlphaTabApi($("at"), {
+    core: {
+      scriptFile: ALPHATAB_BASE + "alphaTab.min.js",
+      fontDirectory: ALPHATAB_BASE + "font/",
+    },
+    display: {
+      staveProfile: "Tab",
+      layoutMode: "Page",
+      scale: 1,
+      padding: [20, 30, 20, 30],
+    },
+    notation: { rhythmMode: "ShowWithBars" },
+    player: {
+      enablePlayer: true,
+      enableCursor: true,
+      enableAnimatedBeatCursor: true,
+      enableElementHighlighting: true,
+      enableUserInteraction: true,
+      soundFont: ALPHATAB_BASE + "soundfont/sonivox.sf2",
+      // A page opened from disk (file://) cannot load the cross-origin audio
+      // worklet, so use the ScriptProcessor output there.
+      outputMode: location.protocol === "file:" ? "WebAudioScriptProcessor" : "WebAudioAudioWorklets",
+      scrollElement: $("viewport"),
+      scrollOffsetY: -40,
+    },
+  });
+
+  const elements = a.settings.notation.elements;
+  elements.set(alphaTab.NotationElement.TrackNames, false);
+  elements.set(alphaTab.NotationElement.EffectDynamics, false);
+  a.updateSettings();
+
+  a.renderStarted.on(() => setStatus("Rendering…"));
+  a.renderFinished.on(() => { if (playerReady) setStatus(""); else setStatus("Loading guitar sounds…"); });
+  a.soundFontLoad.on((e) => setStatus(`Loading guitar sounds… ${Math.round((e.loaded / e.total) * 100) || 0}%`));
+  a.playerReady.on(() => {
+    playerReady = true;
+    setStatus("");
+    ui.play.disabled = false; ui.stop.disabled = false; ui.seek.disabled = false;
+  });
+  a.error.on((e) => { console.error(e); setStatus("alphaTab error: " + (e && e.message ? e.message : e), true); });
+  a.playerStateChanged.on((e) => {
+    const playing = e.state === 1;
+    ui.play.textContent = playing ? "❚❚" : "▶";
+    if (!playing && e.stopped) drawFretboard([]);
+  });
+  a.playerPositionChanged.on((e) => {
+    duration = e.endTime;
+    ui.time.textContent = fmtTime(e.currentTime) + " / " + fmtTime(e.endTime);
+    if (!seeking && e.endTime > 0) ui.seek.value = Math.round((e.currentTime / e.endTime) * 1000);
+  });
+  a.activeBeatsChanged.on((e) => {
+    const shown = selectedTrack();
+    const notes = [];
+    for (const b of e.activeBeats) {
+      if (shown && b.voice.bar.staff.track !== shown) continue;
+      for (const n of b.notes) notes.push({ string: n.string - 1, fret: n.fret, tie: n.isTieDestination });
+    }
+    drawFretboard(notes);
+  });
+  a.scoreLoaded.on((score) => {
+    ui.trackSel.innerHTML = "";
+    score.tracks.forEach((t, i) => ui.trackSel.add(new Option(t.name || "Track " + (i + 1), i)));
+    ui.trackSel.disabled = score.tracks.length < 2;
+    ui.gp.disabled = false; ui.print.disabled = false;
+  });
+  return a;
+}
+
+function selectedTrack() {
+  if (!api || !api.score) return null;
+  return api.score.tracks[Number(ui.trackSel.value) || 0] || null;
+}
+
+function fmtTime(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+
+function loadSong(title, buffer) {
+  let midi;
+  try { midi = parseMidi(buffer); }
+  catch (err) { setStatus("Could not read MIDI: " + err.message, true); return; }
+  currentSong = { title, midi };
+  ui.title.textContent = title;
+  document.title = title + " – Guitar Tabber";
+  ui.empty.style.display = "none";
+  renderSong();
+}
+
+function renderSong() {
+  if (!currentSong || !api) return;
+  const tex = songToTex(currentSong.midi, currentSong.title, Number(ui.gridSel.value));
+  window.__lastTex = tex; // handy for debugging
+  if (playerReady) api.stop();
+  api.tex(tex, "all");
+}
+
+function applySettings() {
+  if (!api) return;
+  const s = api.settings;
+  s.display.staveProfile = alphaTab.StaveProfile[PROFILES[ui.viewSel.value]];
+  s.display.layoutMode = ui.layoutSel.value === "horizontal" ? alphaTab.LayoutMode.Horizontal : alphaTab.LayoutMode.Page;
+  s.display.scale = Number(ui.zoomSel.value);
+  ui.paper.classList.toggle("horizontal", ui.layoutSel.value === "horizontal");
+  api.updateSettings();
+  api.render();
+}
+
+/* ---------- fretboard ---------- */
+
+function drawFretboard(active) {
+  const svg = $("fretboard");
+  const W = Math.max(svg.clientWidth, 760), H = 130;
+  const left = 46, right = 12, top = 14, bottom = 22;
+  const nut = left + 20;
+  // Real fret spacing (each fret 1/17.817 shorter), scaled to fit.
+  const pos = [0];
+  for (let f = 1; f <= MAX_FRET; f++) pos.push(1 - Math.pow(2, -f / 12));
+  const scale = (W - nut - right) / pos[MAX_FRET];
+  const fx = (f) => nut + pos[f] * scale;
+  const sy = (s) => top + ((5 - s) * (H - top - bottom)) / 5; // high e on top
+  const names = ["E", "A", "D", "G", "B", "e"];
+  let out = `<rect x="${nut}" y="${top - 6}" width="${W - nut - right}" height="${H - top - bottom + 12}" rx="3" fill="#3b2a1e"/>`;
+  for (const f of [3, 5, 7, 9, 15, 17, 19, 21]) {
+    if (f > MAX_FRET) continue;
+    out += `<circle cx="${(fx(f - 1) + fx(f)) / 2}" cy="${(sy(0) + sy(5)) / 2}" r="5" fill="#d8c8a8" opacity=".5"/>`;
+  }
+  for (const y of [(sy(1) + sy(2)) / 2, (sy(3) + sy(4)) / 2]) {
+    out += `<circle cx="${(fx(11) + fx(12)) / 2}" cy="${y}" r="5" fill="#d8c8a8" opacity=".5"/>`;
+  }
+  out += `<rect x="${nut - 4}" y="${top - 6}" width="6" height="${H - top - bottom + 12}" fill="#e9e2d0"/>`;
+  for (let f = 1; f <= MAX_FRET; f++) {
+    out += `<line x1="${fx(f)}" x2="${fx(f)}" y1="${top - 6}" y2="${H - bottom + 6}" stroke="#b9b9b9" stroke-width="2"/>`;
+    if ([3, 5, 7, 9, 12, 15, 17, 19, 21].includes(f))
+      out += `<text x="${(fx(f - 1) + fx(f)) / 2}" y="${H - 4}" fill="#9aa3b2" font-size="11" text-anchor="middle">${f}</text>`;
+  }
+  for (let s = 0; s < 6; s++) {
+    out += `<line x1="${nut}" x2="${W - right}" y1="${sy(s)}" y2="${sy(s)}" stroke="#d9d4c7" stroke-width="${1 + (5 - s) * 0.35}"/>`;
+    out += `<text x="${left - 6}" y="${sy(s) + 4}" fill="#9aa3b2" font-size="12" text-anchor="end">${names[s]}</text>`;
+  }
+  for (const n of active) {
+    if (n.string < 0 || n.string > 5) continue;
+    const x = n.fret === 0 ? nut - 14 : (fx(n.fret - 1) + fx(n.fret)) / 2;
+    const fill = n.tie ? "#3d8bfd" : "#ff7a1a";
+    out += `<circle cx="${x}" cy="${sy(n.string)}" r="10" fill="${fill}" stroke="#fff" stroke-width="1.5"/>`;
+    out += `<text x="${x}" y="${sy(n.string) + 4}" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">${n.fret}</text>`;
+  }
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = out;
+}
+
+/* ---------- events ---------- */
+
+function openFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => loadSong(file.name.replace(/\.(mid|midi)$/i, ""), reader.result);
+  reader.onerror = () => setStatus("Could not read " + file.name, true);
+  reader.readAsArrayBuffer(file);
+}
+
+function base64ToBuffer(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+}
+
+function wire() {
+  ui.play.onclick = () => api && api.playPause();
+  ui.stop.onclick = () => api && api.stop();
+  ui.speed.oninput = () => {
+    ui.speedVal.textContent = ui.speed.value + "%";
+    if (api) api.playbackSpeed = Number(ui.speed.value) / 100;
+  };
+  ui.loop.onclick = () => { ui.loop.classList.toggle("on"); if (api) api.isLooping = ui.loop.classList.contains("on"); };
+  ui.metro.onclick = () => { ui.metro.classList.toggle("on"); if (api) api.metronomeVolume = ui.metro.classList.contains("on") ? 1 : 0; };
+  ui.count.onclick = () => { ui.count.classList.toggle("on"); if (api) api.countInVolume = ui.count.classList.contains("on") ? 1 : 0; };
+  ui.seek.oninput = () => { seeking = true; };
+  ui.seek.onchange = () => {
+    if (api && duration > 0) api.timePosition = (Number(ui.seek.value) / 1000) * duration;
+    seeking = false;
+  };
+  ui.trackSel.onchange = () => {
+    const t = selectedTrack();
+    if (!t) return;
+    api.renderTracks([t]);
+    api.changeTrackSolo(api.score.tracks, false);
+    api.changeTrackSolo([t], true);
+  };
+  ui.viewSel.onchange = applySettings;
+  ui.layoutSel.onchange = applySettings;
+  ui.zoomSel.onchange = applySettings;
+  ui.gridSel.onchange = renderSong;
+  $("openBtn").onclick = () => ui.fileInput.click();
+  $("openBtn2").onclick = () => ui.fileInput.click();
+  ui.fileInput.onchange = () => openFile(ui.fileInput.files[0]);
+  ui.print.onclick = () => api && api.print();
+  ui.gp.onclick = () => {
+    if (!api || !api.score) return;
+    const bytes = new alphaTab.exporter.Gp7Exporter().export(api.score, api.settings);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+    a.download = (currentSong ? currentSong.title : "song") + ".gp";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  let dragDepth = 0;
+  window.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; document.body.classList.add("dragging"); });
+  window.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove("dragging"); } });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => {
+    e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging");
+    openFile(e.dataTransfer.files[0]);
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && !["INPUT", "SELECT", "BUTTON"].includes(document.activeElement.tagName)) {
+      e.preventDefault();
+      if (api && playerReady) api.playPause();
+    }
+  });
+  window.addEventListener("resize", () => drawFretboard([]));
+}
+
+wire();
+drawFretboard([]);
+api = initAlphaTab();
+if (api) {
+  api.metronomeVolume = 0;
+  api.countInVolume = 0;
+}
+if (EMBEDDED_SONG) loadSong(EMBEDDED_SONG.title, base64ToBuffer(EMBEDDED_SONG.midiBase64));
+</script>
+</body>
+</html>
