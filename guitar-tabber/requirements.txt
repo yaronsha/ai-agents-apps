@@ -1,19 +1,21 @@
-# Core audio / pitch
-librosa==1.0.0
-soundfile==0.14.0
-numpy==2.5.3
-scipy==1.18.1
-pydub==0.25.1
-audioop-lts==0.2.2
+# Version ranges (not exact pins) so this installs on Python 3.10+ —
+# e.g. Linux Mint 21.x / Ubuntu 22.04 ship Python 3.10 — and on macOS.
 
-# Stem separation (Demucs + PyTorch CPU)
-# Install torch from the CPU wheel index first if needed:
-#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Core audio / pitch
+librosa>=0.10
+soundfile>=0.12
+numpy>=1.24
+scipy>=1.10
+
+# Stem separation (Demucs + PyTorch)
+# Install torch first (see setup.sh / README); the plain `pip install torch`
+# wheel is fine on macOS, the CPU index is smaller on Linux.
 torch>=2.1
-demucs==4.1.0
-einops==0.8.2
-julius==0.2.8
-lameenc==1.8.4
+torchaudio>=2.1
+demucs>=4.1.0
+einops>=0.6
+julius>=0.2.7
+lameenc>=1.5
 
 # Transitive helpers commonly needed
 tqdm>=4.66
