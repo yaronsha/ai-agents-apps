@@ -1,0 +1,109 @@
+"""Command-line interface for guitar-tabber."""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+from pathlib import Path
+
+from . import __version__
+from .pipeline import run_pipeline
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="guitar_tabber",
+        description=(
+            "Convert a full-mix MP3/MP4 (guitar + other instruments/vocals) "
+            "into ASCII guitar tablature. Uses Demucs for guitar stem "
+            "separation, then librosa.pyin for pitch detection."
+        ),
+    )
+    p.add_argument(
+        "input",
+        type=Path,
+        help="Input audio/video file (MP3, MP4, WAV, ...)",
+    )
+    p.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Output .tab.txt path (default: <input>.tab.txt)",
+    )
+    p.add_argument(
+        "--skip-separation",
+        action="store_true",
+        help="Skip Demucs stem separation (use for already-isolated guitar tracks)",
+    )
+    p.add_argument(
+        "--keep-stems",
+        action="store_true",
+        help="Save the separated guitar stem WAV next to the input file",
+    )
+    p.add_argument(
+        "--model",
+        default="htdemucs_6s",
+        help="Demucs model name (default: htdemucs_6s with dedicated guitar stem)",
+    )
+    p.add_argument(
+        "--device",
+        default="cpu",
+        choices=("cpu", "cuda"),
+        help="Torch device for Demucs (default: cpu)",
+    )
+    p.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose logging",
+    )
+    p.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(levelname)s %(name)s: %(message)s",
+    )
+    # Keep third-party DEBUG noise down even with -v
+    for noisy in ("numba", "numba.core", "filelock", "urllib3", "httpx", "httpcore", "httpx2", "httpcore2", "huggingface_hub"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    if not args.input.exists():
+        print(f"error: input not found: {args.input}", file=sys.stderr)
+        return 1
+
+    try:
+        result = run_pipeline(
+            args.input,
+            skip_separation=args.skip_separation,
+            keep_stems=args.keep_stems,
+            output_tab_path=args.output,
+            demucs_model=args.model,
+            device=args.device,
+        )
+    except Exception as exc:
+        logging.exception("Pipeline failed")
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    print(result.tab)
+    print()
+    print(f"(detected {result.note_count} notes)")
+    if result.guitar_stem_path:
+        print(f"(guitar stem saved: {result.guitar_stem_path})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
