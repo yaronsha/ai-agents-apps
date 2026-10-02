@@ -56,6 +56,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Torch device for Demucs (default: cpu)",
     )
     p.add_argument(
+        "--bpm",
+        type=float,
+        default=None,
+        help="Song tempo for the bar grid (default: estimated from the audio). "
+        "Can also be changed later in the browser viewer.",
+    )
+    p.add_argument(
         "--no-html",
         action="store_true",
         help="Do not write the browser tab viewer (<input>.tab.html)",
@@ -110,6 +117,7 @@ def main(argv: list[str] | None = None) -> int:
             device=args.device,
             write_midi=not args.no_midi,
             write_html=not args.no_html,
+            tempo_bpm=args.bpm,
         )
     except Exception as exc:
         logging.exception("Pipeline failed")

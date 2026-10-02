@@ -59,6 +59,9 @@ python -m guitar_tabber path/to/song.mp3 --keep-stems -v
 # Choose Demucs model / device
 python -m guitar_tabber song.mp3 --model htdemucs_6s --device cpu
 
+# Known tempo? Skip the estimate (also adjustable later in the viewer)
+python -m guitar_tabber song.mp3 --bpm 92
+
 # MIDI file in, tabs out (no audio analysis); --open launches the browser
 python -m guitar_tabber song.mid --open
 ```
@@ -76,6 +79,9 @@ open-source engine for Guitar Pro–style notation:
 - Several MIDI tracks: pick one under **Track** (it plays solo)
 - **Export .gp** opens in Guitar Pro / TuxGuitar; **Print** gives a clean sheet
 - **Open…** or drag and drop any other `.mid` file onto the page
+- **Rhythm** bar: set the **tempo** (type it, ÷2 / ×2, or **Tap** / press `T` along with the
+  song), where the **first beat** falls, and the **time signature**. The notes are
+  re-placed into bars instantly in the browser; **Reset** goes back to the file's tempo
 
 Fingering is chosen across the whole song (it keeps the hand in one position
 and avoids impossible chord stretches), and rhythm is snapped to a 1/16 grid
@@ -131,7 +137,7 @@ python -m guitar_tabber tests/fixtures/mixed_demo.mp3 --keep-stems -v
 | **Expression** | Bends, slides, vibrato, harmonics, palm mutes, and whammy tricks are **not** notated — you get fretted pitch snapshots. |
 | **Tuning** | Assumes **standard EADGBE** at A=440. Drop tunings / capos will map to wrong frets. |
 | **Fret choice** | Ambiguous pitches prefer **lower frets / open strings**. Alternate positions (e.g. 5th-fret A vs open A) may not match the original fingering. |
-| **Timing / rhythm** | The ASCII tab is one column per note, with no rhythm. The browser viewer snaps notes to a beat grid built from the estimated tempo (assumes 4/4). If the tempo estimate is off, bars will not line up with the music. |
+| **Timing / rhythm** | The ASCII tab is one column per note, with no rhythm. The browser viewer snaps notes to a beat grid built from the estimated tempo (assumes 4/4). If the tempo estimate is off, bars will not line up with the music: fix it in the viewer's **Rhythm** bar or pass `--bpm`. |
 | **Speed / resources** | Demucs on CPU is slow for long tracks. Prefer short clips while experimenting. |
 
 ## Project layout

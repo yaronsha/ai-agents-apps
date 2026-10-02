@@ -58,6 +58,17 @@
   .btn.on { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
   select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
 
+  .rhythmbar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 6px 16px; background: var(--panel-2); border-bottom: 1px solid var(--line);
+  }
+  .rb-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .rhythmbar input[type=number] {
+    width: 72px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px;
+  }
+  .rhythmbar .unit { color: var(--muted); font-size: 12px; }
+  #tapBtn.tapping { background: var(--accent); border-color: var(--accent); color: #fff; }
+
   /* ---------- score area ---------- */
   .viewport { flex: 1 1 auto; overflow: auto; position: relative; padding: 16px; }
   .paper {
@@ -163,6 +174,34 @@
     <input type="file" id="fileInput" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
   </div>
 </header>
+
+<div class="rhythmbar" id="rhythmBar">
+  <span class="rb-title">Rhythm</span>
+  <div class="group">
+    <label for="bpmIn">Tempo</label>
+    <input id="bpmIn" type="number" min="30" max="300" step="1" disabled title="Beats per minute used to place notes into bars">
+    <button class="btn" id="halfBtn" disabled title="Half tempo">÷2</button>
+    <button class="btn" id="doubleBtn" disabled title="Double tempo">×2</button>
+    <button class="btn" id="tapBtn" disabled title="Tap along with the song (T) – 4 taps or more set the tempo">Tap</button>
+  </div>
+  <div class="group">
+    <label for="offsetIn">First beat at</label>
+    <input id="offsetIn" type="number" step="0.01" value="0" disabled title="Seconds: move the bar lines so bar 1 starts on the first beat">
+    <span class="unit">s</span>
+  </div>
+  <div class="group">
+    <label for="tsSel">Time</label>
+    <select id="tsSel" disabled>
+      <option value="4/4">4/4</option>
+      <option value="3/4">3/4</option>
+      <option value="2/4">2/4</option>
+      <option value="6/8">6/8</option>
+      <option value="12/8">12/8</option>
+    </select>
+  </div>
+  <button class="btn" id="resetRhythm" disabled title="Back to the tempo stored in the file">Reset</button>
+  <span class="status" id="rhythmInfo"></span>
+</div>
 
 <main class="viewport" id="viewport">
   <div class="paper" id="paper">
@@ -389,6 +428,49 @@ function assignFingerings(events) {
 }
 
 /* =====================================================================
+ * Rhythm override: re-place the notes on a grid with a chosen tempo,
+ * first-beat offset and time signature. Note times are kept in seconds,
+ * so changing the tempo only changes where bar lines and beats fall.
+ * =================================================================== */
+
+function tickToSeconds(tick, tempos, ppq) {
+  let sec = 0, lastTick = 0, bpm = tempos.length && tempos[0].tick === 0 ? tempos[0].bpm : 120;
+  for (const t of tempos) {
+    if (t.tick > tick) break;
+    sec += ((t.tick - lastTick) / ppq) * (60 / bpm);
+    lastTick = t.tick; bpm = t.bpm;
+  }
+  return sec + ((tick - lastTick) / ppq) * (60 / bpm);
+}
+
+function fileTempo(midi) {
+  return midi.tempos.length ? midi.tempos[0].bpm : 120;
+}
+
+function applyRhythm(midi, rhythm) {
+  if (!rhythm) return midi;
+  const { ppq } = midi;
+  const [num, den] = rhythm.ts.split("/").map(Number);
+  // Notes before the first beat: add whole (pickup) bars in front instead of cutting them.
+  const first = Math.min(...midi.parts.map((p) => tickToSeconds(p.notes[0].tick, midi.tempos, ppq)));
+  const barSec = num * (4 / den) * (60 / rhythm.bpm);
+  const pad = first < rhythm.offset ? Math.ceil((rhythm.offset - first) / barSec - 1e-9) * barSec : 0;
+  const toTick = (tick) => {
+    const sec = tickToSeconds(tick, midi.tempos, ppq) - rhythm.offset + pad;
+    return Math.max(0, Math.round((sec * rhythm.bpm / 60) * ppq));
+  };
+  return {
+    ppq,
+    tempos: [{ tick: 0, bpm: rhythm.bpm }],
+    timeSigs: [{ tick: 0, num, den }],
+    parts: midi.parts.map((p) => ({
+      ...p,
+      notes: p.notes.map((n) => ({ ...n, tick: toTick(n.tick), end: toTick(n.end) })),
+    })),
+  };
+}
+
+/* =====================================================================
  * MIDI → alphaTex (quantised rhythm, bars, ties, rests)
  * =================================================================== */
 
@@ -508,11 +590,13 @@ const ui = {
   seek: $("seek"), speed: $("speed"), speedVal: $("speedVal"), loop: $("loopBtn"), metro: $("metroBtn"),
   count: $("countBtn"), status: $("status"), empty: $("empty"), paper: $("paper"), fileInput: $("fileInput"),
   gp: $("gpBtn"), print: $("printBtn"),
+  bpm: $("bpmIn"), half: $("halfBtn"), double: $("doubleBtn"), tap: $("tapBtn"), offset: $("offsetIn"),
+  ts: $("tsSel"), resetRhythm: $("resetRhythm"), rhythmInfo: $("rhythmInfo"),
 };
 
 const PROFILES = { tab: "Tab", scoretab: "ScoreTab", score: "Score" };
 let api = null;
-let currentSong = null; // { title, midi: parsed }
+let currentSong = null; // { title, midi: parsed, rhythm: null | { bpm, offset, ts } }
 let duration = 0;
 let seeking = false;
 let playerReady = false;
@@ -610,19 +694,70 @@ function loadSong(title, buffer) {
   let midi;
   try { midi = parseMidi(buffer); }
   catch (err) { setStatus("Could not read MIDI: " + err.message, true); return; }
-  currentSong = { title, midi };
+  currentSong = { title, midi, rhythm: null };
   ui.title.textContent = title;
   document.title = title + " – Guitar Tabber";
   ui.empty.style.display = "none";
+  showRhythm();
   renderSong();
 }
 
 function renderSong() {
   if (!currentSong || !api) return;
-  const tex = songToTex(currentSong.midi, currentSong.title, Number(ui.gridSel.value));
+  const midi = applyRhythm(currentSong.midi, currentSong.rhythm);
+  const tex = songToTex(midi, currentSong.title, Number(ui.gridSel.value));
   window.__lastTex = tex; // handy for debugging
   if (playerReady) api.stop();
   api.tex(tex, "all");
+}
+
+/* ---------- rhythm bar ---------- */
+
+function showRhythm() {
+  const midi = currentSong.midi;
+  const r = currentSong.rhythm;
+  const ts = midi.timeSigs[0];
+  ui.bpm.value = Math.round(r ? r.bpm : fileTempo(midi));
+  ui.offset.value = (r ? r.offset : 0).toFixed(2);
+  ui.ts.value = r ? r.ts : (ts ? ts.num + "/" + ts.den : "4/4");
+  if (!ui.ts.value) ui.ts.value = "4/4"; // unusual signature in the file
+  for (const el of [ui.bpm, ui.half, ui.double, ui.tap, ui.offset, ui.ts]) el.disabled = false;
+  ui.resetRhythm.disabled = !r;
+  ui.rhythmInfo.textContent = r ? "File tempo: " + Math.round(fileTempo(midi)) + " bpm" : "";
+}
+
+function setRhythm(changes) {
+  if (!currentSong) return;
+  const midi = currentSong.midi;
+  const base = currentSong.rhythm || {
+    bpm: fileTempo(midi), offset: 0,
+    ts: midi.timeSigs[0] ? midi.timeSigs[0].num + "/" + midi.timeSigs[0].den : "4/4",
+  };
+  const next = { ...base, ...changes };
+  next.bpm = Math.min(300, Math.max(30, Number(next.bpm) || base.bpm));
+  next.offset = Number(next.offset) || 0;
+  if (![...ui.ts.options].some((o) => o.value === next.ts)) next.ts = "4/4";
+  currentSong.rhythm = next;
+  showRhythm();
+  renderSong();
+}
+
+const taps = [];
+function tap() {
+  const now = performance.now();
+  if (taps.length && now - taps[taps.length - 1] > 2000) taps.length = 0; // pause → start over
+  taps.push(now);
+  if (taps.length > 9) taps.shift();
+  ui.tap.classList.add("tapping");
+  setTimeout(() => ui.tap.classList.remove("tapping"), 90);
+  if (taps.length >= 4) {
+    const bpm = (60000 * (taps.length - 1)) / (taps[taps.length - 1] - taps[0]);
+    ui.bpm.value = Math.round(bpm);
+    clearTimeout(tap.timer);
+    tap.timer = setTimeout(() => setRhythm({ bpm: Math.round(bpm) }), 700); // apply when tapping stops
+  } else {
+    ui.rhythmInfo.textContent = "Keep tapping… (" + taps.length + ")";
+  }
 }
 
 function applySettings() {
@@ -722,6 +857,13 @@ function wire() {
   ui.layoutSel.onchange = applySettings;
   ui.zoomSel.onchange = applySettings;
   ui.gridSel.onchange = renderSong;
+  ui.bpm.onchange = () => setRhythm({ bpm: ui.bpm.value });
+  ui.half.onclick = () => setRhythm({ bpm: Number(ui.bpm.value) / 2 });
+  ui.double.onclick = () => setRhythm({ bpm: Number(ui.bpm.value) * 2 });
+  ui.offset.onchange = () => setRhythm({ offset: ui.offset.value });
+  ui.ts.onchange = () => setRhythm({ ts: ui.ts.value });
+  ui.tap.onclick = tap;
+  ui.resetRhythm.onclick = () => { currentSong.rhythm = null; showRhythm(); renderSong(); };
   $("openBtn").onclick = () => ui.fileInput.click();
   $("openBtn2").onclick = () => ui.fileInput.click();
   ui.fileInput.onchange = () => openFile(ui.fileInput.files[0]);
@@ -745,6 +887,7 @@ function wire() {
     openFile(e.dataTransfer.files[0]);
   });
   window.addEventListener("keydown", (e) => {
+    if (e.code === "KeyT" && currentSong && !["INPUT", "SELECT"].includes(document.activeElement.tagName)) tap();
     if (e.code === "Space" && !["INPUT", "SELECT", "BUTTON"].includes(document.activeElement.tagName)) {
       e.preventDefault();
       if (api && playerReady) api.playPause();

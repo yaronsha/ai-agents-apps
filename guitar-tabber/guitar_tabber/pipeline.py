@@ -40,6 +40,7 @@ def run_pipeline(
     work_dir: Path | None = None,
     write_midi: bool = True,
     write_html: bool = True,
+    tempo_bpm: float | None = None,
 ) -> PipelineResult:
     """
     Convert an MP3/MP4 (full mix or isolated guitar) into guitar tablature.
@@ -90,8 +91,12 @@ def run_pipeline(
                 logger.info("Saved guitar stem to %s", dest)
 
         # 3. Pitch / onset detection (+ tempo from the full mix, for the bar grid)
-        tempo_bpm, first_beat = estimate_tempo(*load_audio(extracted, sample_rate=analysis_sr))
-        logger.info("Estimated tempo: %.1f bpm", tempo_bpm)
+        if tempo_bpm:
+            first_beat = 0.0
+            logger.info("Tempo: %.1f bpm (--bpm)", tempo_bpm)
+        else:
+            tempo_bpm, first_beat = estimate_tempo(*load_audio(extracted, sample_rate=analysis_sr))
+            logger.info("Estimated tempo: %.1f bpm", tempo_bpm)
         y, sr = load_audio(guitar_wav, sample_rate=analysis_sr)
         notes = detect_notes(y, sr)
         notes = merge_nearby_same_pitch(notes)
