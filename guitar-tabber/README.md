@@ -14,8 +14,10 @@ Pipeline:
 
 ## System requirements
 
-- Python 3.10+ (tested on 3.13)
-- [ffmpeg](https://ffmpeg.org/) on `PATH` (`sudo apt install ffmpeg`)
+- Python 3.10+ (Linux Mint 21.x / Ubuntu 22.04 default of 3.10 works; macOS too)
+- [ffmpeg](https://ffmpeg.org/) on `PATH`
+  - Linux Mint/Ubuntu: `sudo apt install ffmpeg libsndfile1 python3-venv`
+  - macOS: `brew install ffmpeg`
 - ~2–4 GB disk for Demucs model weights (downloaded on first run)
 - CPU is fine; CUDA optional via `--device cuda`
 - A modern browser for the tab viewer (no build step)
@@ -24,16 +26,19 @@ Pipeline:
 
 ```bash
 cd guitar-tabber
-python3 -m venv .venv
+./setup.sh                 # creates .venv, installs torch + requirements
 source .venv/bin/activate
-pip install --upgrade pip
-# PyTorch CPU wheels (recommended on machines without a GPU):
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install -r requirements.txt
 ```
 
-> **Note:** `librosa==1.0.0` does not exist on PyPI. Requirements pin
-> `librosa>=0.10.2,<0.12` (e.g. 0.11.0).
+Manual equivalent:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip setuptools wheel
+# Linux without GPU (smaller CPU wheel); on macOS just `pip install torch torchaudio`
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
+```
 
 ## Usage
 
