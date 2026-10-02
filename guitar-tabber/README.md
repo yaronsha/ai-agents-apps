@@ -1,7 +1,8 @@
 # Guitar Tabber
 
 Convert an MP3/MP4 of a **full song** (guitar + other instruments + vocals) into
-**ASCII guitar tablature**.
+**ASCII guitar tablature**, a structured **`.tab.json`** for the browser viewer,
+and a **`.mid`** MIDI file.
 
 Pipeline:
 
@@ -9,7 +10,7 @@ Pipeline:
 2. **Separate** a guitar stem with **Demucs** (`htdemucs_6s` → dedicated `guitar` stem; falls back to `other` on 4-stem models)
 3. **Detect** notes with **librosa.pyin** (monophonic pitch tracking + onsets)
 4. **Map** MIDI pitches to a standard-tuning (EADGBE) fretboard (prefer lower frets)
-5. **Emit** ASCII tablature to stdout and `<input>.tab.txt`
+5. **Emit** ASCII tablature, `.tab.json`, and `.mid` beside the input
 
 ## System requirements
 
@@ -17,11 +18,12 @@ Pipeline:
 - [ffmpeg](https://ffmpeg.org/) on `PATH` (`sudo apt install ffmpeg`)
 - ~2–4 GB disk for Demucs model weights (downloaded on first run)
 - CPU is fine; CUDA optional via `--device cuda`
+- A modern browser for the tab viewer (no build step)
 
 ## Install
 
 ```bash
-cd /workspace/guitar-tabber
+cd guitar-tabber
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
@@ -29,6 +31,9 @@ pip install --upgrade pip
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 ```
+
+> **Note:** `librosa==1.0.0` does not exist on PyPI. Requirements pin
+> `librosa>=0.10.2,<0.12` (e.g. 0.11.0).
 
 ## Usage
 
@@ -46,9 +51,20 @@ python -m guitar_tabber path/to/song.mp3 --keep-stems -v
 
 # Choose Demucs model / device
 python -m guitar_tabber song.mp3 --model htdemucs_6s --device cpu
+
+# After export, print viewer instructions (and try to open the page)
+python -m guitar_tabber path/to/song.mp3 --skip-separation --open-viewer
 ```
 
-Output example:
+Each successful run writes three artifacts next to the input (or beside `-o`):
+
+| File | Purpose |
+|------|---------|
+| `<stem>.tab.txt` | ASCII tablature + note log |
+| `<stem>.tab.json` | Structured notes for the browser viewer |
+| `<stem>.mid` | Standard MIDI (Type 0) of detected notes |
+
+ASCII output example:
 
 ```
 e|-----------|
@@ -59,7 +75,56 @@ A|--0-----0--|
 E|-----------|
 ```
 
-A `.tab.txt` file is also written beside the input (or to `-o`).
+### JSON schema (viewer)
+
+```json
+{
+  "version": 1,
+  "tuning": ["E", "A", "D", "G", "B", "e"],
+  "notes": [
+    {"t": 0.16, "dur": 0.74, "midi": 45, "string": 1, "fret": 0, "hz": 109.9}
+  ]
+}
+```
+
+`string` is `0` = low E … `5` = high e (same as `fretboard.py`).
+
+## Browser tab viewer (Guitar Pro–style)
+
+A self-contained viewer lives in `viewer/` — plain HTML/CSS/JS (Tone.js from CDN).
+No npm build.
+
+Features:
+
+- Horizontal 6-string tab staff with readable fret numbers and scroll
+- Play / pause / stop / seek / tempo
+- Note playback synthesized from JSON (highlight stays in sync)
+- Load via file picker, `?json=…` query, or embedded demo
+
+### Open the demo (out of the box)
+
+```bash
+cd guitar-tabber/viewer
+python -m http.server 8765
+# open http://127.0.0.1:8765/
+```
+
+Or open `viewer/index.html` directly (`file://…`); the embedded demo still loads
+if `fetch` of `demo.tab.json` is blocked.
+
+### Open a tab you just generated
+
+```bash
+# 1) Run the pipeline
+python -m guitar_tabber tests/fixtures/open_a.wav --skip-separation --open-viewer
+
+# 2) Serve the viewer and either:
+#    - use “Load .tab.json” in the UI, or
+#    - copy/symlink the JSON into viewer/ and open:
+#      http://127.0.0.1:8765/?json=open_a.tab.json
+```
+
+Shortcuts: `Space` play/pause · `←`/`→` seek · `Home` stop.
 
 ## Synthetic end-to-end test (no real guitar file needed)
 
@@ -73,6 +138,9 @@ python -m guitar_tabber tests/fixtures/open_a.wav --skip-separation -v
 # Mixed synthetic “song” (guitar + bass + noise + fake vocal)
 # First run downloads Demucs weights (can take several minutes)
 python -m guitar_tabber tests/fixtures/mixed_demo.mp3 --keep-stems -v
+
+# Export unit tests (JSON + MIDI, no heavy audio stack beyond imports)
+python tests/test_export.py
 ```
 
 ## Honest limitations
@@ -87,6 +155,7 @@ python -m guitar_tabber tests/fixtures/mixed_demo.mp3 --keep-stems -v
 | **Tuning** | Assumes **standard EADGBE** at A=440. Drop tunings / capos will map to wrong frets. |
 | **Fret choice** | Ambiguous pitches prefer **lower frets / open strings**. Alternate positions (e.g. 5th-fret A vs open A) may not match the original fingering. |
 | **Timing / rhythm** | Tab frames are one column per detected note, not strict rhythmic notation. No time signature or beat grid. |
+| **Viewer** | ASCII tabs with hundreds of notes are hard to read — use the browser viewer for playhead + highlight. Playback is synthesized from detected pitches, not the original audio. |
 | **Speed / resources** | Demucs on CPU is slow for long tracks. Prefer short clips while experimenting. |
 
 ## Project layout
@@ -98,15 +167,22 @@ guitar-tabber/
   README.md
   guitar_tabber/
     __main__.py      # python -m guitar_tabber
-    cli.py
-    pipeline.py      # extract → separate → pitch → tab
+    cli.py           # --open-viewer, etc.
+    pipeline.py      # extract → separate → pitch → tab/json/midi
+    export.py        # .tab.json + pure-Python .mid writer
     audio.py
     separation.py    # Demucs
     pitch.py         # librosa.pyin
     fretboard.py     # MIDI ↔ frets
     tab.py           # ASCII formatter
+  viewer/
+    index.html       # Guitar Pro–style UI (no build)
+    styles.css
+    app.js           # Tone.js playback + highlight
+    demo.tab.json    # open_a fixture notes
   tests/
     generate_test_audio.py
+    test_export.py
     fixtures/        # created by the generator
 ```
 

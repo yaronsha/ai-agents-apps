@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guitar Tabber — Tab Viewer</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Tone.js for note playback (syncs with JSON timeline) -->
+  <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark">GP</div>
+      <div>
+        <h1>Guitar Tab Viewer</h1>
+        <p class="sub">guitar-tabber · Guitar Pro–style playback</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <label class="btn file-label">
+        Load .tab.json
+        <input type="file" id="fileInput" accept=".json,application/json" />
+      </label>
+      <button type="button" class="btn" id="btnDemo">Load demo</button>
+      <button type="button" class="btn" id="btnMidi" title="Optional: load matching .mid (info only; playback uses JSON)">
+        Load .mid (optional)
+      </button>
+      <input type="file" id="midiInput" accept=".mid,.midi,audio/midi" hidden />
+    </div>
+  </header>
+
+  <main>
+    <section class="transport" aria-label="Transport">
+      <div class="transport-group">
+        <button type="button" class="btn primary" id="btnPlay" title="Space">Play</button>
+        <button type="button" class="btn" id="btnStop" title="Home">Stop</button>
+      </div>
+      <div class="time-display" id="timeDisplay">0:00.0 / 0:00.0</div>
+      <input type="range" class="seek" id="seek" min="0" max="1000" value="0" step="1" />
+      <div class="tempo-wrap">
+        <span>Tempo</span>
+        <input type="range" id="tempo" min="50" max="200" value="100" />
+        <span class="tempo-value" id="tempoValue">100%</span>
+      </div>
+    </section>
+
+    <p class="status-bar" id="status">Loading demo…</p>
+
+    <section class="tab-stage" aria-label="Tablature">
+      <div class="tab-scroll" id="tabScroll">
+        <div class="tab-canvas-wrap">
+          <canvas id="tabCanvas" width="800" height="280"></canvas>
+          <div class="empty-hint" id="emptyHint">Load a <code>.tab.json</code> file or press <strong>Load demo</strong>.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    Shortcuts: <kbd>Space</kbd> play/pause · <kbd>←</kbd>/<kbd>→</kbd> seek ·
+    Open via <code>python -m http.server</code> in <code>viewer/</code> for <code>?json=…</code> loading.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

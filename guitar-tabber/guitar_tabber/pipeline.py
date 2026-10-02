@@ -1,4 +1,4 @@
-"""End-to-end: mix → (optional) stem separation → pitch → tablature."""
+"""End-to-end: mix → (optional) stem separation → pitch → tablature / JSON / MIDI."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .audio import extract_mono_wav, load_audio, write_wav
+from .export import write_midi, write_tab_json
 from .pitch import detect_notes, merge_nearby_same_pitch
 from .separation import separate_guitar_stem
 from .tab import format_ascii_tab, format_note_log, notes_to_tab_frames
@@ -22,6 +23,9 @@ class PipelineResult:
     note_count: int
     guitar_stem_path: Path | None
     extracted_wav_path: Path | None
+    tab_path: Path | None = None
+    json_path: Path | None = None
+    midi_path: Path | None = None
 
 
 def run_pipeline(
@@ -36,7 +40,8 @@ def run_pipeline(
     work_dir: Path | None = None,
 ) -> PipelineResult:
     """
-    Convert an MP3/MP4 (full mix or isolated guitar) into ASCII guitar tablature.
+    Convert an MP3/MP4 (full mix or isolated guitar) into ASCII guitar tablature,
+    structured ``.tab.json``, and a ``.mid`` MIDI file.
     """
     input_path = Path(input_path)
     own_tmpdir = None
@@ -86,12 +91,30 @@ def run_pipeline(
         output_tab_path.write_text(tab + "\n\n" + note_log + "\n", encoding="utf-8")
         logger.info("Wrote tablature to %s", output_tab_path)
 
+        # 5. Structured JSON + MIDI for the browser viewer
+        stem_base = output_tab_path
+        # Strip .tab.txt → use stem before .tab, else stem of path
+        name = stem_base.name
+        if name.endswith(".tab.txt"):
+            base = stem_base.with_name(name[: -len(".tab.txt")])
+        else:
+            base = stem_base.with_suffix("")
+        json_path = Path(str(base) + ".tab.json")
+        midi_path = Path(str(base) + ".mid")
+        write_tab_json(notes, json_path)
+        write_midi(notes, midi_path)
+        logger.info("Wrote tab JSON to %s", json_path)
+        logger.info("Wrote MIDI to %s", midi_path)
+
         return PipelineResult(
             tab=tab,
             note_log=note_log,
             note_count=len(notes),
             guitar_stem_path=kept_stem,
             extracted_wav_path=extracted if keep_stems else None,
+            tab_path=output_tab_path,
+            json_path=json_path,
+            midi_path=midi_path,
         )
     finally:
         if own_tmpdir is not None:

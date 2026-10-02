@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "tuning": ["E", "A", "D", "G", "B", "e"],
+  "title": "open_a demo",
+  "notes": [
+    {"t": 0.16, "dur": 0.74, "midi": 45, "string": 1, "fret": 0, "hz": 109.9},
+    {"t": 1.07, "dur": 0.66, "midi": 57, "string": 3, "fret": 2, "hz": 219.9},
+    {"t": 1.86, "dur": 0.59, "midi": 50, "string": 2, "fret": 0, "hz": 146.8}
+  ]
+}
