@@ -93,6 +93,16 @@ REPEATS_AND_CHROMATIC = _seq(
     + [(D, f, 0.5) for f in (1, 2, 3, 4)],
 )
 
+# Fast run: A minor scale in 16th notes at 180 bpm (about 83 ms per note).
+FAST_RUN = _seq(
+    "fast_run_16ths",
+    180,
+    [(s, f, 0.25) for s, f in [
+        (G, 2), (B, 0), (B, 1), (B, 3), (e, 0), (e, 1), (e, 3), (e, 5),
+        (e, 3), (e, 1), (e, 0), (B, 3), (B, 1), (B, 0), (G, 2), (G, 2),
+    ]],
+)
+
 
 def _romanza() -> RefSong:
     """Anonymous, "Spanish Romance" opening (19th c.): triplet arpeggios, bass on beat."""
@@ -116,4 +126,4 @@ def _romanza() -> RefSong:
 
 ROMANZA = _romanza()
 
-SONGS = (ODE_TO_JOY, GREENSLEEVES, PENTATONIC_5TH, REPEATS_AND_CHROMATIC, ROMANZA)
+SONGS = (ODE_TO_JOY, GREENSLEEVES, PENTATONIC_5TH, REPEATS_AND_CHROMATIC, FAST_RUN, ROMANZA)

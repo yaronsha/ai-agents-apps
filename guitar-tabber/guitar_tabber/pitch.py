@@ -70,7 +70,8 @@ def detect_notes(
     def emit(start: int, end: int, from_onset: bool) -> None:
         midis = [frame_midi[k] for k in range(start, end)]
         duration = (end - start) * hop_length / sr
-        if duration < min_note_duration:
+        # Keep short notes that still span a few frames (grace notes, fast runs)
+        if duration < min_note_duration and end - start < 3:
             return
         hz_vals = [float(f0[k]) for k in range(start, end)]
         notes.append(
