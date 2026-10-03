@@ -6,3 +6,4 @@ __pycache__/
 tests/fixtures/*.tab.txt
 tests/fixtures/*_guitar_stem.wav
 *.extracted.wav
+tests/fixtures/reference/
