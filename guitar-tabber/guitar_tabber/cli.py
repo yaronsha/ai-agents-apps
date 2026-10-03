@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import __version__
 from .pipeline import run_pipeline
+from .youtube import DEFAULT_DOWNLOAD_DIR, clip_path_for, download_mp3, is_url, parse_time, trim_audio
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,8 +23,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "input",
+        help="Input audio/video file (MP3, MP4, WAV, ...) or a YouTube URL",
+    )
+    p.add_argument(
+        "--start",
+        help="Only use audio from this time on, e.g. 30 or 0:30",
+    )
+    p.add_argument(
+        "--end",
+        help="Only use audio up to this time, e.g. 75 or 1:15",
+    )
+    p.add_argument(
+        "--download-dir",
         type=Path,
-        help="Input audio/video file (MP3, MP4, WAV, ...)",
+        default=DEFAULT_DOWNLOAD_DIR,
+        help="Where YouTube downloads are saved as MP3 (default: ./downloads)",
     )
     p.add_argument(
         "-o",
@@ -79,13 +93,39 @@ def main(argv: list[str] | None = None) -> int:
     for noisy in ("numba", "numba.core", "filelock", "urllib3", "httpx", "httpcore", "httpx2", "httpcore2", "huggingface_hub"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
-    if not args.input.exists():
-        print(f"error: input not found: {args.input}", file=sys.stderr)
+    try:
+        start, end = parse_time(args.start), parse_time(args.end)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
         return 1
+    if start is not None and end is not None and end <= start:
+        print("error: --end must be after --start", file=sys.stderr)
+        return 1
+
+    if is_url(args.input):
+        try:
+            input_path = download_mp3(args.input, args.download_dir, start=start, end=end)
+        except Exception as exc:
+            logging.debug("Download failed", exc_info=True)
+            print(f"error: download failed: {exc}", file=sys.stderr)
+            return 1
+        print(f"(downloaded: {input_path})")
+    else:
+        input_path = Path(args.input)
+        if not input_path.exists():
+            print(f"error: input not found: {input_path}", file=sys.stderr)
+            return 1
+        if start is not None or end is not None:
+            try:
+                input_path = trim_audio(input_path, clip_path_for(input_path, start, end), start, end)
+            except Exception as exc:
+                print(f"error: trim failed: {exc}", file=sys.stderr)
+                return 1
+            print(f"(clip: {input_path})")
 
     try:
         result = run_pipeline(
-            args.input,
+            input_path,
             skip_separation=args.skip_separation,
             keep_stems=args.keep_stems,
             output_tab_path=args.output,
