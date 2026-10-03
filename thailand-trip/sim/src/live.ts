@@ -102,7 +102,16 @@ await source("travel advice (GOV.UK)", async () => {
 
 let articles: Awaited<ReturnType<typeof fetchArticles>> = [];
 await source("news (GDELT)", async () => {
-  articles = await fetchArticles();
+  // GDELT allows one request every 5 seconds per address, and CI runners share addresses.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      articles = await fetchArticles();
+      break;
+    } catch (err) {
+      if (!/ 429$/.test(String((err as Error).message)) || attempt === 4) throw err;
+      await new Promise((r) => setTimeout(r, 6_000 * attempt));
+    }
+  }
   expect(articles.every((a) => a.url && a.title), "url and title on every article");
   save(FIXTURES + "gdelt.json", bodies.get("api.gdeltproject.org") ?? { articles: [] });
   recorded("gdelt");
