@@ -8,8 +8,10 @@ export interface Article {
   seendate: string;
 }
 
-const PLACES = '("Chiang Mai" OR "Chiang Rai" OR "Mae Hong Son" OR "Chiang Dao" OR "Doi Inthanon" OR "Phu Chi Fa" OR "Pai district")';
-const TROUBLE = "(protest OR closed OR closure OR flood OR landslide OR accident OR strike OR cancelled OR evacuation OR wildfire OR outbreak OR border)";
+// GDELT rejects long queries ("Your query was too short or too long"; the earlier 252-character
+// version was refused), so the places are the three provinces: every stop is in one of them.
+const PLACES = '("Chiang Mai" OR "Chiang Rai" OR "Mae Hong Son")';
+const TROUBLE = "(protest OR closed OR flood OR landslide OR accident OR cancelled OR evacuation OR wildfire OR border)";
 
 export async function fetchArticles(): Promise<Article[]> {
   const q = encodeURIComponent(`${PLACES} ${TROUBLE}`);
