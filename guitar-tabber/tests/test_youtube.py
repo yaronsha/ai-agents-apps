@@ -108,9 +108,16 @@ class DownloadTests(unittest.TestCase):
         self.assertLess(duration(clip), full)
         self.assertAlmostEqual(duration(clip), 1.0, delta=0.15)
 
-    def test_end_before_start(self):
+    def test_end_before_start_fails_before_downloading(self):
+        FakeYDL.last_opts = None
         with self.assertRaises(ValueError):
             youtube.download_mp3("https://youtu.be/abc123", self.dir, start=3, end=1)
+        self.assertIsNone(FakeYDL.last_opts)
+        self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_playlist_limited_to_first_item(self):
+        youtube.download_mp3("https://www.youtube.com/playlist?list=PL1", self.dir)
+        self.assertEqual(FakeYDL.last_opts["playlist_items"], "1")
 
 
 class CliTests(unittest.TestCase):

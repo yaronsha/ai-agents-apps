@@ -98,6 +98,8 @@ def download_mp3(
     Download the audio of `url` with yt-dlp, convert it to MP3, and optionally
     trim it to [start, end). Returns the path of the resulting MP3.
     """
+    if start is not None and end is not None and end <= start:
+        raise ValueError(f"end ({end}s) must be after start ({start}s)")
     try:
         import yt_dlp
     except ImportError as exc:
@@ -113,6 +115,8 @@ def download_mp3(
         "format": "bestaudio/best",
         "outtmpl": str(out_dir / "%(title).80B [%(id)s].%(ext)s"),
         "noplaylist": True,
+        # A pure playlist link would otherwise fetch every entry; take only the first.
+        "playlist_items": "1",
         "restrictfilenames": False,
         "quiet": not logger.isEnabledFor(logging.DEBUG),
         "no_warnings": not logger.isEnabledFor(logging.DEBUG),
