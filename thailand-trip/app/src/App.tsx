@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { defaultDate, trip, type TripState } from "@trip/shared";
-import { loadState } from "./api";
+import { defaultDate, publicTrip, thDate, withPrivate, type TripState } from "@trip/shared";
+import { cachedPrivate, loadPrivate, loadState } from "./api";
+import { TripContext } from "./tripContext";
 import { Today } from "./screens/Today";
 import { MapView } from "./screens/MapView";
 import { Alerts } from "./screens/Alerts";
@@ -24,19 +25,23 @@ const tabFromHash = (): Tab => {
 export interface Live {
   state: TripState | null;
   offline: boolean;
+  /** The server answered, but its data is old (the cron may have stopped). */
+  stale?: boolean;
   error?: string;
   loading: boolean;
 }
 
 export function App() {
   const [tab, setTab] = useState<Tab>(tabFromHash);
-  const [date, setDate] = useState(() => defaultDate(trip, new Date()));
+  const [date, setDate] = useState(() => defaultDate(publicTrip, new Date()));
+  const [trip, setTrip] = useState(() => withPrivate(publicTrip, cachedPrivate()));
   const [live, setLive] = useState<Live>({ state: null, offline: false, loading: true });
 
   const refresh = useCallback(async () => {
     setLive((l) => ({ ...l, loading: true }));
-    const r = await loadState();
+    const [r, priv] = await Promise.all([loadState(), loadPrivate()]);
     setLive({ ...r, loading: false });
+    if (priv) setTrip(withPrivate(publicTrip, priv));
   }, []);
 
   useEffect(() => {
@@ -55,9 +60,10 @@ export function App() {
     window.location.hash = t;
     setTab(t);
   };
-  const activeCount = live.state?.alerts.filter((a) => a.category !== "reminder" && a.date >= date).length ?? 0;
+  const activeCount = live.state?.alerts.filter((a) => a.category !== "reminder" && a.date >= thDate(new Date())).length ?? 0;
 
   return (
+    <TripContext.Provider value={trip}>
     <div className="shell">
       <main className="screen">
         {tab === "today" && <Today date={date} setDate={setDate} live={live} refresh={refresh} openAlerts={() => go("alerts")} />}
@@ -78,5 +84,6 @@ export function App() {
         ))}
       </nav>
     </div>
+    </TripContext.Provider>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { dayOf, thDate, trip, type TripAlert } from "@trip/shared";
+import { dayOf, thDate, type TripAlert } from "@trip/shared";
+import { useTrip } from "../tripContext";
 import type { Live } from "../App";
 import { replan } from "../api";
 import { dayLabel, severityText, shortDay } from "../format";
@@ -43,11 +44,12 @@ export function Alerts({ date, setDate, live, refresh }: { date: string; setDate
   const [plan, setPlan] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const trip = useTrip();
   const day = dayOf(trip, date)!;
   const today = thDate(new Date());
   const order = { urgent: 0, warning: 1, info: 2 };
   const upcoming = (live.state?.alerts ?? [])
-    .filter((a) => a.category !== "reminder" && a.date >= (today < trip.days[0].date ? trip.days[0].date : today))
+    .filter((a) => a.category !== "reminder" && a.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date) || order[a.severity] - order[b.severity]);
   const forDay = upcoming.filter((a) => a.date === date);
   const later = upcoming.filter((a) => a.date !== date);

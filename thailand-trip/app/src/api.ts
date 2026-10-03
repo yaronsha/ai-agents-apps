@@ -1,6 +1,9 @@
-import type { TripState } from "@trip/shared";
+import type { TripPrivate, TripState } from "@trip/shared";
 
-const KEYS = { api: "trip.apiUrl", token: "trip.token", state: "trip.lastState" };
+const KEYS = { api: "trip.apiUrl", token: "trip.token", state: "trip.lastState", private: "trip.private" };
+
+/** The cron saves state at least hourly; older than this means something stopped. */
+const STALE_MS = 90 * 60_000;
 
 function read(key: string): string | null {
   try {
@@ -38,14 +41,37 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /** Live state from the worker; falls back to the last copy saved on the phone when offline. */
-export async function loadState(): Promise<{ state: TripState | null; offline: boolean; error?: string }> {
+export async function loadState(): Promise<{ state: TripState | null; offline: boolean; stale: boolean; error?: string }> {
   try {
     const state = await call<TripState>("/api/state");
     write(KEYS.state, JSON.stringify(state));
-    return { state, offline: false };
+    return { state, offline: false, stale: Date.now() - Date.parse(state.generatedAt) > STALE_MS };
   } catch (err) {
     const saved = read(KEYS.state);
-    return { state: saved ? (JSON.parse(saved) as TripState) : null, offline: true, error: (err as Error).message };
+    return { state: saved ? (JSON.parse(saved) as TripState) : null, offline: true, stale: true, error: (err as Error).message };
+  }
+}
+
+/**
+ * Hotels and flights are not in the app bundle (the site is public); the worker sends them
+ * to anyone with the access code, and the phone keeps a copy for offline use.
+ */
+export async function loadPrivate(): Promise<TripPrivate | null> {
+  try {
+    const priv = await call<TripPrivate>("/api/trip-private");
+    write(KEYS.private, JSON.stringify(priv));
+    return priv;
+  } catch {
+    return null;
+  }
+}
+
+export function cachedPrivate(): TripPrivate | null {
+  const saved = read(KEYS.private);
+  try {
+    return saved ? (JSON.parse(saved) as TripPrivate) : null;
+  } catch {
+    return null;
   }
 }
 

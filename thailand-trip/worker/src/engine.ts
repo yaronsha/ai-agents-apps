@@ -20,7 +20,6 @@ import {
   thDate,
   thLocal,
   thParts,
-  trip,
   weatherAlerts,
   type HourlyAir,
   type HourlyForecast,
@@ -29,6 +28,7 @@ import {
   type TripAlert,
   type TripState,
 } from "@trip/shared";
+import { trip } from "@trip/shared/private";
 import type { Env } from "./env";
 import { Store } from "./store";
 import { sendToAll } from "./push";
@@ -58,7 +58,10 @@ interface FlightCache {
 }
 
 export interface RunOptions {
-  /** Compute and return the state without sending pushes or saving anything. */
+  /**
+   * Compute and return the state without sending pushes or saving anything. Paid sources
+   * (Claude, Routes, flights) are skipped: a dry run saves no budget, so it must not spend any.
+   */
   dryRun?: boolean;
 }
 
@@ -145,7 +148,7 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   const newsBefore = newsItems;
   let seen = await store.json<string[]>("news:seen", []);
   const seenBefore = seen;
-  if (hourly && newsWindow && env.ANTHROPIC_API_KEY) {
+  if (hourly && newsWindow && env.ANTHROPIC_API_KEY && !opts.dryRun) {
     try {
       const fresh = (await fetchArticles()).filter((a) => !seen.includes(a.url)).slice(0, 25);
       if (fresh.length && spend("claude")) {
@@ -161,7 +164,7 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   alerts.push(...newsAlerts(newsItems, now));
 
   // Drive times: in the 3 hours before each planned departure today.
-  if (env.GOOGLE_MAPS_KEY) {
+  if (env.GOOGLE_MAPS_KEY && !opts.dryRun) {
     for (const drive of trip.days.find((d) => d.date === today)?.drives ?? []) {
       const untilMin = (thLocal(drive.departAt).getTime() - now.getTime()) / MIN;
       const from = placeOf(trip, drive.fromId);
@@ -180,7 +183,7 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   // Flights: hourly from 24 hours before departure, every 15 minutes in the last 6 hours.
   const flightsBefore = await store.json<FlightCache>("flights", { gates: {}, alerts: [] });
   const flights: FlightCache = { gates: { ...flightsBefore.gates }, alerts: [...flightsBefore.alerts] };
-  if (env.RAPIDAPI_KEY) {
+  if (env.RAPIDAPI_KEY && !opts.dryRun) {
     for (const f of trip.flights) {
       if (!f.number || !f.departLocal) continue;
       const hoursLeft = (localAt(f.departLocal, f.departUtcOffset).getTime() - now.getTime()) / 3_600_000;

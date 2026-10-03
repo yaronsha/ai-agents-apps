@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { hhmm, hospitals, placeOf, trip, googleMapsDirections } from "@trip/shared";
+import { hhmm, hospitals, placeOf, publicTrip, googleMapsDirections } from "@trip/shared";
+import { useTrip } from "../tripContext";
 import type { Live } from "../App";
 import { DayPicker } from "./DayPicker";
 import { shortDay } from "../format";
 
-const dayColor = (i: number) => `hsl(${(i * 360) / trip.days.length + 170}, 62%, 38%)`;
+const dayColor = (i: number) => `hsl(${(i * 360) / publicTrip.days.length + 170}, 62%, 38%)`;
 
 export function MapView({ date, setDate, live }: { date: string; setDate: (d: string) => void; live: Live }) {
   const el = useRef<HTMLDivElement>(null);
@@ -14,6 +15,7 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
   const [showHospitals, setShowHospitals] = useState(false);
   const [locating, setLocating] = useState(false);
   const me = useRef<L.CircleMarker | null>(null);
+  const trip = useTrip();
 
   useEffect(() => {
     if (!el.current || map.current) return;
@@ -77,7 +79,7 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
       );
     }
     if (focus) m.fitBounds(focus, { padding: [40, 40], maxZoom: 12 });
-  }, [date, showHospitals, live.state, setDate]);
+  }, [date, showHospitals, live.state, setDate, trip]);
 
   const locate = () => {
     if (!navigator.geolocation || !map.current) return;

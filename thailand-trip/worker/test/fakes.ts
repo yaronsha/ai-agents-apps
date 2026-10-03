@@ -1,4 +1,4 @@
-import { trip } from "@trip/shared";
+import { trip } from "@trip/shared/private";
 import type { Env } from "../src/env";
 
 export class FakeKV {

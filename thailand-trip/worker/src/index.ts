@@ -1,4 +1,4 @@
-import { trip } from "@trip/shared";
+import { trip, tripPrivateData } from "@trip/shared/private";
 import type { Env } from "./env";
 import { runCheck } from "./engine";
 import { Store } from "./store";
@@ -24,15 +24,22 @@ export default {
     const url = new URL(req.url);
     const store = new Store(env.TRIP_KV);
 
-    if (req.method === "GET" && url.pathname === "/api/state") {
-      return json((await store.state()) ?? (await runCheck(env, new Date(), { dryRun: true })));
-    }
     if (req.method === "GET" && url.pathname === "/api/config") {
       return json({ vapidPublicKey: env.VAPID_PUBLIC_KEY, claude: Boolean(env.ANTHROPIC_API_KEY) });
     }
 
-    if (req.method !== "POST" || !url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
+    // Everything else (state included: alerts can name hotels) needs the access code.
+    if (!url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
     if (!authorized(req, env)) return json({ error: "קוד גישה שגוי" }, 401);
+
+    if (req.method === "GET" && url.pathname === "/api/state") {
+      // Before the first cron run there is no saved state; a dry run uses only the free sources.
+      return json((await store.state()) ?? (await runCheck(env, new Date(), { dryRun: true })));
+    }
+    if (req.method === "GET" && url.pathname === "/api/trip-private") {
+      return json(tripPrivateData);
+    }
+    if (req.method !== "POST") return json({ error: "not found" }, 404);
 
     switch (url.pathname) {
       case "/api/subscribe": {

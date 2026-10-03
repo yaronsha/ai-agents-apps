@@ -32,6 +32,8 @@ Every paid source is optional; without its key the app simply skips it. Daily ca
 
 This repository is public, so hotel names and flight numbers are not committed. They live in `shared/src/trip-private.json`, which is git-ignored. `npm install` copies `trip-private.example.json` to it if it is missing; replace it with your real file. Set `number` and `departLocal` on each flight to turn on flight tracking.
 
+Only the worker bundles this file (through `@trip/shared/private`). The app is a public site, so it is built from the itinerary alone and fetches hotels and flights from `GET /api/trip-private`, which, like `/api/state`, needs the access code. Never import `@trip/shared/private` from `app/`.
+
 ## Setup
 
 Requires Node 20+ and a free Cloudflare account.

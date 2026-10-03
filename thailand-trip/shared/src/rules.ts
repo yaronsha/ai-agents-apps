@@ -1,7 +1,7 @@
 // Turns raw readings into alerts, and decides when each alert becomes a push.
 // Pure functions: the worker feeds them data, the tests feed them fixtures.
 import type { Day, DayStatus, Drive, Flight, Stop, StopForecast, Trip, TripAlert } from "./types";
-import { addDays, addHours, deferPastQuiet, eveningBefore, hhmm, localAt, thDate, thLocal } from "./time";
+import { addDays, addHours, deferPastQuiet, hhmm, localAt, thDate, thLocal } from "./time";
 import { distanceKm, placeOf } from "./trip";
 
 export const RULES = {
@@ -65,11 +65,17 @@ export function summarizeStop(stop: Stop, fc?: HourlyForecast, air?: HourlyAir):
   };
 }
 
-/** Evening briefing the day before, plus a push 2 hours before the stop (moved out of quiet hours). */
-export function warningPushes(date: string, start: Date): string[] {
-  const times = [eveningBefore(date), deferPastQuiet(addHours(start, -2))];
-  const iso = [...new Set(times.map((d) => d.toISOString()))];
-  return iso.sort();
+/**
+ * A push 2 hours before the stop, moved out of quiet hours. The night before is covered by the
+ * 20:00 briefing (these alerts are digest alerts), so there is no separate evening push. A push
+ * that quiet hours would move past the day's first departure is dropped: by then they are on the road.
+ */
+export function warningPushes(day: Day, start: Date): string[] {
+  const wanted = addHours(start, -2);
+  const at = deferPastQuiet(wanted);
+  const departAt = day.drives[0]?.departAt;
+  if (at.getTime() !== wanted.getTime() && departAt && at.getTime() > thLocal(departAt).getTime()) return [];
+  return [at.toISOString()];
 }
 
 export function weatherAlerts(day: Day, summaries: Record<string, StopForecast>): TripAlert[] {
@@ -88,7 +94,7 @@ export function weatherAlerts(day: Day, summaries: Record<string, StopForecast>)
       stopId: stop.id,
       titleHe: `${what} צפוי ב${stop.nameHe}`,
       bodyHe: `בין ${hhmm(stop.start)} ל-${hhmm(stop.end)}. ${day.planB[0] ?? ""}`.trim(),
-      pushAt: warningPushes(day.date, thLocal(stop.start)),
+      pushAt: warningPushes(day, thLocal(stop.start)),
       digest: true,
     });
   }
