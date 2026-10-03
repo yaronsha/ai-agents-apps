@@ -484,7 +484,8 @@ function songToTex(song, title, unitsPerWhole) {
   const q = (tick) => Math.round(tick / grid);
 
   // Bars: [start, length] in grid units, following the time-signature map.
-  const lastUnit = Math.max(...song.parts.map((p) => Math.max(...p.notes.map((n) => q(n.end)))));
+  // Notes last at least one grid step (see the chord events below), so count that too.
+  const lastUnit = Math.max(...song.parts.map((p) => Math.max(...p.notes.map((n) => Math.max(q(n.tick) + 1, q(n.end))))));
   const tsAt = (unit) => {
     let cur = { num: 4, den: 4 };
     for (const ts of song.timeSigs) if (q(ts.tick) <= unit) cur = ts;
@@ -673,6 +674,7 @@ function initAlphaTab() {
   });
   a.scoreLoaded.on((score) => {
     ui.trackSel.innerHTML = "";
+    if (score.tracks.length > 1) ui.trackSel.add(new Option("All tracks", ""));
     score.tracks.forEach((t, i) => ui.trackSel.add(new Option(t.name || "Track " + (i + 1), i)));
     ui.trackSel.disabled = score.tracks.length < 2;
     ui.gp.disabled = false; ui.print.disabled = false;
@@ -682,7 +684,8 @@ function initAlphaTab() {
 
 function selectedTrack() {
   if (!api || !api.score) return null;
-  return api.score.tracks[Number(ui.trackSel.value) || 0] || null;
+  if (ui.trackSel.value === "") return null; // all tracks
+  return api.score.tracks[Number(ui.trackSel.value)] || null;
 }
 
 function fmtTime(ms) {
@@ -847,10 +850,11 @@ function wire() {
     seeking = false;
   };
   ui.trackSel.onchange = () => {
+    if (!api || !api.score) return;
     const t = selectedTrack();
-    if (!t) return;
-    api.renderTracks([t]);
     api.changeTrackSolo(api.score.tracks, false);
+    if (!t) { api.renderTracks(api.score.tracks); return; }
+    api.renderTracks([t]);
     api.changeTrackSolo([t], true);
   };
   ui.viewSel.onchange = applySettings;

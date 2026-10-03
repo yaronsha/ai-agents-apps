@@ -11,6 +11,16 @@ from . import __version__
 from .pipeline import run_pipeline
 
 
+def _positive_float(value: str) -> float:
+    try:
+        x = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a number: {value!r}") from None
+    if not 0 < x < float("inf"):
+        raise argparse.ArgumentTypeError(f"must be > 0, got {value}")
+    return x
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="guitar_tabber",
@@ -57,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--bpm",
-        type=float,
+        type=_positive_float,
         default=None,
         help="Song tempo for the bar grid (default: estimated from the audio). "
         "Can also be changed later in the browser viewer.",

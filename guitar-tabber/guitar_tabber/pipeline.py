@@ -50,6 +50,8 @@ def run_pipeline(
     Writes ``<input>.tab.txt`` (ASCII), ``<input>.mid`` and ``<input>.tab.html``
     (browser viewer with playback). A ``.mid`` input skips audio analysis.
     """
+    if tempo_bpm is not None and not 0 < tempo_bpm < float("inf"):
+        raise ValueError(f"tempo_bpm must be > 0, got {tempo_bpm}")
     input_path = Path(input_path)
     if output_tab_path is None:
         output_tab_path = input_path.with_suffix(".tab.txt")
@@ -96,7 +98,7 @@ def run_pipeline(
                 logger.info("Saved guitar stem to %s", dest)
 
         # 3. Pitch / onset detection (+ tempo from the full mix, for the bar grid)
-        if tempo_bpm:
+        if tempo_bpm is not None:
             first_beat = 0.0
             logger.info("Tempo: %.1f bpm (--bpm)", tempo_bpm)
         else:
