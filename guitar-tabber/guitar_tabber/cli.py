@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import tempfile
 from pathlib import Path
 
 from . import __version__
@@ -115,20 +116,31 @@ def main(argv: list[str] | None = None) -> int:
         if not input_path.exists():
             print(f"error: input not found: {input_path}", file=sys.stderr)
             return 1
-        if start is not None or end is not None:
-            try:
-                input_path = trim_audio(input_path, clip_path_for(input_path, start, end), start, end)
-            except Exception as exc:
-                print(f"error: trim failed: {exc}", file=sys.stderr)
-                return 1
-            print(f"(clip: {input_path})")
+
+    output_tab_path = args.output
+    clip_dir = None
+    if not is_url(args.input) and (start is not None or end is not None):
+        # Trim local files to a lossless WAV in a temp dir (no re-encoding,
+        # nothing left next to the source); the tab is named after the clip.
+        clip_dir = tempfile.TemporaryDirectory(prefix="guitar_tabber_clip_")
+        clip_name = clip_path_for(input_path, start, end)
+        if output_tab_path is None:
+            output_tab_path = clip_name.with_suffix(".tab.txt")
+        try:
+            input_path = trim_audio(
+                input_path, Path(clip_dir.name) / clip_name.with_suffix(".wav").name, start, end
+            )
+        except Exception as exc:
+            clip_dir.cleanup()
+            print(f"error: trim failed: {exc}", file=sys.stderr)
+            return 1
 
     try:
         result = run_pipeline(
             input_path,
             skip_separation=args.skip_separation,
             keep_stems=args.keep_stems,
-            output_tab_path=args.output,
+            output_tab_path=output_tab_path,
             demucs_model=args.model,
             device=args.device,
         )
@@ -136,6 +148,9 @@ def main(argv: list[str] | None = None) -> int:
         logging.exception("Pipeline failed")
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    finally:
+        if clip_dir is not None:
+            clip_dir.cleanup()
 
     print(result.tab)
     print()

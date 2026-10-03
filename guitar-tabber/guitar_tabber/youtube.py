@@ -61,7 +61,10 @@ def trim_audio(
     end: float | None = None,
     bitrate: str = "192k",
 ) -> Path:
-    """Cut [start, end) seconds out of input_path into an MP3 via ffmpeg."""
+    """Cut [start, end) seconds out of input_path via ffmpeg.
+
+    Writes MP3 when output_path ends in .mp3, otherwise lossless 16-bit PCM WAV.
+    """
     require_ffmpeg()
     if start is not None and end is not None and end <= start:
         raise ValueError(f"end ({end}s) must be after start ({start}s)")
@@ -70,7 +73,10 @@ def trim_audio(
         cmd += ["-ss", f"{start:.3f}"]
     if end is not None:
         cmd += ["-to", f"{end:.3f}"]
-    cmd += ["-vn", "-codec:a", "libmp3lame", "-b:a", bitrate, str(output_path)]
+    if Path(output_path).suffix.lower() == ".mp3":
+        cmd += ["-vn", "-codec:a", "libmp3lame", "-b:a", bitrate, str(output_path)]
+    else:
+        cmd += ["-vn", "-codec:a", "pcm_s16le", str(output_path)]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(

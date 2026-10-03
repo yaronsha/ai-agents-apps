@@ -149,6 +149,30 @@ class CliTests(unittest.TestCase):
         self.assertEqual(fed.parent, self.dir)
         self.assertIn(".clip_", fed.name)
 
+    def test_local_clip_is_lossless_and_leaves_no_file(self):
+        import shutil
+        src = self.dir / "song.wav"
+        shutil.copy(FIXTURE.with_suffix(".wav"), src)
+        seen = {}
+
+        def fake_run(path, **kw):
+            seen["path"], seen["tab"] = Path(path), kw["output_tab_path"]
+            seen["exists"] = Path(path).exists()
+            return types.SimpleNamespace(tab="TAB", note_count=0, guitar_stem_path=None)
+
+        try:
+            from guitar_tabber import cli
+        except ImportError as exc:
+            self.skipTest(f"tabber deps missing: {exc}")
+        with mock.patch.object(cli, "run_pipeline", side_effect=fake_run):
+            code = cli.main([str(src), "--start", "0.5", "--end", "1.5"])
+        self.assertEqual(code, 0)
+        self.assertEqual(seen["path"].suffix, ".wav")
+        self.assertTrue(seen["exists"])
+        self.assertFalse(seen["path"].exists())  # temp clip cleaned up
+        self.assertEqual(seen["tab"].parent, self.dir)
+        self.assertEqual(sorted(p.name for p in self.dir.iterdir()), ["song.wav"])
+
     def test_bad_time(self):
         code, run = self._run_cli(["song.mp3", "--start", "abc"])
         self.assertEqual(code, 1)
