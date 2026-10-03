@@ -163,7 +163,10 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   newsItems = newsItems.filter((n) => n.date >= today).slice(0, 30);
   alerts.push(...newsAlerts(newsItems, now));
 
-  // Drive times: in the 3 hours before each planned departure today.
+  // Drive times: in the 3 hours before each planned departure today. The last reading of each
+  // drive is kept for the rest of the day, so a closed road stays on screen after departure time.
+  const roadBefore = await store.json<TripAlert[]>("road:alerts", []);
+  let roadAlerts = roadBefore.filter((a) => a.date === today);
   if (env.GOOGLE_MAPS_KEY && !opts.dryRun) {
     for (const drive of trip.days.find((d) => d.date === today)?.drives ?? []) {
       const untilMin = (thLocal(drive.departAt).getTime() - now.getTime()) / MIN;
@@ -172,13 +175,14 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
       if (untilMin < 0 || untilMin > 180 || !from || !to || !spend("routes")) continue;
       try {
         const a = routeAlert(trip, drive, today, await fetchDriveTime(env.GOOGLE_MAPS_KEY, from, to, now), now);
-        if (a) alerts.push(a);
+        roadAlerts = [...roadAlerts.filter((x) => !x.id.startsWith(`road:${drive.id}:`)), ...(a ? [a] : [])];
         note("routes", true);
       } catch (err) {
         note("routes", false, String(err));
       }
     }
   }
+  alerts.push(...roadAlerts);
 
   // Flights: hourly from 24 hours before departure, every 15 minutes in the last 6 hours.
   const flightsBefore = await store.json<FlightCache>("flights", { gates: {}, alerts: [] });
@@ -191,7 +195,14 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
       try {
         const status = await fetchFlightStatus(env.RAPIDAPI_KEY, f);
         if (status) {
-          flights.alerts = [...flights.alerts.filter((a) => !a.id.startsWith(`flight:${f.id}:`)), ...flightAlerts(f, status, flights.gates[f.id], now)];
+          // A gate change is reported once, when the gate moves; keep it until the next move.
+          const fresh = flightAlerts(f, status, flights.gates[f.id], now);
+          const gate = `flight:${f.id}:gate:`;
+          const keepGate = !fresh.some((a) => a.id.startsWith(gate));
+          flights.alerts = [
+            ...flights.alerts.filter((a) => !a.id.startsWith(`flight:${f.id}:`) || (keepGate && a.id.startsWith(gate))),
+            ...fresh,
+          ];
           if (status.gate) flights.gates[f.id] = status.gate;
         }
         note("flights", true);
@@ -238,6 +249,7 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   await store.putIfChanged("news:items", newsItems, newsBefore);
   await store.putIfChanged("news:seen", seen, seenBefore);
   await store.putIfChanged("flights", flights, flightsBefore);
+  await store.putIfChanged("road:alerts", roadAlerts, roadBefore);
 
   // The state changes every run (timestamps); save it when its content changed, or hourly.
   const previous = await store.state();

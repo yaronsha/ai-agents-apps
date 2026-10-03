@@ -27,6 +27,8 @@ export interface Result {
   lines: Line[];
   pushes: ReceivedPush[];
   firstSeen: Map<string, { at: string; alert: TripAlert }>;
+  /** The alert ids on screen after each cron run. */
+  snapshots: Array<{ at: string; ids: Set<string> }>;
   final: TripState;
   checks: Array<{ ok: boolean; text: string }>;
   calls: Record<string, number>;
@@ -50,6 +52,7 @@ export async function play(scenario: Scenario, opts: { realClaudeKey?: string; p
 
   const lines: Line[] = [];
   const firstSeen = new Map<string, { at: string; alert: TripAlert }>();
+  const snapshots: Result["snapshots"] = [];
   let previous = new Set<string>();
   let state: TripState | null = null;
   const step = (scenario.stepMin ?? 15) * 60_000;
@@ -81,6 +84,7 @@ export async function play(scenario: Scenario, opts: { realClaudeKey?: string; p
     for (const [source, s] of Object.entries(state.sources)) {
       if (!s.ok) lines.push({ at: clock, kind: "error", text: `${source}: ${s.note}` });
     }
+    snapshots.push({ at: clock, ids: current });
     previous = current;
     last = t;
   }
@@ -88,7 +92,7 @@ export async function play(scenario: Scenario, opts: { realClaudeKey?: string; p
 
   const calls: Record<string, number> = {};
   for (const c of world.calls) calls[c.source] = (calls[c.source] ?? 0) + 1;
-  const result: Result = { scenario, lines, pushes: world.push.received, firstSeen, final: state!, checks: [], calls };
+  const result: Result = { scenario, lines, pushes: world.push.received, firstSeen, snapshots, final: state!, checks: [], calls };
   result.checks = scenario.expect.map((x) => check(x, result));
   if (world.unexpected.length) result.checks.push({ ok: false, text: "the worker called a service the simulator does not know" });
   return { result, worker, world };
@@ -108,11 +112,17 @@ function check(x: Expectation, r: Result): { ok: boolean; text: string } {
     const seen = matching(x.noAlert).filter(([, s]) => !x.before || s.at < x.before);
     return { ok: !seen.length, text: `no alert ${x.noAlert}${x.before ? ` before ${x.before.slice(11)}` : ""}: ${seen.length ? `but saw ${seen.map(([id, s]) => `${id} at ${s.at.slice(11)}`).join(", ")}` : "none"}` };
   }
+  if ("visible" in x) {
+    const snap = r.snapshots.filter((s) => s.at <= x.at).at(-1);
+    const ok = Boolean(snap && [...snap.ids].some((id) => id.startsWith(x.visible)));
+    return { ok, text: `alert ${x.visible} still shown at ${x.at.slice(11)}: ${ok ? "yes" : "no"}` };
+  }
   if ("push" in x) {
-    const hits = r.pushes.filter((p) => pushHas(p, x.push));
+    const hits = r.pushes.filter((p) => pushHas(p, x.push) && (!x.bodyNot || !p.body.includes(x.bodyNot)));
     const inWindow = hits.filter((p) => (!x.after || thClock(p.at) >= x.after) && (!x.before || thClock(p.at) <= x.before));
     const window = x.after || x.before ? ` between ${x.after?.slice(11) ?? "start"} and ${x.before?.slice(11) ?? "end"}` : "";
-    return { ok: inWindow.length > 0, text: `push "${x.push}"${window}: ${hits.length ? `sent at ${hits.map((p) => thClock(p.at).slice(11)).join(", ")}` : "not sent"}` };
+    const not = x.bodyNot ? ` without "${x.bodyNot}" in its text` : "";
+    return { ok: inWindow.length > 0, text: `push "${x.push}"${not}${window}: ${hits.length ? `sent at ${hits.map((p) => thClock(p.at).slice(11)).join(", ")}` : "not sent"}` };
   }
   if ("noPush" in x) {
     const hits = r.pushes.filter((p) => pushHas(p, x.noPush));
