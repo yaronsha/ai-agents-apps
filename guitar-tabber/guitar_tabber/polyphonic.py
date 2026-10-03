@@ -111,7 +111,13 @@ def _is_overtone(ev, events, tol, overtone_ratio, sub_octave_ratio) -> bool:
         if other is ev or other.start > ev.start + tol or other.end <= ev.start:
             continue
         diff = ev.midi - other.midi
-        if diff in OVERTONE_INTERVALS and ev.amp < overtone_ratio * other.amp:
+        # Overtone ghosts start together with their fundamental; a real note picked
+        # over an already-ringing bass string must not be mistaken for one.
+        if (
+            diff in OVERTONE_INTERVALS
+            and abs(ev.start - other.start) <= tol
+            and ev.amp < overtone_ratio * other.amp
+        ):
             return True
         # Sub-octave ghost of a note attacked at the same moment
         if diff == -12 and abs(ev.start - other.start) <= tol and ev.amp < sub_octave_ratio * other.amp:

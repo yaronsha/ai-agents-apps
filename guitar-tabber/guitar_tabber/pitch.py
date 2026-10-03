@@ -86,6 +86,7 @@ def detect_notes(
 
     notes: list[DetectedNote] = []
     i = 0
+    prev_end = 0
     while i < n:
         if frame_midi[i] is None:
             i += 1
@@ -101,7 +102,11 @@ def detect_notes(
                 if len(window) == pitch_change_frames and all(m == frame_midi[i] for m in window):
                     break
             i += 1
-        emit(start, i, from_onset=start in onset_frames)
+        # pyin often drops out for a few frames at a re-pluck and the onset lands
+        # in that gap, so count any onset since the previous segment ended.
+        attacked = any(f in onset_frames for f in range(prev_end, start + 2))
+        emit(start, i, from_onset=attacked)
+        prev_end = i
 
     # Also snap notes to onset boundaries when onsets are available
     notes = _refine_with_onsets(y, sr, notes, hop_length=hop_length)
