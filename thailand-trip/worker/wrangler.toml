@@ -8,8 +8,8 @@ crons = ["*/15 * * * *"]
 
 [[kv_namespaces]]
 binding = "TRIP_KV"
-# Create with: npx wrangler kv namespace create TRIP_KV   (then paste the id here)
-id = "REPLACE_WITH_KV_ID"
+# Created in the Cloudflare account as "thailand-trip-TRIP_KV"
+id = "13fa53eda98a4075bae6c728ddf2ef49"
 
 [vars]
 VAPID_PUBLIC_KEY = ""

@@ -47,7 +47,7 @@ npm test
 ```bash
 cd worker
 npx wrangler login
-npx wrangler kv namespace create TRIP_KV     # paste the id into wrangler.toml
+# The KV namespace already exists; its id is in wrangler.toml
 npm run vapid                                # prints a public key and a private JWK
 ```
 
