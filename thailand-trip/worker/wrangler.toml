@@ -1,0 +1,25 @@
+name = "thailand-trip"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# Every 15 minutes. The engine itself decides which sources are worth calling on each run.
+[triggers]
+crons = ["*/15 * * * *"]
+
+[[kv_namespaces]]
+binding = "TRIP_KV"
+# Created in the Cloudflare account as "thailand-trip-TRIP_KV"
+id = "13fa53eda98a4075bae6c728ddf2ef49"
+
+[vars]
+VAPID_PUBLIC_KEY = ""
+VAPID_CONTACT = "mailto:you@example.com"
+CLAUDE_TRIAGE_MODEL = "claude-haiku-4-5"
+CLAUDE_REPLAN_MODEL = "claude-sonnet-5-5"
+
+# Secrets (set with `npx wrangler secret put NAME`, or put them in .dev.vars for local dev):
+#   APP_TOKEN           shared code the app sends; protects push, test and re-plan endpoints
+#   VAPID_PRIVATE_JWK   private key JSON from `npm run vapid`
+#   ANTHROPIC_API_KEY   optional: news triage and "re-plan for me"
+#   GOOGLE_MAPS_KEY     optional: live drive times (Routes API)
+#   RAPIDAPI_KEY        optional: flight status (AeroDataBox on RapidAPI)
