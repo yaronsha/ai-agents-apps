@@ -26,8 +26,9 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from guitar_tabber.audio import load_audio  # noqa: E402
-from guitar_tabber.fretboard import map_midi_to_fret  # noqa: E402
+from guitar_tabber.fretboard import map_midis_to_chord  # noqa: E402
 from guitar_tabber.pitch import detect_notes, merge_nearby_same_pitch  # noqa: E402
+from guitar_tabber.polyphonic import detect_notes_polyphonic  # noqa: E402
 from reference_songs import SONGS, RefSong  # noqa: E402
 
 SOUNDFONT = Path("/usr/share/sounds/sf2/FluidR3_GM.sf2")
@@ -98,16 +99,36 @@ def f1(hits: int, n_ref: int, n_est: int) -> float:
     return 2 * p * r / (p + r)
 
 
-def evaluate(song: RefSong, guitar: str, verbose: bool = False) -> dict:
+def tab_positions(notes, chord_window: float = 0.05):
+    """(time, midi, string, fret) per note, grouping chords the way tab.py does."""
+    out = []
+    i = 0
+    while i < len(notes):
+        j = i + 1
+        while j < len(notes) and notes[j].time - notes[i].time <= chord_window:
+            j += 1
+        cluster = notes[i:j]
+        frame = map_midis_to_chord([n.midi for n in cluster])
+        for n in cluster:
+            s = next((s for s, f in frame.items() if OPEN_MIDI[s] + f == n.midi), -1)
+            out.append((n.time, n.midi, s, frame.get(s, -1)))
+        i = j
+    return out
+
+
+OPEN_MIDI = (40, 45, 50, 55, 59, 64)
+
+
+def evaluate(song: RefSong, guitar: str, verbose: bool = False, engine: str = "basic-pitch") -> dict:
     wav = render(song, guitar)
-    y, sr = load_audio(wav, sample_rate=22050)
-    notes = merge_nearby_same_pitch(detect_notes(y, sr))
+    if engine == "basic-pitch":
+        notes = detect_notes_polyphonic(wav)
+    else:
+        y, sr = load_audio(wav, sample_rate=22050)
+        notes = merge_nearby_same_pitch(detect_notes(y, sr))
 
     ref = [(n.time, n.midi, n.string_index, n.fret) for n in song.notes]
-    est = []
-    for n in notes:
-        pos = map_midi_to_fret(n.midi)
-        est.append((n.time, n.midi, pos.string_index if pos else -1, pos.fret if pos else -1))
+    est = tab_positions(notes)
 
     pitch_hits = match(ref, est, key=lambda x: x[1])
     tab_hits = match(ref, est, key=lambda x: (x[2], x[3]))
@@ -139,11 +160,12 @@ def main() -> int:
     ap.add_argument("songs", nargs="*")
     ap.add_argument("-v", "--verbose", action="store_true")
     ap.add_argument("--guitar", choices=list(GUITARS), action="append")
+    ap.add_argument("--engine", choices=("basic-pitch", "pyin"), default="basic-pitch")
     args = ap.parse_args()
 
     songs = [s for s in SONGS if not args.songs or s.name in args.songs]
     guitars = args.guitar or list(GUITARS)
-    rows = [evaluate(s, g, args.verbose) for s in songs for g in guitars]
+    rows = [evaluate(s, g, args.verbose, args.engine) for s in songs for g in guitars]
 
     print(f"\n{'song':24s} {'guitar':15s} {'ref':>4s} {'est':>4s} "
           f"{'onsetF1':>8s} {'pitchF1':>8s} {'chromaF1':>9s} {'tabF1':>7s}")
@@ -153,7 +175,11 @@ def main() -> int:
     mono = [r for r in rows if not any(s.polyphonic for s in SONGS if s.name == r["song"])]
     if mono:
         avg = {k: sum(r[k] for r in mono) / len(mono) for k in ("onset_f1", "pitch_f1", "tab_f1")}
-        print(f"\nmonophonic mean: onsetF1={avg['onset_f1']:.2f} "
+    poly = [r for r in rows if r not in mono]
+    if poly:
+        print(f"polyphonic mean: pitchF1={sum(r['pitch_f1'] for r in poly) / len(poly):.2f}")
+    if mono:
+        print(f"monophonic mean: onsetF1={avg['onset_f1']:.2f} "
               f"pitchF1={avg['pitch_f1']:.2f} tabF1={avg['tab_f1']:.2f}")
     return 0
 

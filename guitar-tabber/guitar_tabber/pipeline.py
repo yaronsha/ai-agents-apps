@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .audio import extract_mono_wav, load_audio, write_wav
 from .pitch import detect_notes, merge_nearby_same_pitch
+from .polyphonic import basic_pitch_available, detect_notes_polyphonic
 from .separation import separate_guitar_stem
 from .tab import format_ascii_tab, format_note_log, notes_to_tab_frames
 
@@ -33,6 +34,7 @@ def run_pipeline(
     demucs_model: str = "htdemucs_6s",
     device: str = "cpu",
     analysis_sr: int = 22050,
+    engine: str = "basic-pitch",
     work_dir: Path | None = None,
 ) -> PipelineResult:
     """
@@ -70,10 +72,16 @@ def run_pipeline(
                 kept_stem = dest
                 logger.info("Saved guitar stem to %s", dest)
 
-        # 3. Pitch / onset detection
-        y, sr = load_audio(guitar_wav, sample_rate=analysis_sr)
-        notes = detect_notes(y, sr)
-        notes = merge_nearby_same_pitch(notes)
+        # 3. Note detection: polyphonic (chords, fingerpicking) or monophonic pyin
+        if engine == "basic-pitch" and not basic_pitch_available():
+            logger.warning("basic-pitch is not installed; falling back to monophonic pyin")
+            engine = "pyin"
+        if engine == "basic-pitch":
+            notes = detect_notes_polyphonic(guitar_wav)
+        else:
+            y, sr = load_audio(guitar_wav, sample_rate=analysis_sr)
+            notes = detect_notes(y, sr)
+            notes = merge_nearby_same_pitch(notes)
 
         # 4. Map to frets and format tab
         frames = notes_to_tab_frames(notes)
