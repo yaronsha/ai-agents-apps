@@ -74,6 +74,20 @@ Open the site, go to **הגדרות**, check the server address, enter the `APP_
 
 **iPhone:** Web Push works only after adding the site to the home screen (Share → Add to Home Screen) and opening it from there.
 
+### 3. Automatic deploy from main
+
+`.github/workflows/thailand-trip-deploy.yml` runs on every push to `main` that touches `thailand-trip/`: it type-checks, runs the tests, builds the app with `VITE_API_URL` set to the worker, then deploys the worker and the Pages project `thailand-trip-app`. Other branches and pull requests never deploy. It can also be run by hand from the Actions tab (on `main` only).
+
+Repository secrets it needs (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | A Cloudflare API token with Workers Scripts: Edit, Workers KV Storage: Edit and Cloudflare Pages: Edit |
+| `CLOUDFLARE_ACCOUNT_ID` | The Cloudflare account id |
+| `TRIP_PRIVATE_JSON` | The full contents of `shared/src/trip-private.json` |
+
+Worker secrets (`APP_TOKEN`, `VAPID_PRIVATE_JWK` and the optional keys) stay in Cloudflare; a deploy keeps them.
+
 ## How alerts work
 
 - Weather alerts go out the evening before and 2 hours before the stop. Quakes, advisory changes, urgent news and flight changes go out at once.
