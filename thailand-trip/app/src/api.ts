@@ -1,0 +1,91 @@
+import type { TripState } from "@trip/shared";
+
+const KEYS = { api: "trip.apiUrl", token: "trip.token", state: "trip.lastState" };
+
+function read(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function write(key: string, value: string | null) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    /* private mode: settings just won't stick */
+  }
+}
+
+export const settings = {
+  apiUrl: () => (read(KEYS.api) || import.meta.env.VITE_API_URL || "").replace(/\/$/, ""),
+  setApiUrl: (v: string) => write(KEYS.api, v.trim() || null),
+  token: () => read(KEYS.token) || "",
+  setToken: (v: string) => write(KEYS.token, v.trim() || null),
+};
+
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const base = settings.apiUrl();
+  if (!base) throw new Error("לא הוגדרה כתובת שרת (בהגדרות)");
+  const res = await fetch(`${base}${path}`, {
+    ...init,
+    headers: { "Content-Type": "application/json", "X-Trip-Token": settings.token(), ...(init?.headers ?? {}) },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((body as { error?: string }).error ?? `שגיאת שרת ${res.status}`);
+  return body as T;
+}
+
+/** Live state from the worker; falls back to the last copy saved on the phone when offline. */
+export async function loadState(): Promise<{ state: TripState | null; offline: boolean; error?: string }> {
+  try {
+    const state = await call<TripState>("/api/state");
+    write(KEYS.state, JSON.stringify(state));
+    return { state, offline: false };
+  } catch (err) {
+    const saved = read(KEYS.state);
+    return { state: saved ? (JSON.parse(saved) as TripState) : null, offline: true, error: (err as Error).message };
+  }
+}
+
+export const replan = (date: string, problem: string) =>
+  call<{ text: string }>("/api/replan", { method: "POST", body: JSON.stringify({ date, problem }) });
+
+export const testPush = () => call<{ sent: number }>("/api/test-push", { method: "POST" });
+
+export const previewAt = (at: string) => call<TripState>(`/api/run?at=${encodeURIComponent(at)}`, { method: "POST" });
+
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  const out = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+export function pushSupport(): "ok" | "no-sw" | "ios-not-installed" | "unsupported" {
+  if (!("serviceWorker" in navigator)) return "no-sw";
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone;
+  if (!("PushManager" in window)) return /iphone|ipad/i.test(navigator.userAgent) && !standalone ? "ios-not-installed" : "unsupported";
+  return "ok";
+}
+
+export async function enablePush(): Promise<number> {
+  const { vapidPublicKey } = await call<{ vapidPublicKey: string }>("/api/config");
+  if (!vapidPublicKey) throw new Error("לשרת אין מפתח VAPID");
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") throw new Error("לא אושרו התראות בדפדפן");
+  const reg = await navigator.serviceWorker.ready;
+  const sub =
+    (await reg.pushManager.getSubscription()) ??
+    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }));
+  const res = await call<{ devices: number }>("/api/subscribe", { method: "POST", body: JSON.stringify(sub.toJSON()) });
+  return res.devices;
+}
+
+export async function pushEnabled(): Promise<boolean> {
+  if (pushSupport() !== "ok") return false;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return Boolean(await reg?.pushManager.getSubscription());
+}
