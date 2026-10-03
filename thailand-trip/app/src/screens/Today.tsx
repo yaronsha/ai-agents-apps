@@ -1,4 +1,5 @@
-import { dayOf, googleMapsDirections, hhmm, placeOf, trip, type Stop, type StopForecast } from "@trip/shared";
+import { dayOf, googleMapsDirections, hhmm, placeOf, type Stop, type StopForecast } from "@trip/shared";
+import { useTrip } from "../tripContext";
 import type { Live } from "../App";
 import { ago, dayLabel, statusText } from "../format";
 import { DayPicker } from "./DayPicker";
@@ -32,6 +33,7 @@ function StopRow({ stop, f }: { stop: Stop; f?: StopForecast }) {
 }
 
 export function Today({ date, setDate, live, refresh, openAlerts }: { date: string; setDate: (d: string) => void; live: Live; refresh: () => void; openAlerts: () => void }) {
+  const trip = useTrip();
   const day = dayOf(trip, date)!;
   const status = live.state?.dayStatus[date];
   const lodging = day.lodgingId ? placeOf(trip, `lodging:${day.lodgingId}`) : undefined;
@@ -49,9 +51,9 @@ export function Today({ date, setDate, live, refresh, openAlerts }: { date: stri
         <strong>{status ? statusText[status] : live.loading ? "בודק..." : "אין נתונים חיים"}</strong>
         <span>{dayAlerts.length ? `${dayAlerts.length} התראות ›` : live.state ? `עודכן ${ago(live.state.generatedAt)}` : ""}</span>
       </button>
-      {live.offline && (
+      {(live.offline || live.stale) && (
         <p className="offline" onClick={refresh}>
-          מוצג מידע שמור. {live.error} · לחצו לרענון
+          {live.offline ? `מוצג מידע שמור. ${live.error ?? ""}` : "המידע מהשרת לא התעדכן לאחרונה."} עודכן {live.state ? ago(live.state.generatedAt) : "אף פעם"} · לחצו לרענון
         </p>
       )}
 

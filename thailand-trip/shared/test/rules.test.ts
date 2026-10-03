@@ -12,12 +12,12 @@ import {
   routeAlert,
   summarizeStop,
   thLocal,
-  trip,
   warningPushes,
   weatherAlerts,
   type HourlyForecast,
   type TripAlert,
 } from "../src";
+import { trip } from "../src/private";
 
 function hourly(date: string, fill: Partial<Record<keyof Omit<HourlyForecast, "time">, number>>): HourlyForecast {
   const time = Array.from({ length: 24 }, (_, h) => `${date}T${String(h).padStart(2, "0")}:00`);
@@ -49,16 +49,14 @@ describe("weather", () => {
   const day = dayOf(trip, "2026-11-26")!;
   const canyon = day.stops.find((s) => s.id === "pai-canyon")!;
 
-  it("warns about heavy rain at an outdoor stop, the evening before and 2 hours before", () => {
+  it("warns about heavy rain at an outdoor stop 2 hours before (the evening briefing covers the night before)", () => {
     const fc = hourly("2026-11-26", { precipProb: 80, precip: 3 });
     const summary = summarizeStop(canyon, fc);
     const alerts = weatherAlerts(day, { [canyon.id]: summary });
     expect(alerts).toHaveLength(1);
     expect(alerts[0].severity).toBe("warning");
-    expect(alerts[0].pushAt).toEqual([
-      thLocal("2026-11-25T20:00").toISOString(),
-      thLocal("2026-11-26T14:30").toISOString(),
-    ]);
+    expect(alerts[0].digest).toBe(true);
+    expect(alerts[0].pushAt).toEqual([thLocal("2026-11-26T14:30").toISOString()]);
   });
 
   it("stays quiet for light drizzle", () => {
@@ -71,11 +69,14 @@ describe("weather", () => {
     expect(weatherAlerts(day, { [canyon.id]: summarizeStop(canyon, fc) })[0].id).toContain("storm");
   });
 
-  it("pushes 2 hours before an early stop at 06:00, not in the night", () => {
-    expect(warningPushes("2026-11-30", thLocal("2026-11-30T06:00"))).toEqual([
-      thLocal("2026-11-29T20:00").toISOString(),
-      thLocal("2026-11-30T06:00").toISOString(),
-    ]);
+  it("moves a pre-dawn warning out of quiet hours when the van has not left yet", () => {
+    const late = { ...dayOf(trip, "2026-11-30")!, drives: [{ id: "x", fromId: "a", toId: "b", departAt: "2026-11-30T07:00" }] };
+    expect(warningPushes(late, thLocal("2026-11-30T06:30"))).toEqual([thLocal("2026-11-30T06:00").toISOString()]);
+  });
+
+  it("skips a deferred warning that would land after departure", () => {
+    const early = { ...dayOf(trip, "2026-11-30")!, drives: [{ id: "x", fromId: "a", toId: "b", departAt: "2026-11-30T03:30" }] };
+    expect(warningPushes(early, thLocal("2026-11-30T06:00"))).toEqual([]);
   });
 });
 

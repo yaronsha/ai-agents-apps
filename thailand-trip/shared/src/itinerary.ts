@@ -1,7 +1,6 @@
 // Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-03).
 // Coordinates are approximate (a few hundred metres to a couple of km); fix any that look off on the map.
 import type { Day, Trip, TripPrivate } from "./types";
-import tripPrivate from "./trip-private.json";
 
 const days: Day[] = [
   {
@@ -191,13 +190,18 @@ const days: Day[] = [
   },
 ];
 
-const priv = tripPrivate as TripPrivate;
-
-export const trip: Trip = {
+/**
+ * The itinerary without hotels or flights. This is what the app bundle contains, so it is safe
+ * to publish; the app fetches the private part from the worker with its access code.
+ */
+export const publicTrip: Trip = {
   name: "צפון תאילנד 2026",
   startDate: "2026-11-21",
   endDate: "2026-12-03",
   days,
-  lodgings: priv.lodgings,
-  flights: priv.flights,
+  lodgings: [],
+  flights: [],
 };
+
+export const withPrivate = (base: Trip, priv: TripPrivate | null | undefined): Trip =>
+  priv ? { ...base, lodgings: priv.lodgings, flights: priv.flights } : base;

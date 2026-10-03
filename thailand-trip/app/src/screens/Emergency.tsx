@@ -1,6 +1,8 @@
-import { dayOf, distanceKm, embassyUrl, emergencyNumbers, googleMapsDirections, hospitals, phrases, trip } from "@trip/shared";
+import { dayOf, distanceKm, embassyUrl, emergencyNumbers, googleMapsDirections, hospitals, phrases } from "@trip/shared";
+import { useTrip } from "../tripContext";
 
 export function Emergency({ date }: { date: string }) {
+  const trip = useTrip();
   const day = dayOf(trip, date)!;
   const here = day.stops[0];
   const nearest = [...hospitals].sort((a, b) => distanceKm(here, a) - distanceKm(here, b));

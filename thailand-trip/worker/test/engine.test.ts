@@ -70,21 +70,31 @@ describe("engine", () => {
     expect(kv.writes).toBeLessThan(1000);
   });
 
-  it("previews another moment without saving or pushing", async () => {
+  it("previews another moment without saving, pushing or calling paid sources", async () => {
     const kv = new FakeKV();
-    const env = await makeEnv(kv);
+    const env = { ...(await makeEnv(kv)), ANTHROPIC_API_KEY: "k", GOOGLE_MAPS_KEY: "k", RAPIDAPI_KEY: "k" };
     const log: FetchLog = { urls: [], pushes: 0 };
     vi.stubGlobal("fetch", stubFetch(log));
-    await runCheck(env, thLocal("2026-11-26T12:00"), { dryRun: true });
+    await runCheck(env, thLocal("2026-11-26T08:00"), { dryRun: true });
     expect(kv.writes).toBe(0);
+    expect(log.urls.some((u) => u.includes("googleapis") || u.includes("rapidapi") || u.includes("anthropic") || u.includes("gdelt"))).toBe(false);
   });
 });
 
 describe("http api", () => {
-  it("rejects pushes and re-plans without the access code", async () => {
+  it("rejects pushes, state and private trip data without the access code", async () => {
     const env = await makeEnv(new FakeKV());
     const res = await worker.fetch(new Request("https://w/api/test-push", { method: "POST" }), env);
     expect(res.status).toBe(401);
+    expect((await worker.fetch(new Request("https://w/api/state"), env)).status).toBe(401);
+    expect((await worker.fetch(new Request("https://w/api/trip-private"), env)).status).toBe(401);
+  });
+
+  it("serves hotels and flights only with the access code", async () => {
+    const env = await makeEnv(new FakeKV());
+    const res = await worker.fetch(new Request("https://w/api/trip-private", { headers: { "X-Trip-Token": "secret" } }), env);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { lodgings: unknown[] }).lodgings.length).toBeGreaterThan(0);
   });
 
   it("stores a push subscription once per device", async () => {

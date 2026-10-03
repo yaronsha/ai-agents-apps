@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { trip, type DayStatus } from "@trip/shared";
+import { publicTrip as trip, type DayStatus } from "@trip/shared";
 import { shortDay } from "../format";
 
 export function DayPicker({ date, setDate, status }: { date: string; setDate: (d: string) => void; status?: Record<string, DayStatus> }) {
