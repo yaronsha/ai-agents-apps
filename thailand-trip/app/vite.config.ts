@@ -10,7 +10,7 @@ export default defineConfig({
       srcDir: "src",
       filename: "sw.ts",
       registerType: "autoUpdate",
-      injectManifest: { globPatterns: ["**/*.{js,css,html,svg,png,webmanifest}"] },
+      injectManifest: { globPatterns: ["**/*.{js,css,html,svg,png,webmanifest,woff2}"] },
       manifest: {
         name: "צפון תאילנד 2026",
         short_name: "תאילנד",
@@ -18,8 +18,8 @@ export default defineConfig({
         dir: "rtl",
         start_url: "/",
         display: "standalone",
-        background_color: "#fbf7f0",
-        theme_color: "#0f766e",
+        background_color: "#e9efea",
+        theme_color: "#e9efea",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icon-512.png", sizes: "512x512", type: "image/png" },
