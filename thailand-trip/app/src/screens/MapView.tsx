@@ -9,7 +9,7 @@ import { Icon } from "../icons";
 
 const dayColor = (i: number) => `hsl(${(i * 360) / publicTrip.days.length + 170}, 62%, 38%)`;
 
-export function MapView({ date, setDate, live }: { date: string; setDate: (d: string) => void; live: Live }) {
+export function MapView({ date, setDate, live, openAlerts }: { date: string; setDate: (d: string) => void; live: Live; openAlerts: () => void }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
@@ -17,6 +17,7 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
   const [locating, setLocating] = useState(false);
   const me = useRef<L.CircleMarker | null>(null);
   const sheet = useRef<HTMLDivElement>(null);
+  const tools = useRef<HTMLDivElement>(null);
   const focus = useRef<L.LatLngBounds | null>(null);
   const trip = useTrip();
 
@@ -84,12 +85,13 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
     fitDay();
   }, [date, showHospitals, live.state, setDate, trip]);
 
-  /** Frames the selected day's route above the day card. */
+  /** Frames the selected day's route between the map buttons and the day card. */
   function fitDay() {
     const m = map.current;
     if (!m || !focus.current) return;
-    const below = (sheet.current?.offsetHeight ?? 0) + 24;
-    m.fitBounds(focus.current, { paddingTopLeft: [40, 60], paddingBottomRight: [40, below], maxZoom: 12 });
+    const above = (tools.current?.offsetHeight ?? 0) + 20;
+    const below = (sheet.current?.offsetHeight ?? 0) + 36;
+    m.fitBounds(focus.current, { paddingTopLeft: [40, above], paddingBottomRight: [40, below], maxZoom: 12 });
   }
 
   const locate = () => {
@@ -118,7 +120,7 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
   return (
     <div className="map-screen">
       <div className="map" ref={el} />
-      <div className="map-tools">
+      <div className="map-tools" ref={tools}>
         <button onClick={locate}>
           <Icon name="locate" size={18} />
           {locating ? "מאתר..." : "איפה אני"}
@@ -139,7 +141,8 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
             <h2>{day.titleHe}</h2>
           </div>
           {hi !== null && (
-            <div className="sheet-temp" aria-label="טמפרטורה">
+            <div className="sheet-temp">
+              <span className="sr-only">טמפרטורה </span>
               <strong>{hi}°</strong>
               <span>/{lo}°</span>
             </div>
@@ -151,7 +154,7 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
             {lodging.nameHe}
           </div>
         )}
-        <div className="sheet-chips">
+        <button className="sheet-chips" onClick={openAlerts}>
           {GROUPS.map((g) => {
             const w = live.state ? worstOf(dayAlerts, g.categories) : undefined;
             const sev = !live.state ? "none" : w?.severity ?? "ok";
@@ -162,7 +165,7 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
               </span>
             );
           })}
-        </div>
+        </button>
       </section>
     </div>
   );

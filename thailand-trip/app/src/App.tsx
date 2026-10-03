@@ -95,7 +95,7 @@ export function App() {
       {DAY_TABS.includes(tab) && <DayPicker date={date} setDate={setDate} status={live.state?.dayStatus} />}
       <main className={`screen ${tab === "map" ? "screen-map" : ""}`}>
         {tab === "today" && <Today date={date} live={live} refresh={refresh} openAlerts={() => go("alerts")} />}
-        {tab === "map" && <MapView date={date} setDate={setDate} live={live} />}
+        {tab === "map" && <MapView date={date} setDate={setDate} live={live} openAlerts={() => go("alerts")} />}
         {tab === "alerts" && <Alerts date={date} live={live} refresh={refresh} />}
         {tab === "sos" && <Emergency date={date} />}
         {tab === "settings" && <Settings live={live} refresh={refresh} />}
@@ -106,8 +106,9 @@ export function App() {
             <span className="tab-icon">
               <Icon name={t.id} size={22} />
               {t.id === "alerts" && activeCount > 0 && (
-                <span className="count" aria-label={`${activeCount} התראות פעילות`}>
+                <span className="count">
                   {activeCount}
+                  <span className="sr-only"> התראות פעילות</span>
                 </span>
               )}
             </span>

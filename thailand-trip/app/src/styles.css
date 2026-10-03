@@ -7,15 +7,17 @@
   --ink: #15302a;
   --muted: #5b6f68;
   --line: #d3ddd7;
-  --accent: #b8336a;
+  --accent: #a52c5e;
   --accent-soft: #f6dce6;
   --accent-ink: #ffffff;
-  --ok: #2e7d4f;
+  --ok: #276b43;
   --ok-soft: #ddf1e5;
-  --warn: #a8600f;
+  --warn: #94530b;
   --warn-soft: #fbebd7;
-  --bad: #c3362b;
+  --bad: #b02e24;
   --bad-soft: #f8dedb;
+  /* Solid red under white text (SOS button, alert count); stays dark enough in both themes. */
+  --alarm: #b02e24;
   --shadow: 0 6px 24px rgb(21 48 42 / 0.14);
   --f-display: "Secular One", "Assistant", system-ui, sans-serif;
   --f-body: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -40,6 +42,7 @@
     --warn-soft: #3a2b17;
     --bad: #f07368;
     --bad-soft: #3d1d1a;
+    --alarm: #b3352b;
     --shadow: 0 6px 24px rgb(0 0 0 / 0.45);
     color-scheme: dark;
   }
@@ -89,6 +92,15 @@ h3 {
 
 .icon {
   flex: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Shell */
@@ -178,7 +190,7 @@ h3 {
   height: 17px;
   padding: 0 4px;
   border-radius: 999px;
-  background: var(--bad);
+  background: var(--alarm);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -657,13 +669,16 @@ button.link {
   gap: 12px;
   padding: 14px 16px;
   border-radius: 16px;
-  background: var(--bad);
+  background: var(--alarm);
   color: #fff;
   text-decoration: none;
 }
 .sos-main > span:first-child {
   display: flex;
   flex-direction: column;
+}
+.sos-main .pill {
+  align-self: flex-start;
 }
 .sos-label {
   font-size: 14px;
@@ -822,6 +837,13 @@ button.link {
   margin-top: 4px;
   font-size: 14px;
   color: var(--muted);
+}
+button.sheet-chips {
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: start;
 }
 .sheet-chips {
   display: flex;

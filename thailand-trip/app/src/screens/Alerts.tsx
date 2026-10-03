@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { dayOf, thDate, type TripAlert } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../App";
@@ -63,14 +63,21 @@ export function Alerts({ date, live, refresh }: { date: string; live: Live; refr
   const forDay = upcoming.filter((a) => a.date === date);
   const later = upcoming.filter((a) => a.date !== date);
 
-  // A plan written for one day makes no sense under another.
-  useEffect(() => setPlan(null), [date]);
+  // A plan written for one day makes no sense under another, including one that
+  // arrives after the user has already moved to a different day.
+  const shownDate = useRef(date);
+  useEffect(() => {
+    shownDate.current = date;
+    setPlan(null);
+  }, [date]);
 
   const ask = async () => {
+    const asked = date;
     setBusy(true);
     setErr(null);
     try {
-      setPlan((await replan(date, problem)).text);
+      const { text } = await replan(asked, problem);
+      if (shownDate.current === asked) setPlan(text);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -104,9 +111,10 @@ export function Alerts({ date, live, refresh }: { date: string; live: Live; refr
       </section>
 
       <section className="card replan">
-        <h2>תכנן לי מחדש</h2>
+        <h2 id="replan-title">תכנן לי מחדש</h2>
         <textarea
           id="replan-problem"
+          aria-labelledby="replan-title"
           rows={3}
           placeholder="מה קרה? למשל: הכביש לפאי חסום עד הצהריים"
           value={problem}

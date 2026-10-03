@@ -7,7 +7,9 @@ export function Emergency({ date }: { date: string }) {
   const day = dayOf(trip, date)!;
   const here = day.stops[0];
   const nearest = [...hospitals].sort((a, b) => distanceKm(here, a) - distanceKm(here, b));
-  const [first, ...rest] = emergencyNumbers;
+  // The big button is the tourist police by number, not by list position, so reordering the list can't promote another number.
+  const first = emergencyNumbers.find((n) => n.phone === "1155") ?? emergencyNumbers[0];
+  const rest = emergencyNumbers.filter((n) => n !== first);
 
   return (
     <>
@@ -18,6 +20,7 @@ export function Emergency({ date }: { date: string }) {
       <a className="sos-main" href={`tel:${first.phone}`}>
         <span>
           <span className="sos-label">{first.labelHe}</span>
+          {first.verify && <span className="pill warning">לאמת</span>}
           <strong dir="ltr">{first.phone}</strong>
         </span>
         <span className="call">

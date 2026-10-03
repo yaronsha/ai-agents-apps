@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { publicTrip as trip, type DayStatus } from "@trip/shared";
-import { statusText, weekdayShort } from "../format";
+import { shortDay, statusText, weekdayShort } from "../format";
 
 export function DayPicker({ date, setDate, status }: { date: string; setDate: (d: string) => void; status?: Record<string, DayStatus> }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -8,7 +8,7 @@ export function DayPicker({ date, setDate, status }: { date: string; setDate: (d
     ref.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ inline: "center", block: "nearest" });
   }, [date]);
   return (
-    <div className="daypicker" ref={ref} role="toolbar" aria-label="בחירת יום">
+    <div className="daypicker" ref={ref} role="group" aria-label="בחירת יום">
       {trip.days.map((d) => {
         const s = status?.[d.date];
         return (
@@ -16,7 +16,7 @@ export function DayPicker({ date, setDate, status }: { date: string; setDate: (d
             key={d.date}
             className="day"
             aria-pressed={d.date === date}
-            aria-label={`${d.date.slice(8)}.${Number(d.date.slice(5, 7))}${s ? `, ${statusText[s]}` : ""}`}
+            aria-label={`${shortDay(d.date)}${s ? `, ${statusText[s]}` : ""}`}
             onClick={() => setDate(d.date)}
           >
             {s && s !== "green" && <i className={`flag ${s}`} />}
