@@ -4,5 +4,7 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 tests/fixtures/*.tab.txt
+tests/fixtures/*.tab.json
+tests/fixtures/*.mid
 tests/fixtures/*_guitar_stem.wav
 *.extracted.wav
