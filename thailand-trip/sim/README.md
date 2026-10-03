@@ -47,6 +47,8 @@ A scenario is a JSON file in `scenarios/`: a time window, `events` (what the wor
 
 Weather presets: `storm`, `heavy-rain`, `cold`, `smoke`, `clear`.
 
+By default a scenario runs on a calm baseline: the recorded temperatures, clouds and air, without the recorded rain and storms, so only the scenario's own events trigger weather warnings. `"baseline": "recorded"` plays the recorded week as it was.
+
 ## In the browser
 
 `--browser` builds the app (production build, service worker included), opens it in headless Chromium at phone size with the clock set to the end of the scenario, and checks that the scenario's `screen` texts are on the alerts screen. Then it hands every push the worker sent to the app's service worker, the way the phone's push service would, and checks each one became a notification. Screenshots of the alerts and today screens go to `reports/`.

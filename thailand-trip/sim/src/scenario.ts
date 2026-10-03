@@ -71,6 +71,11 @@ export interface Scenario {
   description: string;
   start: string;
   end: string;
+  /**
+   * "calm" (default): recorded weather without its rain and storms, so only the scenario's own
+   * weather events can trigger warnings. "recorded": the recorded week exactly as it was.
+   */
+  baseline?: "calm" | "recorded";
   /** Minutes between cron runs; the real worker runs every 15. */
   stepMin?: number;
   events: ScenarioEvent[];

@@ -38,6 +38,18 @@ const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) =>
 const near = <T extends { lat: number; lng: number }>(list: T[], p: { lat: number; lng: number }) =>
   list.reduce((best, x) => (km(x, p) < km(best, p) ? x : best));
 
+/**
+ * A "calm" baseline takes the recorded week's temperatures, clouds and air as they are but removes
+ * its rain and storms, so the only bad weather in a scenario is what the scenario adds. The
+ * recordings come from whatever season `sim:live` ran in; October storms should not leak into a
+ * November scenario's checks.
+ */
+const CALM: Record<string, (v: number) => number> = {
+  weather_code: (v) => Math.min(v, 3),
+  precipitation_probability: (v) => Math.min(v, 30),
+  precipitation: () => 0,
+};
+
 const PRESETS: Record<WeatherPreset, Record<string, number>> = {
   storm: { weather_code: 95, precipitation_probability: 90, precipitation: 6, cloud_cover_low: 85, cloud_cover_high: 90 },
   "heavy-rain": { weather_code: 65, precipitation_probability: 85, precipitation: 4, cloud_cover_low: 80, cloud_cover_high: 70 },
@@ -141,7 +153,11 @@ export class World {
         for (let h = 0; h < 24; h++) {
           const time = `${date}T${String(h).padStart(2, "0")}:00`;
           hourly.time.push(time);
-          for (const v of vars) hourly[v].push((src.hourly[v]?.[from + h] as number | null) ?? null);
+          for (const v of vars) {
+            const raw = (src.hourly[v]?.[from + h] as number | null) ?? null;
+            const calm = this.scenario.baseline !== "recorded" && CALM[v];
+            hourly[v].push(raw !== null && calm ? calm(raw) : raw);
+          }
           // What the scenario has done to this stop's forecast so far.
           for (const e of this.happened("weather")) {
             if (!e.weather.stops.includes(stop.id) || time < e.weather.from.slice(0, 13) || time >= e.weather.to) continue;
