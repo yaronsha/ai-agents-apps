@@ -109,8 +109,8 @@ await source("news (GDELT)", async () => {
       articles = await fetchArticles();
       break;
     } catch (err) {
-      if (!/ 429$|limit requests|fetch failed/i.test(String((err as Error).message)) || attempt === 4) throw err;
-      await new Promise((r) => setTimeout(r, 6_000 * attempt));
+      if (!/ 429$|limit requests|fetch failed/i.test(String((err as Error).message)) || attempt === 6) throw err;
+      await new Promise((r) => setTimeout(r, 10_000 * attempt));
     }
   }
   expect(articles.every((a) => a.url && a.title), "url and title on every article");
