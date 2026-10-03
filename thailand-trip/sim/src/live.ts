@@ -103,13 +103,13 @@ await source("travel advice (GOV.UK)", async () => {
 let articles: Awaited<ReturnType<typeof fetchArticles>> = [];
 await source("news (GDELT)", async () => {
   // GDELT allows one request every 5 seconds per address, CI runners share addresses, and it
-      // sometimes drops the connection: retry those.
+  // sometimes drops the connection: retry those.
   for (let attempt = 1; ; attempt++) {
     try {
       articles = await fetchArticles();
       break;
     } catch (err) {
-      if (!/ 429$|limit requests/i.test(String((err as Error).message)) || attempt === 4) throw err;
+      if (!/ 429$|limit requests|fetch failed/i.test(String((err as Error).message)) || attempt === 4) throw err;
       await new Promise((r) => setTimeout(r, 6_000 * attempt));
     }
   }
