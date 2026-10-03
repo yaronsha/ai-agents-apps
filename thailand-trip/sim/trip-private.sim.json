@@ -1,0 +1,81 @@
+{
+  "lodgings": [
+    {
+      "id": "cm1",
+      "name": "מלון בצ'אנג מאי",
+      "lat": 18.7953,
+      "lng": 98.962,
+      "checkIn": "2026-11-22",
+      "checkOut": "2026-11-25"
+    },
+    {
+      "id": "pai",
+      "name": "מלון בפאי",
+      "lat": 19.359,
+      "lng": 98.441,
+      "checkIn": "2026-11-25",
+      "checkOut": "2026-11-27"
+    },
+    {
+      "id": "cd",
+      "name": "מלון בצ'אנג דאו",
+      "lat": 19.366,
+      "lng": 98.964,
+      "checkIn": "2026-11-27",
+      "checkOut": "2026-11-28"
+    },
+    {
+      "id": "dc",
+      "name": "מלון בדוי צ'אנג",
+      "lat": 19.816,
+      "lng": 99.562,
+      "checkIn": "2026-11-28",
+      "checkOut": "2026-11-29"
+    },
+    {
+      "id": "cr",
+      "name": "מלון בצ'יאנג ראי",
+      "lat": 19.91,
+      "lng": 99.84,
+      "checkIn": "2026-11-29",
+      "checkOut": "2026-12-02"
+    },
+    {
+      "id": "cm2",
+      "name": "מלון בצ'אנג מאי (לילה אחרון)",
+      "lat": 18.788,
+      "lng": 98.993,
+      "checkIn": "2026-12-02",
+      "checkOut": "2026-12-03"
+    }
+  ],
+  "flights": [
+    {
+      "id": "out-1",
+      "number": "SIM101",
+      "fromIata": "TLV",
+      "toIata": "AUH",
+      "departLocal": "2026-11-21T14:00",
+      "departUtcOffset": 2,
+      "labelHe": "תל אביב - אבו דאבי"
+    },
+    {
+      "id": "out-2",
+      "number": "SIM102",
+      "fromIata": "AUH",
+      "toIata": "CNX",
+      "departLocal": "2026-11-21T21:15",
+      "departUtcOffset": 4,
+      "labelHe": "אבו דאבי - צ'אנג מאי"
+    },
+    {
+      "id": "ret-1",
+      "number": "SIM103",
+      "fromIata": "CNX",
+      "toIata": "AUH",
+      "departLocal": "2026-12-03T08:40",
+      "departUtcOffset": 7,
+      "labelHe": "צ'אנג מאי - הביתה"
+    }
+  ]
+}

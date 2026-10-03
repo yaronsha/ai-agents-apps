@@ -1,0 +1,27 @@
+{
+  "name": "פסטיבל הפנסים: עשן וחדשות על ביטול",
+  "description": "24.11, the lantern festival evening. Haze builds up over the festival grounds, and at 11:00 a news site reports that the mass lantern release is cancelled because of air quality. Expect an air quality notice, an urgent news push the same morning, and a red day.",
+  "start": "2026-11-24T07:00",
+  "end": "2026-11-24T16:00",
+  "events": [
+    { "at": "2026-11-24T08:00", "weather": { "stops": ["lantern-festival"], "from": "2026-11-24T17:00", "to": "2026-11-24T22:00", "preset": "smoke" }, "note": "Haze forecast over the festival: PM2.5 130" },
+    {
+      "at": "2026-11-24T11:00",
+      "news": {
+        "title": "Chiang Mai cancels mass sky lantern release at CAD Khomloy over PM2.5 haze",
+        "domain": "nationthailand.com",
+        "triage": { "severity": "urgent", "affectedDate": "2026-11-24", "titleHe": "שחרור הפנסים בפסטיבל CAD Khomloy בוטל בגלל זיהום אוויר", "bodyHe": "לבדוק במייל מול המארגנים. תוכנית ב': הפרחת פנסים ושיט קראטונג ליד שער טא פאה." }
+      }
+    }
+  ],
+  "expect": [
+    { "alert": "air:lantern-festival", "by": "2026-11-24T09:00" },
+    { "alert": "news:", "by": "2026-11-24T12:00", "severity": "urgent" },
+    { "push": "בוטל", "after": "2026-11-24T11:00", "before": "2026-11-24T12:00" },
+    { "push": "תזכורת", "after": "2026-11-24T14:45", "before": "2026-11-24T14:45" },
+    { "day": "2026-11-24", "status": "red" },
+    { "maxPushes": 3 }
+  ],
+  "screen": ["שחרור הפנסים בפסטיבל CAD Khomloy בוטל", "איכות אוויר ירודה"]
+}
+

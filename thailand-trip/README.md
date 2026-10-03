@@ -11,6 +11,7 @@ A trip companion PWA for a northern Thailand road trip. It watches weather, air 
 | `shared/` | The itinerary, the alert rules and time helpers, used by both sides. Tested with Vitest. |
 | `worker/` | A Cloudflare Worker. A cron runs every 15 minutes, checks the sources, saves state in KV and sends Web Push. |
 | `app/` | The PWA (React + Vite + Leaflet). Hebrew, RTL, works offline with the last known state. |
+| `sim/` | Trip simulator: plays scenario days (storm, landslide, cancelled flight, quake, news) through the real worker on a fast clock and checks the alerts, pushes and screens. See [sim/README.md](sim/README.md). |
 
 Screens: **היום** (today's timeline with forecast per stop and a green/yellow/red status), **מפה** (the day's route, hotels, hospitals, "where am I"), **בלת"מים** (active alerts, prepared Plan B, and "re-plan for me" with Claude), **חירום** (emergency numbers, nearest hospitals, Thai phrases), **הגדרות** (server, push, preview the engine at any moment of the trip).
 

@@ -1,0 +1,37 @@
+{
+  "name": "מפולת בכביש 1095 בדרך לפאי",
+  "description": "25.11, the van to Pai leaves at 08:30. At 05:45 traffic on the mountain road is 45% slower; at 06:30 a news site reports a landslide; at 07:15 Google finds no route at all. Expect an urgent push for each change (once, not every 15 minutes), the news triaged as urgent, and a red day.",
+  "start": "2026-11-25T05:00",
+  "end": "2026-11-25T10:00",
+  "events": [
+    { "at": "2026-11-25T05:45", "traffic": { "drive": "d25-pai", "slowerPct": 45 }, "note": "Traffic on Route 1095 to Pai is 45% slower than usual" },
+    {
+      "at": "2026-11-25T06:30",
+      "news": {
+        "title": "Landslide partially blocks Route 1095 between Mae Taeng and Pai district",
+        "domain": "bangkokpost.com",
+        "triage": { "severity": "urgent", "affectedDate": "2026-11-25", "titleHe": "מפולת חוסמת חלקית את כביש 1095 לפאי", "bodyHe": "לבדוק עם הנהג אם הכביש פתוח לפני היציאה ב-08:30." }
+      }
+    },
+    {
+      "at": "2026-11-25T06:40",
+      "news": { "title": "Chiang Mai night bazaar vendors prepare for Loy Krathong crowds", "domain": "chiangmaicitylife.com" },
+      "note": "An unrelated headline that Claude should ignore"
+    },
+    { "at": "2026-11-25T07:15", "traffic": { "drive": "d25-pai", "closed": true }, "note": "Google Routes finds no route to Pai" }
+  ],
+  "expect": [
+    { "alert": "road:d25-pai:slow", "by": "2026-11-25T06:00", "severity": "urgent" },
+    { "push": "ארוכה מהרגיל", "after": "2026-11-25T05:45", "before": "2026-11-25T06:00" },
+    { "alert": "news:", "by": "2026-11-25T07:00", "severity": "urgent" },
+    { "push": "מפולת", "before": "2026-11-25T07:00" },
+    { "alert": "road:d25-pai:noroute", "by": "2026-11-25T07:30" },
+    { "push": "לא נמצא מסלול", "before": "2026-11-25T07:30" },
+    { "push": "תזכורת", "after": "2026-11-25T08:00", "before": "2026-11-25T08:00" },
+    { "noAlert": "news:https://chiangmaicitylife.com" },
+    { "day": "2026-11-25", "status": "red" },
+    { "maxPushes": 5 }
+  ],
+  "screen": ["מפולת חוסמת חלקית את כביש 1095 לפאי"]
+}
+
