@@ -1,0 +1,34 @@
+{
+ "recordedAt": "2026-10-03T22:46:45.831Z",
+ "origin": "live",
+ "sources": {
+  "weather": {
+   "recordedAt": "2026-10-03T22:46:45.831Z",
+   "origin": "live"
+  },
+  "air": {
+   "recordedAt": "2026-10-03T22:46:45.831Z",
+   "origin": "live"
+  },
+  "usgs": {
+   "recordedAt": "2026-10-03T22:46:45.831Z",
+   "origin": "live"
+  },
+  "fcdo": {
+   "recordedAt": "2026-10-03T22:46:45.831Z",
+   "origin": "live"
+  },
+  "gdelt": {
+   "recordedAt": "2026-10-03T22:46:45.831Z",
+   "origin": "live"
+  },
+  "routes": {
+   "recordedAt": "2026-10-03T20:00:00Z",
+   "origin": "seed"
+  },
+  "flights": {
+   "recordedAt": "2026-10-03T20:00:00Z",
+   "origin": "seed"
+  }
+ }
+}

@@ -9,12 +9,15 @@ from pathlib import Path
 
 from .audio import extract_mono_wav, load_audio
 from .midi_io import MIDI_EXTENSIONS, estimate_tempo, midi_to_notes, notes_to_midi
-from .pitch import detect_notes, merge_nearby_same_pitch
+from .pitch import DetectedNote, detect_notes, merge_nearby_same_pitch
+from .polyphonic import basic_pitch_available, detect_notes_polyphonic
 from .timing import StageTimer
-from .tab import format_ascii_tab, format_note_log, notes_to_tab_frames
+from .tab import format_ascii_tab, format_note_log, tab_fingerings
 from .viewer import write_viewer_html
 
 logger = logging.getLogger(__name__)
+
+ENGINES = ("basic-pitch", "pyin")
 
 
 @dataclass
@@ -39,6 +42,7 @@ def run_pipeline(
     demucs_model: str = "htdemucs_6s",
     device: str = "cpu",
     analysis_sr: int = 22050,
+    engine: str = "basic-pitch",
     work_dir: Path | None = None,
     write_midi: bool = True,
     write_html: bool = True,
@@ -52,6 +56,8 @@ def run_pipeline(
     """
     if tempo_bpm is not None and not 0 < tempo_bpm < float("inf"):
         raise ValueError(f"tempo_bpm must be > 0, got {tempo_bpm}")
+    if engine not in ENGINES:
+        raise ValueError(f"Unknown engine {engine!r}; expected one of {ENGINES}")
     input_path = Path(input_path)
     if output_tab_path is None:
         output_tab_path = input_path.with_suffix(".tab.txt")
@@ -97,7 +103,8 @@ def run_pipeline(
                 kept_stem = dest
                 logger.info("Saved guitar stem to %s", dest)
 
-        # 3. Pitch / onset detection (+ tempo from the full mix, for the bar grid)
+        # 3. Note detection (+ tempo from the full mix, for the bar grid):
+        #    polyphonic basic-pitch (chords, fingerpicking) or monophonic pyin
         if tempo_bpm is not None:
             first_beat = 0.0
             logger.info("Tempo: %.1f bpm (--bpm)", tempo_bpm)
@@ -105,16 +112,14 @@ def run_pipeline(
             with timer.stage("tempo estimate"):
                 tempo_bpm, first_beat = estimate_tempo(*load_audio(extracted, sample_rate=analysis_sr))
             logger.info("Estimated tempo: %.1f bpm", tempo_bpm)
-        with timer.stage("pitch detection (pyin)"):
-            y, sr = load_audio(guitar_wav, sample_rate=analysis_sr)
-            notes = detect_notes(y, sr)
-            notes = merge_nearby_same_pitch(notes)
+        with timer.stage(f"note detection ({engine})"):
+            notes = detect_notes_for_engine(guitar_wav, engine, analysis_sr=analysis_sr)
 
         # 4. Map to frets, write tab + MIDI + browser viewer
         with timer.stage("tabs, MIDI, viewer"):
-            frames = notes_to_tab_frames(notes)
+            frames, positions = tab_fingerings(notes)
             tab = format_ascii_tab(frames)
-            note_log = format_note_log(notes)
+            note_log = format_note_log(notes, positions)
 
             output_tab_path.write_text(tab + "\n\n" + note_log + "\n", encoding="utf-8")
             logger.info("Wrote tablature to %s", output_tab_path)
@@ -157,8 +162,9 @@ def _run_from_midi(
     """MIDI input: no audio analysis, just tabs + viewer."""
     with timer.stage("tabs, viewer"):
         notes = midi_to_notes(midi_path)
-        tab = format_ascii_tab(notes_to_tab_frames(notes))
-        note_log = format_note_log(notes)
+        frames, positions = tab_fingerings(notes)
+        tab = format_ascii_tab(frames)
+        note_log = format_note_log(notes, positions)
         output_tab_path.write_text(tab + "\n\n" + note_log + "\n", encoding="utf-8")
         logger.info("Wrote tablature to %s", output_tab_path)
         if html_path:
@@ -173,3 +179,21 @@ def _run_from_midi(
         html_path=html_path,
         timer=timer,
     )
+
+
+def detect_notes_for_engine(
+    wav_path: Path, engine: str = "basic-pitch", *, analysis_sr: int = 22050
+) -> list[DetectedNote]:
+    """Run the chosen note detector on a WAV file, falling back to pyin if needed."""
+    if engine not in ENGINES:
+        raise ValueError(f"Unknown engine {engine!r}; expected one of {ENGINES}")
+    if engine == "basic-pitch" and not basic_pitch_available():
+        logger.warning(
+            "basic-pitch (or an inference backend for it) is not installed; "
+            "falling back to monophonic pyin"
+        )
+        engine = "pyin"
+    if engine == "basic-pitch":
+        return detect_notes_polyphonic(wav_path)
+    y, sr = load_audio(wav_path, sample_rate=analysis_sr)
+    return merge_nearby_same_pitch(detect_notes(y, sr))

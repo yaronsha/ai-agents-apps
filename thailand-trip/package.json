@@ -1,0 +1,32 @@
+{
+  "name": "thailand-trip",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "app",
+    "worker",
+    "sim"
+  ],
+  "scripts": {
+    "postinstall": "node shared/scripts/ensure-private.mjs",
+    "dev": "npm run dev -w app",
+    "dev:worker": "npm run dev -w worker",
+    "build": "npm run build -w app",
+    "test": "vitest run",
+    "typecheck": "tsc -p shared && tsc -p app --noEmit && tsc -p worker --noEmit && tsc -p sim",
+    "sim": "npm run sim -w sim --",
+    "sim:live": "npm run live -w sim --"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.0"
+  },
+  "overrides": {
+    "@trip/sim": {
+      "miniflare": {
+        "workerd": "^1.20261001.1"
+      }
+    }
+  }
+}

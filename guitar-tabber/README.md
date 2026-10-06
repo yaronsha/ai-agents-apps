@@ -9,7 +9,7 @@ Pipeline:
 
 1. **Extract** audio with `ffmpeg` (mono WAV)
 2. **Separate** a guitar stem with **Demucs** (`htdemucs_6s` → dedicated `guitar` stem; falls back to `other` on 4-stem models)
-3. **Detect** notes with **librosa.pyin** (monophonic pitch tracking + onsets)
+3. **Detect** notes with Spotify's **basic-pitch** (polyphonic: chords and fingerpicking), filtering out overtone ghosts and ringing-string re-triggers. `--engine pyin` uses monophonic **librosa.pyin** instead
 4. **Map** MIDI pitches to a standard-tuning (EADGBE) fretboard (prefer lower frets)
 5. **Emit** ASCII tablature to stdout and `<input>.tab.txt`
 6. **Export** `<input>.mid` (tempo estimated from the mix) and
@@ -17,7 +17,7 @@ Pipeline:
 
 ## System requirements
 
-- Python 3.10+ (Linux Mint 21.x / Ubuntu 22.04 default of 3.10 works; macOS too)
+- Python 3.10+ (Linux Mint 21.x / Ubuntu 22.04 default of 3.10 works; macOS too). Chord and fingerpicking detection (basic-pitch) needs Python 3.10 or 3.11; on 3.12+ it falls back to single-note pyin
 - [ffmpeg](https://ffmpeg.org/) on `PATH`
   - Linux Mint/Ubuntu: `sudo apt install ffmpeg libsndfile1 python3-venv`
   - macOS: `brew install ffmpeg`
@@ -151,12 +151,24 @@ python -m guitar_tabber tests/fixtures/open_a.wav --skip-separation -v
 python -m guitar_tabber tests/fixtures/mixed_demo.mp3 --keep-stems -v
 ```
 
+## Accuracy check
+
+`tests/evaluate_accuracy.py` renders public-domain tunes with known tabs
+(`tests/reference_songs.py`) through sampled nylon, steel and clean-electric
+guitars and scores onset / pitch / tab F1:
+
+```bash
+sudo apt install fluidsynth fluid-soundfont-gm && pip install mido
+python tests/evaluate_accuracy.py                # default engine
+python tests/evaluate_accuracy.py --engine pyin -v romanza_poly
+```
+
 ## Honest limitations
 
 | Area | Reality |
 |------|---------|
 | **Stem separation** | Demucs quality varies by mix. Guitar often bleeds into `other`/`vocals`; drums/bass can leak into the guitar stem. `htdemucs_6s` helps but is not perfect. |
-| **Monophonic detection** | Pitch tracking uses `librosa.pyin` — best for **single-note** lines. Chords / fingerpicking polyphony are not reliably transcribed; multi-pitch is only lightly attempted via near-simultaneous grouping. |
+| **Polyphony** | basic-pitch hears chords and fingerpicking, but dense strummed chords still lose notes, and loud overtones can occasionally appear as extra notes an octave up. `--engine pyin` is monophonic and only suits single-note lines. |
 | **Recording quality** | Distortion, heavy FX, room noise, and low bitrate hurt accuracy. Clean DI or close-mic acoustic works better than a phone recording of a live band. |
 | **Electric vs acoustic** | Both are accepted, but noise floors and timbre differ; aggressive amp gain confuses pitch trackers. |
 | **Expression** | Bends, slides, vibrato, harmonics, palm mutes, and whammy tricks are **not** notated — you get fretted pitch snapshots. |
@@ -179,7 +191,8 @@ guitar-tabber/
     audio.py
     youtube.py       # YouTube URL → MP3 (yt-dlp + ffmpeg), trimming
     separation.py    # Demucs
-    pitch.py         # librosa.pyin
+    pitch.py         # librosa.pyin (monophonic engine)
+    polyphonic.py    # basic-pitch (default engine) + guitar artifact filters
     fretboard.py     # MIDI ↔ frets
     tab.py           # ASCII formatter
     midi_io.py       # notes ↔ .mid, tempo estimate

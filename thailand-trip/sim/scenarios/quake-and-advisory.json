@@ -1,0 +1,24 @@
+{
+  "name": "רעידת אדמה ועדכון באזהרת המסע",
+  "description": "28.11, Chiang Dao cave in the morning, then the drive to Doi Chang. At 09:20 a M5.6 quake hits 60 km from the cave; a small M4.6 nearby and a strong one in Japan should be ignored. At 10:05 the UK travel advice changes for the Chiang Rai border area. Expect two urgent pushes and a red day.",
+  "start": "2026-11-28T08:00",
+  "end": "2026-11-28T12:00",
+  "events": [
+    { "at": "2026-11-28T08:40", "quake": { "mag": 4.6, "nearStop": "chiang-dao-cave", "km": 30, "place": "30 km NE of Chiang Dao, Thailand" }, "note": "A small M4.6 quake nearby (below the alert threshold)" },
+    { "at": "2026-11-28T09:20", "quake": { "mag": 5.6, "nearStop": "chiang-dao-cave", "km": 60, "place": "Shan State, Myanmar" } },
+    { "at": "2026-11-28T09:40", "quake": { "mag": 6.4, "nearStop": "chiang-dao-cave", "km": 3500, "place": "off the coast of Honshu, Japan" }, "note": "A strong quake far away (should be ignored)" },
+    { "at": "2026-11-28T10:05", "advisory": { "description": "Advice against all but essential travel to areas within 10 km of the Myanmar border in Chiang Rai province, after clashes near Mae Sai." } }
+  ],
+  "expect": [
+    { "noAlert": "quake:", "before": "2026-11-28T09:20" },
+    { "alert": "quake:", "by": "2026-11-28T09:30", "severity": "urgent" },
+    { "push": "רעידת אדמה בעוצמה 5.6", "after": "2026-11-28T09:20", "before": "2026-11-28T09:30" },
+    { "noPush": "6.4" },
+    { "alert": "advisory:", "by": "2026-11-28T11:00", "severity": "urgent" },
+    { "push": "אזהרת המסע", "after": "2026-11-28T10:05", "before": "2026-11-28T11:00" },
+    { "day": "2026-11-28", "status": "red" },
+    { "maxPushes": 2 }
+  ],
+  "screen": ["רעידת אדמה בעוצמה 5.6", "שינוי באזהרת המסע"]
+}
+
