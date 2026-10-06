@@ -7,6 +7,14 @@ soundfile>=0.12
 numpy>=1.24
 scipy>=1.10
 
+# Polyphonic note detection (chords, fingerpicking). Pulls in its own
+# inference backend (TensorFlow / tflite-runtime on Linux, CoreML on macOS).
+# Its TensorFlow pin (<2.15.1) has no wheels for Python 3.12+, so there the
+# tabber falls back to monophonic pyin.
+basic-pitch>=0.4; python_version < "3.12"
+# basic-pitch's resampler (resampy) still imports pkg_resources, removed in setuptools 81
+setuptools<81
+
 # Stem separation (Demucs + PyTorch)
 # Install torch first (see setup.sh / README); the plain `pip install torch`
 # wheel is fine on macOS, the CPU index is smaller on Linux.
