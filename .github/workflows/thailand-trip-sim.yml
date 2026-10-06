@@ -1,4 +1,3 @@
-```yaml
 # Trip simulator (thailand-trip/sim): scenario days through the real worker, plus a live check
 # of the real data sources that also re-records the simulator's fixtures.
 name: thailand-trip simulator
@@ -85,4 +84,3 @@ jobs:
           git add sim/fixtures
           git diff --cached --quiet || git commit -m "thailand-trip/sim: record real source responses"
           git push
-```
