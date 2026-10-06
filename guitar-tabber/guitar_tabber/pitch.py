@@ -176,18 +176,7 @@ def _rescue_with_harmonic_salience(
     sal_midi = cands[best]
 
     confident = voiced_flag[:n] & ~np.isnan(f0[:n]) & (voiced_probs[:n] >= confidence_threshold)
-    pyin_midi = np.full(n, np.nan)
-    pyin_midi[confident] = librosa.hz_to_midi(f0[:n][confident])
     candidate = ~confident & (level_db >= min_level_db) & (clarity >= min_clarity)
-
-    # Harmonic summation can pick the octave above when the fundamental is
-    # weak (common on electric). If pyin is confident an octave below within
-    # 0.1 s, it is the same note: keep pyin's octave.
-    nbr = int(round(0.1 * sr / hop_length))
-    for i in np.flatnonzero(candidate):
-        near = pyin_midi[max(0, i - nbr):i + nbr + 1]
-        if np.any(np.abs(near - (sal_midi[i] - 12)) < 0.5):
-            sal_midi[i] -= 12
 
     min_run = max(1, int(round(min_run_s * sr / hop_length)))
     rescued = 0
@@ -200,7 +189,7 @@ def _rescue_with_harmonic_salience(
         while j < n and candidate[j] and round(sal_midi[j]) == round(sal_midi[i]):
             j += 1
         if j - i >= min_run:
-            f0[i:j] = librosa.midi_to_hz(sal_midi[i:j])
+            f0[i:j] = librosa.midi_to_hz(np.median(sal_midi[i:j]))
             voiced_flag[i:j] = True
             voiced_probs[i:j] = confidence_threshold
             rescued += j - i
