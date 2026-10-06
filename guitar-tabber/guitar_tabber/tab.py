@@ -10,6 +10,29 @@ TAB_STRING_ORDER = (5, 4, 3, 2, 1, 0)  # high e → low E
 TAB_LABELS = {5: "e", 4: "B", 3: "G", 2: "D", 1: "A", 0: "E"}
 
 
+def group_chords(
+    notes: list[DetectedNote],
+    chord_window: float = 0.05,
+) -> list[list[DetectedNote]]:
+    """Split time-sorted notes into clusters that start within ``chord_window``."""
+    clusters: list[list[DetectedNote]] = []
+    for note in notes:
+        if clusters and note.time - clusters[-1][0].time <= chord_window:
+            clusters[-1].append(note)
+        else:
+            clusters.append([note])
+    return clusters
+
+
+def cluster_to_frame(cluster: list[DetectedNote]) -> dict[int, int]:
+    """Map one cluster of notes to string_index → fret."""
+    midis = [n.midi for n in cluster]
+    if len(midis) == 1:
+        pos = map_midi_to_fret(midis[0])
+        return {pos.string_index: pos.fret} if pos else {}
+    return map_midis_to_chord(midis)
+
+
 def notes_to_tab_frames(
     notes: list[DetectedNote],
     chord_window: float = 0.05,
@@ -17,31 +40,10 @@ def notes_to_tab_frames(
     """
     Group near-simultaneous notes into chord frames.
 
-    Each frame is string_index → fret. Detection is primarily monophonic, so
-    most frames will have a single note; grouping still helps with clusters.
+    Each frame is string_index → fret; a single note gives a one-string frame.
     """
-    if not notes:
-        return []
-
-    frames: list[dict[int, int]] = []
-    i = 0
-    while i < len(notes):
-        cluster = [notes[i]]
-        j = i + 1
-        while j < len(notes) and notes[j].time - cluster[0].time <= chord_window:
-            cluster.append(notes[j])
-            j += 1
-
-        midis = [n.midi for n in cluster]
-        if len(midis) == 1:
-            pos = map_midi_to_fret(midis[0])
-            frame = {pos.string_index: pos.fret} if pos else {}
-        else:
-            frame = map_midis_to_chord(midis)
-        if frame:
-            frames.append(frame)
-        i = j
-    return frames
+    frames = (cluster_to_frame(c) for c in group_chords(notes, chord_window))
+    return [frame for frame in frames if frame]
 
 
 def format_ascii_tab(

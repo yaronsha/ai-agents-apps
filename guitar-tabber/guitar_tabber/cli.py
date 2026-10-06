@@ -17,7 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Convert a full-mix MP3/MP4 (guitar + other instruments/vocals) "
             "into ASCII guitar tablature. Uses Demucs for guitar stem "
-            "separation, then librosa.pyin for pitch detection."
+            "separation, then basic-pitch (or librosa.pyin) for note detection."
         ),
     )
     p.add_argument(
@@ -52,6 +52,15 @@ def build_parser() -> argparse.ArgumentParser:
         default="cpu",
         choices=("cpu", "cuda"),
         help="Torch device for Demucs (default: cpu)",
+    )
+    p.add_argument(
+        "--engine",
+        default="basic-pitch",
+        choices=("basic-pitch", "pyin"),
+        help=(
+            "Note detector: basic-pitch hears chords and fingerpicking (default); "
+            "pyin follows a single melody line"
+        ),
     )
     p.add_argument(
         "-v",
@@ -91,6 +100,7 @@ def main(argv: list[str] | None = None) -> int:
             output_tab_path=args.output,
             demucs_model=args.model,
             device=args.device,
+            engine=args.engine,
         )
     except Exception as exc:
         logging.exception("Pipeline failed")
