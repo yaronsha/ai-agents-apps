@@ -111,7 +111,7 @@ FRET_COST = 0.2  # per fretted (non-open) note
 HEIGHT_COST = 0.03  # per fret number of each fretted note
 STRETCH_COST = 1.5
 OPEN_IN_POSITION_COST = 0.6  # open string while the hand is up the neck
-REST_GAP = 0.5  # seconds between onsets that leave time to shift freely
+REST_GAP = 0.3  # seconds of silence that leave time to shift freely
 REST_SHIFT_DISCOUNT = 0.1  # shift and move costs are scaled by this after a rest
 OPEN_SHIFT_SCALE = 0.6  # ...and by this after open strings only (the hand is free)
 MAX_CHORD_CANDIDATES = 24
@@ -136,7 +136,11 @@ def _chord_fingerings(midis: Sequence[int], max_fret: int) -> list[Fingering]:
 
 
 def _frame_candidates(midis: Sequence[int], max_fret: int) -> list[Fingering]:
-    unique = sorted(set(midis))
+    # Pitches with no fret position (e.g. stray bass bleed) can't be tabbed;
+    # drop them so they don't make the rest of the chord unplayable.
+    unique = sorted(m for m in set(midis) if positions_for_midi(m, max_fret=max_fret))
+    if not unique:
+        return []
     if len(unique) == 1:
         return [(p,) for p in positions_for_midi(unique[0], max_fret=max_fret)]
     if len(unique) <= len(OPEN_STRING_MIDI):
@@ -182,14 +186,15 @@ def _mean_string(fingering: Fingering) -> float:
 
 def map_sequence_to_frets(
     frames: Sequence[Sequence[int]],
-    onsets: Sequence[float] | None = None,
+    silences: Sequence[float] | None = None,
     max_fret: int = MAX_FRET,
 ) -> list[Fingering]:
     """
     Choose fingerings for a sequence of frames (each a list of simultaneous
     MIDI pitches), minimising hand movement over the whole sequence.
 
-    onsets (seconds, one per frame) are optional; a long gap between frames
+    silences (seconds, one per frame) are optional: the silence before each
+    frame, from the end of the previous notes to this onset. A long silence
     makes a position shift there cheap, since the hand has time to move.
 
     Returns one tuple of FretPositions per frame, empty for unplayable frames.
@@ -217,7 +222,7 @@ def map_sequence_to_frets(
         cost = [c for _, _, c in layers[start]]
         back: list[list[int]] = []
         for k in range(start + 1, end):
-            rest = onsets is not None and onsets[k] - onsets[k - 1] >= REST_GAP
+            rest = silences is not None and silences[k] >= REST_GAP
             shift_scale = REST_SHIFT_DISCOUNT if rest else 1.0
             prev = [
                 (h, _mean_string(f), all(p.fret == 0 for p in f), cost[j])

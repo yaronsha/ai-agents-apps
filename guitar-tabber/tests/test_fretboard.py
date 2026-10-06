@@ -15,8 +15,8 @@ def midi(pos: str) -> int:
     return OPEN_STRING_MIDI[STRINGS.index(pos[0])] + int(pos[1:])
 
 
-def tab(frames, onsets=None) -> list[str]:
-    out = map_sequence_to_frets(frames, onsets=onsets)
+def tab(frames, silences=None) -> list[str]:
+    out = map_sequence_to_frets(frames, silences=silences)
     return ["+".join(f"{STRINGS[p.string_index]}{p.fret}" for p in f) for f in out]
 
 
@@ -47,9 +47,33 @@ def test_open_chord_shape():
 
 def test_hand_shifts_position_after_a_rest():
     line = ["e0", "B3", "B1", "G2", "G0", "e5", "e8", "B8", "B5", "G7", "G5", "e5"]
-    onsets = [0.25 * i + (1.0 if i >= 5 else 0.0) for i in range(len(line))]
-    assert tab(melody(*line), onsets=onsets) == line
+    silences = [1.0 if i == 5 else 0.0 for i in range(len(line))]
+    assert tab(melody(*line), silences=silences) == line
+
+
+def test_slow_legato_run_stays_in_position():
+    run = ["E5", "E8", "A5", "A7", "D5", "D7", "G5", "G7", "B5", "B8", "e5", "e8"]
+    assert tab(melody(*run), silences=[0.0] * len(run)) == run
+
+
+def test_stray_unplayable_pitch_does_not_pull_chord_out_of_position():
+    def run(chord):
+        return melody("D12", "D14", "G12") + [chord] + melody("B13", "B15")
+
+    clean = tab(run([midi("D14"), midi("G14")]))
+    with_stray = tab(run([38, midi("D14"), midi("G14")]))  # 38 is below low E
+    assert with_stray == clean
 
 
 def test_unplayable_frame_is_empty_and_does_not_break_the_rest():
     assert tab([[midi("e0")], [20], [midi("e3")]]) == ["e0", "", "e3"]
+
+
+def test_tab_measures_rests_from_note_end_not_onset():
+    from guitar_tabber.pitch import DetectedNote
+    from guitar_tabber.tab import note_positions
+
+    # Slow legato quarter notes: onsets 0.6 s apart, but each note rings until the next
+    run = ["E5", "E8", "A5", "A7", "D5", "D7", "G5", "G7", "B5", "B8", "e5", "e8"]
+    notes = [DetectedNote(0.6 * i, 0.6, 0.0, midi(p), 1.0) for i, p in enumerate(run)]
+    assert [f"{STRINGS[p.string_index]}{p.fret}" for p in note_positions(notes)] == run

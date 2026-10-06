@@ -24,9 +24,11 @@ def _chord_clusters(notes: list[DetectedNote], chord_window: float) -> list[list
 
 
 def _fingerings(clusters: list[list[DetectedNote]]) -> list[tuple[FretPosition, ...]]:
-    return map_sequence_to_frets(
-        [[n.midi for n in c] for c in clusters], onsets=[c[0].time for c in clusters]
-    )
+    silences = [0.0]
+    for prev, cur in zip(clusters, clusters[1:]):
+        prev_end = max(n.time + n.duration for n in prev)
+        silences.append(max(0.0, cur[0].time - prev_end))
+    return map_sequence_to_frets([[n.midi for n in c] for c in clusters], silences=silences)
 
 
 def notes_to_tab_frames(
