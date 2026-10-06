@@ -52,7 +52,8 @@ def detect_notes(
         hop_length=hop_length,
     )
     times = librosa.times_like(f0, sr=sr, hop_length=hop_length)
-    onset_frames = set(int(f) for f in _onset_frames(y, sr, hop_length))
+    onsets = _onset_frames(y, sr, hop_length)
+    onset_frames = set(int(f) for f in onsets)
     # Only split at an onset when both sides last at least this long: pyin can
     # turn voiced a frame or two before the onset detector fires, and a note's
     # release can register as a weak onset just before it goes unvoiced.
@@ -62,25 +63,21 @@ def detect_notes(
     i = 0
     n = len(f0)
     voiced = ~np.isnan(f0) & np.asarray(voiced_flag, dtype=bool)
+    confident = voiced & (np.nan_to_num(voiced_probs) >= confidence_threshold)
     prev_end = 0
     while i < n:
-        if (
-            voiced_flag[i]
-            and f0[i] is not None
-            and not np.isnan(f0[i])
-            and (voiced_probs[i] is None or voiced_probs[i] >= confidence_threshold)
-        ):
+        if confident[i]:
             start = i
             midi_vals: list[int] = []
             hz_vals: list[float] = []
             conf_vals: list[float] = []
-            while i < n and voiced_flag[i] and f0[i] is not None and not np.isnan(f0[i]):
+            while i < n and voiced[i]:
                 # A new attack ends the current note (re-pluck of the same pitch)
                 if (
                     i in onset_frames
                     and i - start >= min_note_frames
                     and i + min_note_frames <= n
-                    and voiced[i : i + min_note_frames].all()
+                    and confident[i : i + min_note_frames].all()
                 ):
                     break
                 midi = midi_from_hz(float(f0[i]))
@@ -93,7 +90,7 @@ def detect_notes(
                         break
                 midi_vals.append(midi)
                 hz_vals.append(float(f0[i]))
-                conf_vals.append(float(voiced_probs[i]) if voiced_probs[i] is not None else 0.5)
+                conf_vals.append(float(voiced_probs[i]))
                 i += 1
 
             if not midi_vals:
@@ -128,7 +125,9 @@ def detect_notes(
             i += 1
 
     # Also snap notes to onset boundaries when onsets are available
-    notes = _refine_with_onsets(y, sr, notes, hop_length=hop_length)
+    notes = _refine_with_onsets(
+        notes, librosa.frames_to_time(onsets, sr=sr, hop_length=hop_length)
+    )
     logger.info("Detected %d note events", len(notes))
     return notes
 
@@ -144,24 +143,10 @@ def _onset_frames(y: np.ndarray, sr: int, hop_length: int) -> np.ndarray:
 
 
 def _refine_with_onsets(
-    y: np.ndarray,
-    sr: int,
-    notes: list[DetectedNote],
-    hop_length: int = 256,
+    notes: list[DetectedNote], onset_times: np.ndarray
 ) -> list[DetectedNote]:
-    """Optionally snap note start times toward nearby onsets (helps tab spacing)."""
-    if not notes:
-        return notes
-    try:
-        onset_frames = librosa.onset.onset_detect(
-            y=y, sr=sr, hop_length=hop_length, units="frames"
-        )
-        onset_times = librosa.frames_to_time(onset_frames, sr=sr, hop_length=hop_length)
-    except Exception as exc:
-        logger.debug("Onset detection skipped: %s", exc)
-        return notes
-
-    if len(onset_times) == 0:
+    """Snap note start times toward nearby onsets (helps tab spacing)."""
+    if not notes or len(onset_times) == 0:
         return notes
 
     refined: list[DetectedNote] = []
