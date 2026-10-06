@@ -191,6 +191,10 @@ def _mean_string(fingering: Fingering) -> float:
     return sum(p.string_index for p in fingering) / len(fingering)
 
 
+def _is_rest(silences: Sequence[float] | None, k: int) -> bool:
+    return silences is not None and k > 0 and silences[k] >= REST_GAP
+
+
 def map_sequence_to_frets(
     frames: Sequence[Sequence[int]],
     silences: Sequence[float] | None = None,
@@ -211,8 +215,12 @@ def map_sequence_to_frets(
 
     # States per frame: (fingering, hand position, static cost)
     layers: list[list[tuple[Fingering, int, float]]] = []
+    any_hand = range(1, max(1, max_fret - HAND_SPAN) + 1)
     for midis in frames:
-        free_hands = sorted({h for _, h, _ in layers[-1]}) if layers and layers[-1] else [1]
+        # Open strings keep the hand where it was; at the start of a run the
+        # hand can be anywhere, so the frames that follow decide.
+        prev_hands = {h for _, h, _ in layers[-1]} if layers else set()
+        free_hands = sorted(prev_hands) if prev_hands else any_hand
         layers.append([
             (fingering, h, c)
             for fingering in _frame_candidates(midis, max_fret)
@@ -233,8 +241,9 @@ def map_sequence_to_frets(
         cost = [c for _, _, c in layers[start]]
         back: list[list[int]] = []
         for k in range(start + 1, end):
-            rest = silences is not None and silences[k] >= REST_GAP
-            shift_scale = REST_SHIFT_DISCOUNT if rest else 1.0
+            rest = _is_rest(silences, k)
+            # A rest before open strings still frees the hand after them
+            rest_before_prev = _is_rest(silences, k - 1)
             prev = [
                 (h, _mean_string(f), all(p.fret == 0 for p in f), cost[j])
                 for j, (f, h, _) in enumerate(layers[k - 1])
@@ -246,7 +255,10 @@ def map_sequence_to_frets(
                 for j, (ph, ps, p_open, pc) in enumerate(prev):
                     v = pc + STRING_COST * abs(ps - s)
                     if ph != h:
-                        scale = shift_scale * (OPEN_SHIFT_SCALE if p_open else 1.0)
+                        if rest or (p_open and rest_before_prev):
+                            scale = REST_SHIFT_DISCOUNT
+                        else:
+                            scale = OPEN_SHIFT_SCALE if p_open else 1.0
                         v += scale * (SHIFT_COST + MOVE_COST * abs(ph - h))
                     if v < best_v:
                         best_j, best_v = j, v

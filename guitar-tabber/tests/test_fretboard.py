@@ -3,6 +3,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from guitar_tabber.fretboard import OPEN_STRING_MIDI, map_sequence_to_frets  # noqa: E402
@@ -70,17 +72,60 @@ def test_unplayable_frame_is_empty_and_does_not_break_the_rest():
 
 
 def test_tab_measures_rests_from_note_end_not_onset():
+    pytest.importorskip("librosa")  # tab.py imports pitch.py
     from guitar_tabber.pitch import DetectedNote
-    from guitar_tabber.tab import note_positions
+    from guitar_tabber.tab import tab_fingerings
 
     # Slow legato quarter notes: onsets 0.6 s apart, but each note rings until the next
     run = ["E5", "E8", "A5", "A7", "D5", "D7", "G5", "G7", "B5", "B8", "e5", "e8"]
     notes = [DetectedNote(0.6 * i, 0.6, 0.0, midi(p), 1.0) for i, p in enumerate(run)]
-    assert [f"{STRINGS[p.string_index]}{p.fret}" for p in note_positions(notes)] == run
+    assert [f"{STRINGS[p.string_index]}{p.fret}" for p in tab_fingerings(notes)[1]] == run
 
 
 def test_silences_must_match_frames():
-    import pytest
-
     with pytest.raises(ValueError):
         map_sequence_to_frets(melody("e0", "e3"), silences=[0.0])
+
+
+def test_open_string_at_start_of_passage_stays_open():
+    line = ["A0", "B3", "e0", "e3", "e5"]
+    assert tab(melody(*line)) == line
+
+
+def test_rest_before_open_string_still_frees_the_hand():
+    line = ["e5", "e8", "B8", "B5", "G0", "B1", "B3", "G2", "B1"]
+    silences = [1.0 if i == 4 else 0.0 for i in range(len(line))]
+    assert tab(melody(*line), silences=silences) == line
+
+
+def _notes(spec):
+    from guitar_tabber.pitch import DetectedNote
+
+    return [DetectedNote(t, d, 0.0, m, 1.0) for t, d, m in spec]
+
+
+def test_ringing_bass_is_not_a_rest():
+    pytest.importorskip("librosa")  # tab.py imports pitch.py
+    from guitar_tabber.tab import tab_fingerings
+
+    line = ["e0", "B3", "B1", "G2", "G0", "e5", "e8", "B8", "B5", "G7", "G5", "e5"]
+    onsets = [0.25 + 0.25 * i + (1.0 if i >= 5 else 0.0) for i in range(len(line))]
+    melody_notes = [(t, 0.2, midi(p)) for t, p in zip(onsets, line)]
+    ringing = _notes([(0.0, 10.0, midi("E0"))] + melody_notes)
+    got = tab_fingerings(ringing)[1]
+    # The 1 s gap in the melody is covered by the bass, so it is no rest
+    expected = map_sequence_to_frets([[n.midi] for n in ringing], silences=[0.0] * len(ringing))
+    assert [(p.string_index, p.fret) for p in got] == [
+        (f[0].string_index, f[0].fret) for f in expected
+    ]
+    dry = _notes(melody_notes)
+    rested = tab_fingerings(dry)[1]
+    assert [f"{STRINGS[p.string_index]}{p.fret}" for p in rested] == line
+
+
+def test_note_log_rejects_mismatched_positions():
+    pytest.importorskip("librosa")
+    from guitar_tabber.tab import format_note_log
+
+    with pytest.raises(ValueError):
+        format_note_log(_notes([(0.0, 0.5, midi("e0"))]), [])

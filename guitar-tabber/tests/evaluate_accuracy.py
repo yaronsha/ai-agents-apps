@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from guitar_tabber.pipeline import ENGINES, detect_notes_for_engine  # noqa: E402
-from guitar_tabber.tab import note_positions  # noqa: E402
+from guitar_tabber.tab import tab_fingerings  # noqa: E402
 from reference_songs import SONGS, RefSong  # noqa: E402
 
 SOUNDFONT = Path("/usr/share/sounds/sf2/FluidR3_GM.sf2")
@@ -107,7 +107,7 @@ def tab_positions(notes):
     """(time, midi, string, fret) per note, exactly as the tab shows it."""
     return [
         (n.time, n.midi, p.string_index if p else -1, p.fret if p else -1)
-        for n, p in zip(notes, note_positions(notes))
+        for n, p in zip(notes, tab_fingerings(notes)[1])
     ]
 
 
