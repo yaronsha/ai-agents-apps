@@ -10,16 +10,17 @@ TAB_STRING_ORDER = (5, 4, 3, 2, 1, 0)  # high e → low E
 TAB_LABELS = {5: "e", 4: "B", 3: "G", 2: "D", 1: "A", 0: "E"}
 
 
-def _chord_clusters(notes: list[DetectedNote], chord_window: float) -> list[list[DetectedNote]]:
-    """Group near-simultaneous notes (within chord_window of the first)."""
+def group_chords(
+    notes: list[DetectedNote],
+    chord_window: float = 0.05,
+) -> list[list[DetectedNote]]:
+    """Split time-sorted notes into clusters that start within ``chord_window``."""
     clusters: list[list[DetectedNote]] = []
-    i = 0
-    while i < len(notes):
-        j = i + 1
-        while j < len(notes) and notes[j].time - notes[i].time <= chord_window:
-            j += 1
-        clusters.append(notes[i:j])
-        i = j
+    for note in notes:
+        if clusters and note.time - clusters[-1][0].time <= chord_window:
+            clusters[-1].append(note)
+        else:
+            clusters.append([note])
     return clusters
 
 
@@ -32,7 +33,7 @@ def tab_fingerings(
     Returns (frames, positions): the chord frames for format_ascii_tab
     (string_index → fret) and the position chosen for each note, in order.
     """
-    clusters = _chord_clusters(notes, chord_window)
+    clusters = group_chords(notes, chord_window)
     silences = [0.0]
     for prev, cur in zip(clusters, clusters[1:]):
         prev_end = max(n.time + n.duration for n in prev)
