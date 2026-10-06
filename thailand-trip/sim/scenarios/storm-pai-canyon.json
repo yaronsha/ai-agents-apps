@@ -61,7 +61,8 @@
     {
       "push": "שוק הלילה של פאי",
       "after": "2026-11-26T17:45",
-      "before": "2026-11-26T18:15"
+      "before": "2026-11-26T18:15",
+      "bodyNot": "קניון"
     },
     {
       "noAlert": "weather:tham-lod"

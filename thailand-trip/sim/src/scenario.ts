@@ -56,8 +56,10 @@ export type Expectation =
   | { alert: string; by?: string; severity?: "urgent" | "warning" | "info" }
   /** No alert with this id prefix appears (before `before`, if given). */
   | { noAlert: string; before?: string }
-  /** A push whose title contains `text` is sent between the two times (default: any time). */
-  | { push: string; after?: string; before?: string }
+  /** This alert (id prefix) is still on screen at `at`. */
+  | { visible: string; at: string }
+  /** A push whose title contains `text` (and whose body does not contain `bodyNot`) is sent between the two times (default: any time). */
+  | { push: string; after?: string; before?: string; bodyNot?: string }
   /** No push whose title contains `text` is sent. */
   | { noPush: string }
   /** The colour of a day at the end of the scenario. */
