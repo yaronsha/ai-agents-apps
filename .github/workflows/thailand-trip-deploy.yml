@@ -1,0 +1,81 @@
+name: Deploy thailand-trip
+
+# Deploys the Worker and the PWA to Cloudflare. Only main ever deploys:
+# pushes to other branches and pull requests do not trigger this workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "thailand-trip/**"
+      - ".github/workflows/thailand-trip-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: thailand-trip-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  WORKER_URL: https://thailand-trip.yaron-shapira7.workers.dev
+  PAGES_PROJECT: thailand-trip-app
+
+jobs:
+  deploy:
+    # A manual run from any other branch is refused too.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: thailand-trip
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: thailand-trip/package-lock.json
+
+      # Hotel names and flight numbers are not in git (the repo is public).
+      # Fail instead of silently deploying the example data.
+      - name: Write trip-private.json from secret
+        env:
+          TRIP_PRIVATE_JSON: ${{ secrets.TRIP_PRIVATE_JSON }}
+        run: |
+          if [ -z "$TRIP_PRIVATE_JSON" ]; then
+            echo "::error::Repository secret TRIP_PRIVATE_JSON is not set"
+            exit 1
+          fi
+          printf '%s' "$TRIP_PRIVATE_JSON" > shared/src/trip-private.json
+          node -e 'JSON.parse(require("fs").readFileSync("shared/src/trip-private.json", "utf8"))'
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Build app
+        run: npm run build -w app
+        env:
+          VITE_API_URL: ${{ env.WORKER_URL }}
+
+      # Worker secrets (APP_TOKEN, VAPID_PRIVATE_JWK, ...) stay in Cloudflare;
+      # wrangler deploy keeps them as they are.
+      - name: Deploy worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: thailand-trip/worker
+          command: deploy
+
+      # Run from app/ so wrangler does not pick up worker/wrangler.toml.
+      - name: Deploy app to Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: thailand-trip/app
+          command: pages deploy dist --project-name ${{ env.PAGES_PROJECT }} --branch main --commit-dirty=true
+
