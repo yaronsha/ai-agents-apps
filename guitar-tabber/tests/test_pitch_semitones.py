@@ -33,3 +33,27 @@ def test_chromatic_walk_on_a_string():
     # A0 A1 A2 A3 A4 A5 used to come out as A0 A3
     walk = [45, 46, 47, 48, 49, 50]
     assert _detected(walk) == walk
+
+
+def _glide_tone(hz_curve: np.ndarray) -> np.ndarray:
+    """One plucked tone whose frequency follows hz_curve (per sample)."""
+    t = np.arange(len(hz_curve)) / SR
+    phase = 2 * np.pi * np.cumsum(hz_curve) / SR
+    y = np.exp(-1.5 * t) * sum(np.sin(k * phase) / k for k in range(1, 5))
+    return (0.3 * y / np.max(np.abs(y))).astype(np.float32)
+
+
+def test_vibrato_on_detuned_string_stays_one_note():
+    # E4 tuned 45 cents sharp with +-20 cent vibrato straddles the E/F rounding boundary
+    t = np.arange(SR) / SR
+    cents = 45 + 20 * np.sin(2 * np.pi * 5.5 * t)
+    y = _glide_tone(329.63 * 2 ** (cents / 1200))
+    assert [n.midi for n in detect_notes(y, SR)] == [64]
+
+
+def test_half_step_bend_stays_one_note():
+    # Pick E4, bend up to F4 over 150 ms, hold the bend
+    t = np.arange(SR) / SR
+    cents = np.clip((t - 0.25) / 0.15, 0, 1) * 100
+    y = _glide_tone(329.63 * 2 ** (cents / 1200))
+    assert [n.midi for n in detect_notes(y, SR)] == [64]
