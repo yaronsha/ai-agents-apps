@@ -1,7 +1,9 @@
 # Guitar Tabber
 
 Convert an MP3/MP4 of a **full song** (guitar + other instruments + vocals) into
-**ASCII guitar tablature**.
+**guitar tablature** and view it in the browser, Guitar Pro style: real
+tablature with rhythm and bars, playback with a guitar sound, and a cursor that
+highlights the note being played (plus a fretboard showing where it is).
 
 Pipeline:
 
@@ -10,6 +12,8 @@ Pipeline:
 3. **Detect** notes with **librosa.pyin** (monophonic pitch tracking + onsets)
 4. **Map** MIDI pitches to a standard-tuning (EADGBE) fretboard (prefer lower frets)
 5. **Emit** ASCII tablature to stdout and `<input>.tab.txt`
+6. **Export** `<input>.mid` (tempo estimated from the mix) and
+   `<input>.tab.html`, the browser viewer with the song embedded
 
 ## System requirements
 
@@ -55,6 +59,12 @@ python -m guitar_tabber path/to/song.mp3 --keep-stems -v
 # Choose Demucs model / device
 python -m guitar_tabber song.mp3 --model htdemucs_6s --device cpu
 
+# Known tempo? Skip the estimate (also adjustable later in the viewer)
+python -m guitar_tabber song.mp3 --bpm 92
+
+# MIDI file in, tabs out (no audio analysis); --open launches the browser
+python -m guitar_tabber song.mid --open
+
 # Only tab part of a song (works on files and on YouTube links)
 python -m guitar_tabber song.mp3 --start 0:30 --end 1:00
 ```
@@ -81,7 +91,39 @@ Only download what you have the rights to use (your own uploads, licensed or
 freely licensed material, personal study). If YouTube downloads start failing,
 update yt-dlp first: `pip install -U yt-dlp`.
 
-Output example:
+## Browser tab viewer (`.tab.html`)
+
+Open the generated `<input>.tab.html` in any modern browser (double-click
+works, no server needed). It is built on [alphaTab](https://alphatab.net), the
+open-source engine for Guitar Pro–style notation:
+
+- Tablature with rhythm stems, bar lines and tempo; optionally standard notation (**View → Notes + Tab**)
+- **Play / pause** (Space), stop, seek bar, **speed** 25–150%, loop, metronome, count-in
+- Cursor plus orange highlighting of the notes playing now, and a **fretboard** showing them live
+- Click a note to start there; shift-click to select a range (loop it with **Loop**)
+- Several MIDI tracks: pick one under **Track** (it plays solo)
+- **Export .gp** opens in Guitar Pro / TuxGuitar; **Print** gives a clean sheet
+- **Open…** or drag and drop any other `.mid` file onto the page
+- **Rhythm** bar: set the **tempo** (type it, ÷2 / ×2, or **Tap** / press `T` along with the
+  song), where the **first beat** falls, and the **time signature**. The notes are
+  re-placed into bars instantly in the browser; **Reset** goes back to the file's tempo
+
+Fingering is chosen across the whole song (it keeps the hand in one position
+and avoids impossible chord stretches), and rhythm is snapped to a 1/16 grid
+(set **Grid** to 1/8 or 1/32 if it looks too busy or too coarse).
+
+The page loads alphaTab and its guitar soundfont from the jsDelivr CDN, so it
+needs an internet connection. The empty viewer is in
+`guitar_tabber/web/viewer.html`: open it and drop a MIDI file on it.
+
+Try it with the bundled demo:
+
+```bash
+python tests/make_demo_midi.py        # writes tests/fixtures/demo_riff.mid
+python -m guitar_tabber tests/fixtures/demo_riff.mid --open
+```
+
+Text output example:
 
 ```
 e|-----------|
@@ -92,7 +134,8 @@ A|--0-----0--|
 E|-----------|
 ```
 
-A `.tab.txt` file is also written beside the input (or to `-o`).
+A `.tab.txt` file is also written beside the input (or to `-o`), together with
+`.mid` and `.tab.html` (turn them off with `--no-midi` / `--no-html`).
 
 ## Synthetic end-to-end test (no real guitar file needed)
 
@@ -119,8 +162,8 @@ python -m guitar_tabber tests/fixtures/mixed_demo.mp3 --keep-stems -v
 | **Expression** | Bends, slides, vibrato, harmonics, palm mutes, and whammy tricks are **not** notated — you get fretted pitch snapshots. |
 | **Tuning** | Assumes **standard EADGBE** at A=440. Drop tunings / capos will map to wrong frets. |
 | **Fret choice** | Ambiguous pitches prefer **lower frets / open strings**. Alternate positions (e.g. 5th-fret A vs open A) may not match the original fingering. |
-| **Timing / rhythm** | Tab frames are one column per detected note, not strict rhythmic notation. No time signature or beat grid. |
-| **Speed / resources** | Demucs on CPU is slow for long tracks. Prefer short clips while experimenting. |
+| **Timing / rhythm** | The ASCII tab is one column per note, with no rhythm. The browser viewer snaps notes to a beat grid built from the estimated tempo (assumes 4/4). If the tempo estimate is off, bars will not line up with the music: fix it in the viewer's **Rhythm** bar or pass `--bpm`. |
+| **Speed / resources** | Demucs on CPU is slow for long tracks. Prefer short clips while experimenting. Each run prints a **Timing** table (ffmpeg, Demucs model load / separation, tempo, pitch detection, output) so you can see where the time goes. Everything runs locally; the Demucs weights are downloaded once from Meta's server (`dl.fbaipublicfiles.com`) into `~/.cache/torch/hub/checkpoints` and reused after that. |
 
 ## Project layout
 
@@ -139,10 +182,16 @@ guitar-tabber/
     pitch.py         # librosa.pyin
     fretboard.py     # MIDI ↔ frets
     tab.py           # ASCII formatter
+    midi_io.py       # notes ↔ .mid, tempo estimate
+    timing.py        # per-stage timing report
+    viewer.py        # writes <input>.tab.html
+    web/viewer.html  # browser viewer (alphaTab)
   tests/
     generate_test_audio.py
+    make_demo_midi.py
+    test_viewer.py
     test_youtube.py  # downloader tests (yt-dlp mocked)
-    fixtures/        # created by the generator
+    fixtures/        # created by the generators
 ```
 
 ## License

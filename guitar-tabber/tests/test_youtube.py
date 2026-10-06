@@ -134,7 +134,9 @@ class CliTests(unittest.TestCase):
             from guitar_tabber import cli
         except ImportError as exc:  # heavy deps (librosa/demucs) not installed
             self.skipTest(f"tabber deps missing: {exc}")
-        result = types.SimpleNamespace(tab="TAB", note_count=0, guitar_stem_path=None)
+        result = types.SimpleNamespace(
+            tab="TAB", note_count=0, guitar_stem_path=None, timer=None, midi_path=None, html_path=None
+        )
         with mock.patch.object(cli, "run_pipeline", return_value=result) as run:
             code = cli.main(argv)
         return code, run
@@ -158,7 +160,9 @@ class CliTests(unittest.TestCase):
         def fake_run(path, **kw):
             seen["path"], seen["tab"] = Path(path), kw["output_tab_path"]
             seen["exists"] = Path(path).exists()
-            return types.SimpleNamespace(tab="TAB", note_count=0, guitar_stem_path=None)
+            return types.SimpleNamespace(
+            tab="TAB", note_count=0, guitar_stem_path=None, timer=None, midi_path=None, html_path=None
+        )
 
         try:
             from guitar_tabber import cli
