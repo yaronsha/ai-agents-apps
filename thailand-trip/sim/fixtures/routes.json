@@ -1,0 +1,106 @@
+{
+ "d22-suthep": {
+  "routes": [
+   {
+    "duration": "509s",
+    "staticDuration": "480s"
+   }
+  ]
+ },
+ "d23-inthanon": {
+  "routes": [
+   {
+    "duration": "7121s",
+    "staticDuration": "6718s"
+   }
+  ]
+ },
+ "d23-back": {
+  "routes": [
+   {
+    "duration": "6874s",
+    "staticDuration": "6485s"
+   }
+  ]
+ },
+ "d25-pai": {
+  "routes": [
+   {
+    "duration": "9788s",
+    "staticDuration": "9234s"
+   }
+  ]
+ },
+ "d26-thamlod": {
+  "routes": [
+   {
+    "duration": "1773s",
+    "staticDuration": "1673s"
+   }
+  ]
+ },
+ "d26-back": {
+  "routes": [
+   {
+    "duration": "3554s",
+    "staticDuration": "3353s"
+   }
+  ]
+ },
+ "d27-mokfa": {
+  "routes": [
+   {
+    "duration": "6412s",
+    "staticDuration": "6049s"
+   }
+  ]
+ },
+ "d27-chiangdao": {
+  "routes": [
+   {
+    "duration": "4438s",
+    "staticDuration": "4187s"
+   }
+  ]
+ },
+ "d28-doichang": {
+  "routes": [
+   {
+    "duration": "10347s",
+    "staticDuration": "9761s"
+   }
+  ]
+ },
+ "d29-khunkorn": {
+  "routes": [
+   {
+    "duration": "1268s",
+    "staticDuration": "1196s"
+   }
+  ]
+ },
+ "d29-chiangrai": {
+  "routes": [
+   {
+    "duration": "2702s",
+    "staticDuration": "2549s"
+   }
+  ]
+ },
+ "d30-phuchifa": {
+  "routes": [
+   {
+    "duration": "8102s",
+    "staticDuration": "7643s"
+   }
+  ]
+ },
+ "d02-chiangmai": {
+  "routes": [
+   {
+    "duration": "19396s",
+    "staticDuration": "18298s"
+   }
+  ]
+ }
+}

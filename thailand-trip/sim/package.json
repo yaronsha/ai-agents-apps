@@ -1,0 +1,16 @@
+{
+  "name": "@trip/sim",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sim": "tsx src/run.ts",
+    "live": "tsx src/live.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.1",
+    "miniflare": "^4.20260730.0",
+    "playwright": "1.56.1",
+    "tsx": "^4.20.0"
+  }
+}

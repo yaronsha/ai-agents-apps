@@ -80,7 +80,9 @@ export default {
     return json({ error: "not found" }, 404);
   },
 
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(runCheck(env, new Date()).then(() => undefined));
+  // The cron's own time rather than the clock: the same in production, and lets the simulator
+  // (sim/) play a whole trip day through the real handler in seconds.
+  async scheduled(event: ScheduledController, env: Env): Promise<void> {
+    await runCheck(env, new Date(event.scheduledTime));
   },
 } satisfies ExportedHandler<Env>;

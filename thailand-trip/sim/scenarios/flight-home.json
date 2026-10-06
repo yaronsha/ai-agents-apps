@@ -1,0 +1,82 @@
+{
+  "name": "שינוי שער, עיכוב וביטול בטיסה הביתה",
+  "description": "The flight home leaves Chiang Mai on 3.12 at 08:40 (made-up flight number SIM103). Tracking starts 24 hours before: hourly, then every 15 minutes in the last 6 hours, so the 02:10 delay is seen at 02:45. At 18:00 the gate changes, at 02:10 the flight is 90 minutes late, at 04:30 it is cancelled. Expect one urgent push per change and a red last day.",
+  "start": "2026-12-02T08:00",
+  "end": "2026-12-03T08:00",
+  "events": [
+    {
+      "at": "2026-12-02T18:00",
+      "flight": {
+        "flight": "ret-1",
+        "gate": "7"
+      },
+      "note": "Gate moves from 4 to 7"
+    },
+    {
+      "at": "2026-12-03T02:10",
+      "flight": {
+        "flight": "ret-1",
+        "status": "Delayed",
+        "delayMin": 90
+      },
+      "note": "The flight is 90 minutes late"
+    },
+    {
+      "at": "2026-12-03T04:30",
+      "flight": {
+        "flight": "ret-1",
+        "status": "Canceled"
+      },
+      "note": "The flight is cancelled"
+    }
+  ],
+  "expect": [
+    {
+      "noAlert": "flight:ret-1",
+      "before": "2026-12-02T18:00"
+    },
+    {
+      "alert": "flight:ret-1:gate:7",
+      "by": "2026-12-02T19:00"
+    },
+    {
+      "push": "שער חדש",
+      "after": "2026-12-02T18:00",
+      "before": "2026-12-02T19:00"
+    },
+    {
+      "visible": "flight:ret-1:gate:7",
+      "at": "2026-12-02T23:00"
+    },
+    {
+      "alert": "flight:ret-1:delay90",
+      "by": "2026-12-03T02:45"
+    },
+    {
+      "push": "מתעכבת",
+      "after": "2026-12-03T02:10",
+      "before": "2026-12-03T02:45"
+    },
+    {
+      "alert": "flight:ret-1:cancel",
+      "by": "2026-12-03T04:45",
+      "severity": "urgent"
+    },
+    {
+      "push": "בוטלה",
+      "after": "2026-12-03T04:30",
+      "before": "2026-12-03T04:45"
+    },
+    {
+      "day": "2026-12-03",
+      "status": "red"
+    },
+    {
+      "maxPushes": 6
+    }
+  ],
+  "screen": [
+    "בוטלה",
+    "שער חדש לטיסה"
+  ]
+}
