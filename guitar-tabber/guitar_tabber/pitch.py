@@ -31,9 +31,14 @@ def detect_notes(
     hop_length: int = 256,
     min_note_duration: float = 0.08,
     confidence_threshold: float = 0.1,
+    pitch_change_frames: int = 3,
 ) -> list[DetectedNote]:
     """
     Monophonic pitch tracking via librosa.pyin, segmented into note events.
+
+    A note ends when the track goes unvoiced or when the rounded pitch moves to
+    a different semitone for ``pitch_change_frames`` consecutive frames, so
+    half-step moves (E -> F, chromatic runs) become separate notes.
 
     Returns a list of DetectedNote sorted by time.
     """
@@ -67,11 +72,12 @@ def detect_notes(
                 midi = midi_from_hz(float(f0[i]))
                 if midi is None:
                     break
-                # Continue segment while pitch stays within ~1 semitone of median so far
-                if midi_vals:
-                    med = int(np.median(midi_vals))
-                    if abs(midi - med) > 1:
-                        break
+                # End the note once the pitch settles on a different semitone;
+                # shorter deviations (vibrato, bends, pyin jitter) stay in the note.
+                if midi_vals and midi != int(np.round(np.median(midi_vals))) and _holds_pitch(
+                    f0, voiced_flag, i, midi, pitch_change_frames
+                ):
+                    break
                 midi_vals.append(midi)
                 hz_vals.append(float(f0[i]))
                 conf_vals.append(float(voiced_probs[i]) if voiced_probs[i] is not None else 0.5)
@@ -104,6 +110,18 @@ def detect_notes(
     notes = _refine_with_onsets(y, sr, notes, hop_length=hop_length)
     logger.info("Detected %d note events", len(notes))
     return notes
+
+
+def _holds_pitch(
+    f0: np.ndarray, voiced_flag: np.ndarray, i: int, midi: int, frames: int
+) -> bool:
+    """True if frames i .. i+frames-1 are all voiced at ``midi``."""
+    if i + frames > len(f0):
+        return False
+    for k in range(i, i + frames):
+        if not voiced_flag[k] or np.isnan(f0[k]) or midi_from_hz(float(f0[k])) != midi:
+            return False
+    return True
 
 
 def _refine_with_onsets(
