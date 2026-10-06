@@ -10,7 +10,7 @@ from pathlib import Path
 from .audio import extract_mono_wav, load_audio, write_wav
 from .pitch import detect_notes, merge_nearby_same_pitch
 from .separation import separate_guitar_stem
-from .tab import format_ascii_tab, format_note_log, notes_to_tab_frames
+from .tab import format_ascii_tab, format_note_log, tab_fingerings
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +76,9 @@ def run_pipeline(
         notes = merge_nearby_same_pitch(notes)
 
         # 4. Map to frets and format tab
-        frames = notes_to_tab_frames(notes)
+        frames, positions = tab_fingerings(notes)
         tab = format_ascii_tab(frames)
-        note_log = format_note_log(notes)
+        note_log = format_note_log(notes, positions)
 
         if output_tab_path is None:
             output_tab_path = input_path.with_suffix(".tab.txt")

@@ -156,19 +156,26 @@ def _frame_candidates(midis: Sequence[int], max_fret: int) -> list[Fingering]:
     ]
 
 
-def _hand_options(fingering: Fingering, max_fret: int) -> list[tuple[int, float]]:
-    """(hand position, static cost) pairs under which this fingering is playable."""
+def _hand_options(
+    fingering: Fingering, max_fret: int, free_hands: Iterable[int]
+) -> list[tuple[int, float]]:
+    """
+    (hand position, static cost) pairs under which this fingering is playable.
+
+    Open strings only need no hand, so such a fingering just keeps one of
+    free_hands (the positions the hand may be in from the previous frame).
+    """
     fretted = [p.fret for p in fingering if p.fret > 0]
     n_open = len(fingering) - len(fretted)
     base = sum(FRET_COST + HEIGHT_COST * f for f in fretted)
-    top = max(1, max_fret - HAND_SPAN)
     if fretted:
+        top = max(1, max_fret - HAND_SPAN)
         lo, hi = min(fretted), max(fretted)
         hands = range(max(1, hi - HAND_SPAN - MAX_STRETCH), min(lo, top) + 1)
         if not hands:  # wider than any hand: emit it anyway, expensively
             return [(lo, base + 4 * STRETCH_COST)]
     else:
-        hands = range(1, top + 1)
+        hands = free_hands
     out = []
     for h in hands:
         cost = base
@@ -199,13 +206,17 @@ def map_sequence_to_frets(
 
     Returns one tuple of FretPositions per frame, empty for unplayable frames.
     """
+    if silences is not None and len(silences) != len(frames):
+        raise ValueError(f"got {len(silences)} silences for {len(frames)} frames")
+
     # States per frame: (fingering, hand position, static cost)
-    layers = []
+    layers: list[list[tuple[Fingering, int, float]]] = []
     for midis in frames:
+        free_hands = sorted({h for _, h, _ in layers[-1]}) if layers and layers[-1] else [1]
         layers.append([
             (fingering, h, c)
             for fingering in _frame_candidates(midis, max_fret)
-            for h, c in _hand_options(fingering, max_fret)
+            for h, c in _hand_options(fingering, max_fret, free_hands)
         ])
 
     result: list[Fingering] = [()] * len(frames)

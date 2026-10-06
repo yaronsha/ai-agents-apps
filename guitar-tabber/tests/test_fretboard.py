@@ -77,3 +77,10 @@ def test_tab_measures_rests_from_note_end_not_onset():
     run = ["E5", "E8", "A5", "A7", "D5", "D7", "G5", "G7", "B5", "B8", "e5", "e8"]
     notes = [DetectedNote(0.6 * i, 0.6, 0.0, midi(p), 1.0) for i, p in enumerate(run)]
     assert [f"{STRINGS[p.string_index]}{p.fret}" for p in note_positions(notes)] == run
+
+
+def test_silences_must_match_frames():
+    import pytest
+
+    with pytest.raises(ValueError):
+        map_sequence_to_frets(melody("e0", "e3"), silences=[0.0])

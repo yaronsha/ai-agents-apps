@@ -23,12 +23,28 @@ def _chord_clusters(notes: list[DetectedNote], chord_window: float) -> list[list
     return clusters
 
 
-def _fingerings(clusters: list[list[DetectedNote]]) -> list[tuple[FretPosition, ...]]:
+def tab_fingerings(
+    notes: list[DetectedNote], chord_window: float = 0.05
+) -> tuple[list[dict[int, int]], list[FretPosition | None]]:
+    """
+    Choose fingerings for the whole sequence once.
+
+    Returns (frames, positions): the chord frames for format_ascii_tab
+    (string_index → fret) and the position chosen for each note, in order.
+    """
+    clusters = _chord_clusters(notes, chord_window)
     silences = [0.0]
     for prev, cur in zip(clusters, clusters[1:]):
         prev_end = max(n.time + n.duration for n in prev)
         silences.append(max(0.0, cur[0].time - prev_end))
-    return map_sequence_to_frets([[n.midi for n in c] for c in clusters], silences=silences)
+    fingerings = map_sequence_to_frets([[n.midi for n in c] for c in clusters], silences=silences)
+
+    frames = [{p.string_index: p.fret for p in f} for f in fingerings if f]
+    positions: list[FretPosition | None] = []
+    for cluster, fingering in zip(clusters, fingerings):
+        for n in cluster:
+            positions.append(next((p for p in fingering if p.midi == n.midi), None))
+    return frames, positions
 
 
 def notes_to_tab_frames(
@@ -41,24 +57,14 @@ def notes_to_tab_frames(
     Each frame is string_index → fret. Fingerings are chosen for the whole
     sequence at once, so runs played in position stay in that position.
     """
-    clusters = _chord_clusters(notes, chord_window)
-    fingerings = _fingerings(clusters)
-    return [
-        {p.string_index: p.fret for p in fingering} for fingering in fingerings if fingering
-    ]
+    return tab_fingerings(notes, chord_window)[0]
 
 
 def note_positions(
     notes: list[DetectedNote], chord_window: float = 0.05
 ) -> list[FretPosition | None]:
     """The fretboard position chosen for each note, in the same order as notes."""
-    clusters = _chord_clusters(notes, chord_window)
-    fingerings = _fingerings(clusters)
-    out: list[FretPosition | None] = []
-    for cluster, fingering in zip(clusters, fingerings):
-        for n in cluster:
-            out.append(next((p for p in fingering if p.midi == n.midi), None))
-    return out
+    return tab_fingerings(notes, chord_window)[1]
 
 
 def format_ascii_tab(
@@ -122,10 +128,17 @@ def _empty_tab_message() -> str:
     return blank + "\n(no notes detected)"
 
 
-def format_note_log(notes: list[DetectedNote]) -> str:
-    """Human-readable note list for debugging."""
+def format_note_log(
+    notes: list[DetectedNote], positions: list[FretPosition | None] | None = None
+) -> str:
+    """
+    Human-readable note list for debugging. Pass the positions from
+    tab_fingerings to show exactly what the tab shows.
+    """
+    if positions is None:
+        positions = note_positions(notes)
     rows = ["#  time    dur     Hz     MIDI  fretboard"]
-    for i, (n, pos) in enumerate(zip(notes, note_positions(notes))):
+    for i, (n, pos) in enumerate(zip(notes, positions)):
         pos_str = f"{pos.string_name}{pos.fret}" if pos else "?"
         rows.append(
             f"{i:02d} {n.time:6.2f}  {n.duration:5.2f}  {n.hz:7.1f}  {n.midi:4d}  {pos_str}"
