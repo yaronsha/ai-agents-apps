@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from itertools import product
+from typing import Iterable, Sequence
 
 # Standard tuning open-string MIDI numbers (low E to high e)
 # E2=40, A2=45, D3=50, G3=55, B3=59, E4=64
@@ -90,3 +91,158 @@ def map_midis_to_chord(
             used_strings.add(best.string_index)
 
     return assignment
+
+
+# --- Sequence-level fingering (hand position aware) -------------------------
+#
+# Choosing each note's lowest fret on its own ignores where the hand is, so a
+# run played in 5th position comes out as open-position tab. Instead we pick
+# fingerings for the whole sequence with Viterbi: each state is a fingering
+# plus a hand position (the fret under the index finger), and the path cost
+# rewards staying in one position and on nearby strings, and penalises shifts,
+# stretches and high frets.
+
+HAND_SPAN = 3  # frets reachable without stretching: [hand, hand + 3]
+MAX_STRETCH = 1  # one extra fret is allowed, at a cost
+SHIFT_COST = 2.0  # any change of hand position
+MOVE_COST = 0.5  # per fret the hand moves
+STRING_COST = 0.05  # per string the picking hand crosses between frames
+FRET_COST = 0.2  # per fretted (non-open) note
+HEIGHT_COST = 0.03  # per fret number of each fretted note
+STRETCH_COST = 1.5
+OPEN_IN_POSITION_COST = 0.6  # open string while the hand is up the neck
+REST_GAP = 0.5  # seconds between onsets that leave time to shift freely
+REST_SHIFT_DISCOUNT = 0.1  # shift and move costs are scaled by this after a rest
+OPEN_SHIFT_SCALE = 0.6  # ...and by this after open strings only (the hand is free)
+MAX_CHORD_CANDIDATES = 24
+
+Fingering = tuple[FretPosition, ...]
+
+
+def _chord_fingerings(midis: Sequence[int], max_fret: int) -> list[Fingering]:
+    """Playable fingerings of simultaneous pitches, one string per pitch."""
+    options = [positions_for_midi(m, max_fret=max_fret) for m in midis]
+    out = []
+    for combo in product(*options):
+        strings = {p.string_index for p in combo}
+        if len(strings) != len(combo):
+            continue
+        fretted = [p.fret for p in combo if p.fret > 0]
+        if fretted and max(fretted) - min(fretted) > HAND_SPAN + MAX_STRETCH:
+            continue
+        out.append(combo)
+    out.sort(key=lambda c: (max(p.fret for p in c), sum(p.fret for p in c)))
+    return out[:MAX_CHORD_CANDIDATES]
+
+
+def _frame_candidates(midis: Sequence[int], max_fret: int) -> list[Fingering]:
+    unique = sorted(set(midis))
+    if len(unique) == 1:
+        return [(p,) for p in positions_for_midi(unique[0], max_fret=max_fret)]
+    if len(unique) <= len(OPEN_STRING_MIDI):
+        cands = _chord_fingerings(unique, max_fret)
+        if cands:
+            return cands
+    # Unplayable as one shape (too many notes or too wide): keep the greedy chord
+    greedy = map_midis_to_chord(unique, max_fret=max_fret)
+    if not greedy:
+        return []
+    return [
+        tuple(FretPosition(s, f, OPEN_STRING_MIDI[s] + f) for s, f in sorted(greedy.items()))
+    ]
+
+
+def _hand_options(fingering: Fingering, max_fret: int) -> list[tuple[int, float]]:
+    """(hand position, static cost) pairs under which this fingering is playable."""
+    fretted = [p.fret for p in fingering if p.fret > 0]
+    n_open = len(fingering) - len(fretted)
+    base = sum(FRET_COST + HEIGHT_COST * f for f in fretted)
+    top = max(1, max_fret - HAND_SPAN)
+    if fretted:
+        lo, hi = min(fretted), max(fretted)
+        hands = range(max(1, hi - HAND_SPAN - MAX_STRETCH), min(lo, top) + 1)
+        if not hands:  # wider than any hand: emit it anyway, expensively
+            return [(lo, base + 4 * STRETCH_COST)]
+    else:
+        hands = range(1, top + 1)
+    out = []
+    for h in hands:
+        cost = base
+        if fretted and max(fretted) > h + HAND_SPAN:
+            cost += STRETCH_COST
+        if n_open and h > HAND_SPAN + 1:
+            cost += OPEN_IN_POSITION_COST * n_open
+        out.append((h, cost))
+    return out
+
+
+def _mean_string(fingering: Fingering) -> float:
+    return sum(p.string_index for p in fingering) / len(fingering)
+
+
+def map_sequence_to_frets(
+    frames: Sequence[Sequence[int]],
+    onsets: Sequence[float] | None = None,
+    max_fret: int = MAX_FRET,
+) -> list[Fingering]:
+    """
+    Choose fingerings for a sequence of frames (each a list of simultaneous
+    MIDI pitches), minimising hand movement over the whole sequence.
+
+    onsets (seconds, one per frame) are optional; a long gap between frames
+    makes a position shift there cheap, since the hand has time to move.
+
+    Returns one tuple of FretPositions per frame, empty for unplayable frames.
+    """
+    # States per frame: (fingering, hand position, static cost)
+    layers = []
+    for midis in frames:
+        layers.append([
+            (fingering, h, c)
+            for fingering in _frame_candidates(midis, max_fret)
+            for h, c in _hand_options(fingering, max_fret)
+        ])
+
+    result: list[Fingering] = [()] * len(frames)
+    start = 0
+    while start < len(layers):
+        # Run Viterbi over each stretch of playable frames
+        if not layers[start]:
+            start += 1
+            continue
+        end = start
+        while end < len(layers) and layers[end]:
+            end += 1
+
+        cost = [c for _, _, c in layers[start]]
+        back: list[list[int]] = []
+        for k in range(start + 1, end):
+            rest = onsets is not None and onsets[k] - onsets[k - 1] >= REST_GAP
+            shift_scale = REST_SHIFT_DISCOUNT if rest else 1.0
+            prev = [
+                (h, _mean_string(f), all(p.fret == 0 for p in f), cost[j])
+                for j, (f, h, _) in enumerate(layers[k - 1])
+            ]
+            new_cost, ptr = [], []
+            for fingering, h, c in layers[k]:
+                s = _mean_string(fingering)
+                best_j, best_v = 0, float("inf")
+                for j, (ph, ps, p_open, pc) in enumerate(prev):
+                    v = pc + STRING_COST * abs(ps - s)
+                    if ph != h:
+                        scale = shift_scale * (OPEN_SHIFT_SCALE if p_open else 1.0)
+                        v += scale * (SHIFT_COST + MOVE_COST * abs(ph - h))
+                    if v < best_v:
+                        best_j, best_v = j, v
+                new_cost.append(best_v + c)
+                ptr.append(best_j)
+            cost = new_cost
+            back.append(ptr)
+
+        idx = min(range(len(cost)), key=cost.__getitem__)
+        for k in range(end - 1, start - 1, -1):
+            result[k] = layers[k][idx][0]
+            if k > start:
+                idx = back[k - start - 1][idx]
+        start = end
+    return result
