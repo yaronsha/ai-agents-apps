@@ -50,7 +50,10 @@ async function source(name: string, run: () => Promise<string>, needs?: string) 
   try {
     rows.push({ source: name, status: "ok", note: await run() });
   } catch (err) {
-    rows.push({ source: name, status: "failed", note: String(err) });
+    // A rate limit says nothing about the format; CI runners share addresses with other users of
+    // the free APIs, so it is reported but does not fail the check.
+    const limited = / 429$|limit requests/i.test(String((err as Error).message));
+    rows.push({ source: name, status: limited ? "skipped" : "failed", note: limited ? `rate-limited: ${String(err)}` : String(err) });
   }
 }
 
