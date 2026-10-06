@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from .fretboard import FretPosition, map_sequence_to_frets
-from .pitch import DetectedNote
+
+if TYPE_CHECKING:  # pitch.py pulls in librosa; only the type is needed here
+    from .pitch import DetectedNote
 
 # Tab display order: high e on top
 TAB_STRING_ORDER = (5, 4, 3, 2, 1, 0)  # high e → low E
 TAB_LABELS = {5: "e", 4: "B", 3: "G", 2: "D", 1: "A", 0: "E"}
+MAX_HELD_NOTE = 2.0  # seconds; longer detected notes are treated as this long
 
 
 def group_chords(
@@ -24,24 +29,44 @@ def group_chords(
     return clusters
 
 
+def _silences(
+    clusters: list[list[DetectedNote]], fingerings: list[tuple[FretPosition, ...]] | None
+) -> list[float]:
+    """
+    Seconds the fretting hand has been free before each cluster: since the
+    last earlier fretted note stopped (all notes count when fingerings is
+    None). Over-long detected durations are capped at MAX_HELD_NOTE.
+    """
+    silences = []
+    held_until = clusters[0][0].time if clusters else 0.0
+    for k, cluster in enumerate(clusters):
+        silences.append(max(0.0, cluster[0].time - held_until))
+        open_midis = (
+            {p.midi for p in fingerings[k] if p.fret == 0} if fingerings is not None else set()
+        )
+        for n in cluster:
+            if n.midi not in open_midis:
+                held_until = max(held_until, n.time + min(n.duration, MAX_HELD_NOTE))
+    return silences
+
+
 def tab_fingerings(
     notes: list[DetectedNote], chord_window: float = 0.05
 ) -> tuple[list[dict[int, int]], list[FretPosition | None]]:
     """
-    Choose fingerings for the whole sequence once.
+    Choose fingerings for the whole sequence.
 
     Returns (frames, positions): the chord frames for format_ascii_tab
     (string_index → fret) and the position chosen for each note, in order.
     """
     clusters = group_chords(notes, chord_window)
-    # Silence before each cluster: from when every earlier note (a ringing
-    # bass included) has stopped to this onset
-    silences = []
-    ringing_until = clusters[0][0].time if clusters else 0.0
-    for cluster in clusters:
-        silences.append(max(0.0, cluster[0].time - ringing_until))
-        ringing_until = max(ringing_until, max(n.time + n.duration for n in cluster))
-    fingerings = map_sequence_to_frets([[n.midi for n in c] for c in clusters], silences=silences)
+    midis = [[n.midi for n in c] for c in clusters]
+    # Rests depend on which notes are fretted (a held fretted note keeps the
+    # hand busy, a ringing open string does not), and that depends on the
+    # fingering. So pick fingerings assuming every note holds the hand, then
+    # again with rests measured from the fretted notes of that first pick.
+    fingerings = map_sequence_to_frets(midis, silences=_silences(clusters, None))
+    fingerings = map_sequence_to_frets(midis, silences=_silences(clusters, fingerings))
 
     frames = [{p.string_index: p.fret for p in f} for f in fingerings if f]
     positions: list[FretPosition | None] = []

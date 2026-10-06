@@ -106,14 +106,15 @@ HAND_SPAN = 3  # frets reachable without stretching: [hand, hand + 3]
 MAX_STRETCH = 1  # one extra fret is allowed, at a cost
 SHIFT_COST = 2.0  # any change of hand position
 MOVE_COST = 0.5  # per fret the hand moves
-STRING_COST = 0.05  # per string the picking hand crosses between frames
+STRING_COST = 0.03  # per string the picking hand crosses between frames
 FRET_COST = 0.2  # per fretted (non-open) note
 HEIGHT_COST = 0.03  # per fret number of each fretted note
 STRETCH_COST = 1.5
 OPEN_IN_POSITION_COST = 0.6  # open string while the hand is up the neck
 REST_GAP = 0.3  # seconds of silence that leave time to shift freely
 REST_SHIFT_DISCOUNT = 0.1  # shift and move costs are scaled by this after a rest
-OPEN_SHIFT_SCALE = 0.6  # ...and by this after open strings only (the hand is free)
+OPEN_SHIFT_SCALE = 0.6  # ...and by this after open strings only (the hand is free);
+# the two multiply when both apply
 MAX_CHORD_CANDIDATES = 24
 
 Fingering = tuple[FretPosition, ...]
@@ -204,9 +205,10 @@ def map_sequence_to_frets(
     Choose fingerings for a sequence of frames (each a list of simultaneous
     MIDI pitches), minimising hand movement over the whole sequence.
 
-    silences (seconds, one per frame) are optional: the silence before each
-    frame, from the end of the previous notes to this onset. A long silence
-    makes a position shift there cheap, since the hand has time to move.
+    silences (seconds, one per frame) are optional: how long the fretting
+    hand has been free before each frame's onset, i.e. since the last earlier
+    fretted note stopped (tab_fingerings computes it that way). A long
+    silence makes a position shift there cheap, since the hand has time to move.
 
     Returns one tuple of FretPositions per frame, empty for unplayable frames.
     """
@@ -216,11 +218,11 @@ def map_sequence_to_frets(
     # States per frame: (fingering, hand position, static cost)
     layers: list[list[tuple[Fingering, int, float]]] = []
     any_hand = range(1, max(1, max_fret - HAND_SPAN) + 1)
-    for midis in frames:
-        # Open strings keep the hand where it was; at the start of a run the
-        # hand can be anywhere, so the frames that follow decide.
+    for k, midis in enumerate(frames):
+        # Open strings keep the hand where it was. At the start of a run, or
+        # after a rest, the hand can be anywhere, so the frames that follow decide.
         prev_hands = {h for _, h, _ in layers[-1]} if layers else set()
-        free_hands = sorted(prev_hands) if prev_hands else any_hand
+        free_hands = any_hand if not prev_hands or _is_rest(silences, k) else sorted(prev_hands)
         layers.append([
             (fingering, h, c)
             for fingering in _frame_candidates(midis, max_fret)
@@ -241,9 +243,7 @@ def map_sequence_to_frets(
         cost = [c for _, _, c in layers[start]]
         back: list[list[int]] = []
         for k in range(start + 1, end):
-            rest = _is_rest(silences, k)
-            # A rest before open strings still frees the hand after them
-            rest_before_prev = _is_rest(silences, k - 1)
+            shift_scale = REST_SHIFT_DISCOUNT if _is_rest(silences, k) else 1.0
             prev = [
                 (h, _mean_string(f), all(p.fret == 0 for p in f), cost[j])
                 for j, (f, h, _) in enumerate(layers[k - 1])
@@ -255,10 +255,7 @@ def map_sequence_to_frets(
                 for j, (ph, ps, p_open, pc) in enumerate(prev):
                     v = pc + STRING_COST * abs(ps - s)
                     if ph != h:
-                        if rest or (p_open and rest_before_prev):
-                            scale = REST_SHIFT_DISCOUNT
-                        else:
-                            scale = OPEN_SHIFT_SCALE if p_open else 1.0
+                        scale = shift_scale * (OPEN_SHIFT_SCALE if p_open else 1.0)
                         v += scale * (SHIFT_COST + MOVE_COST * abs(ph - h))
                     if v < best_v:
                         best_j, best_v = j, v
