@@ -20,6 +20,7 @@ class DetectedNote:
     hz: float
     midi: int
     confidence: float
+    from_onset: bool = False  # starts at a detected attack (never merged into the previous note)
 
 
 def detect_notes(
@@ -35,6 +36,9 @@ def detect_notes(
     """
     Monophonic pitch tracking via librosa.pyin, segmented into note events.
 
+    Voiced runs are also split at detected onsets, so re-plucked notes of the
+    same pitch stay separate even when pyin stays voiced across the attack.
+
     Returns a list of DetectedNote sorted by time.
     """
     logger.info("Running pyin pitch detection (sr=%d, len=%.2fs)...", sr, len(y) / sr)
@@ -48,10 +52,17 @@ def detect_notes(
         hop_length=hop_length,
     )
     times = librosa.times_like(f0, sr=sr, hop_length=hop_length)
+    onset_frames = set(int(f) for f in _onset_frames(y, sr, hop_length))
+    # Only split at an onset when both sides last at least this long: pyin can
+    # turn voiced a frame or two before the onset detector fires, and a note's
+    # release can register as a weak onset just before it goes unvoiced.
+    min_note_frames = max(3, int(np.ceil(min_note_duration * sr / hop_length)))
 
     notes: list[DetectedNote] = []
     i = 0
     n = len(f0)
+    voiced = ~np.isnan(f0) & np.asarray(voiced_flag, dtype=bool)
+    prev_end = 0
     while i < n:
         if (
             voiced_flag[i]
@@ -64,6 +75,14 @@ def detect_notes(
             hz_vals: list[float] = []
             conf_vals: list[float] = []
             while i < n and voiced_flag[i] and f0[i] is not None and not np.isnan(f0[i]):
+                # A new attack ends the current note (re-pluck of the same pitch)
+                if (
+                    i in onset_frames
+                    and i - start >= min_note_frames
+                    and i + min_note_frames <= n
+                    and voiced[i : i + min_note_frames].all()
+                ):
+                    break
                 midi = midi_from_hz(float(f0[i]))
                 if midi is None:
                     break
@@ -81,6 +100,11 @@ def detect_notes(
                 i += 1
                 continue
 
+            # pyin often drops out for a few frames at a re-pluck and the onset
+            # lands in that gap, so count any onset since the previous segment.
+            attacked = any(f in onset_frames for f in range(prev_end, start + min_note_frames))
+            prev_end = i
+
             duration = times[min(i, n - 1)] - times[start]
             if duration < min_note_duration and (i - start) < 3:
                 continue
@@ -95,6 +119,7 @@ def detect_notes(
                     hz=hz_final,
                     midi=midi_final,
                     confidence=conf_final,
+                    from_onset=attacked,
                 )
             )
         else:
@@ -104,6 +129,16 @@ def detect_notes(
     notes = _refine_with_onsets(y, sr, notes, hop_length=hop_length)
     logger.info("Detected %d note events", len(notes))
     return notes
+
+
+def _onset_frames(y: np.ndarray, sr: int, hop_length: int) -> np.ndarray:
+    try:
+        return librosa.onset.onset_detect(
+            y=y, sr=sr, hop_length=hop_length, units="frames", backtrack=False
+        )
+    except Exception as exc:
+        logger.debug("Onset detection skipped: %s", exc)
+        return np.array([], dtype=int)
 
 
 def _refine_with_onsets(
@@ -139,6 +174,7 @@ def _refine_with_onsets(
                 hz=note.hz,
                 midi=note.midi,
                 confidence=note.confidence,
+                from_onset=note.from_onset,
             )
         refined.append(note)
     return refined
@@ -147,13 +183,20 @@ def _refine_with_onsets(
 def merge_nearby_same_pitch(
     notes: list[DetectedNote], gap: float = 0.05
 ) -> list[DetectedNote]:
-    """Merge consecutive notes with the same MIDI if the gap is tiny."""
+    """Merge consecutive notes with the same MIDI if the gap is tiny.
+
+    A note that starts at a detected onset is a re-pluck and is never merged.
+    """
     if not notes:
         return notes
     merged: list[DetectedNote] = [notes[0]]
     for note in notes[1:]:
         prev = merged[-1]
-        if note.midi == prev.midi and note.time <= prev.time + prev.duration + gap:
+        if (
+            note.midi == prev.midi
+            and not note.from_onset
+            and note.time <= prev.time + prev.duration + gap
+        ):
             end = max(prev.time + prev.duration, note.time + note.duration)
             merged[-1] = DetectedNote(
                 time=prev.time,
@@ -161,6 +204,7 @@ def merge_nearby_same_pitch(
                 hz=(prev.hz + note.hz) / 2,
                 midi=prev.midi,
                 confidence=max(prev.confidence, note.confidence),
+                from_onset=prev.from_onset,
             )
         else:
             merged.append(note)
