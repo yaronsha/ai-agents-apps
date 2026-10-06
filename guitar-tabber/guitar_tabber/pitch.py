@@ -101,13 +101,15 @@ def detect_notes(
                 continue
 
             # pyin often drops out for a few frames at a re-pluck and the onset
-            # lands in that gap, so count any onset since the previous segment.
-            attacked = any(f in onset_frames for f in range(prev_end, start + min_note_frames))
-            prev_end = i
+            # lands in that gap, so count an onset shortly before the start too,
+            # but not one before the previous kept note ended.
+            lookback = max(prev_end, start - min_note_frames)
+            attacked = any(f in onset_frames for f in range(lookback, start + min_note_frames))
 
             duration = times[min(i, n - 1)] - times[start]
             if duration < min_note_duration and (i - start) < 3:
                 continue
+            prev_end = i
 
             midi_final = int(np.round(np.median(midi_vals)))
             hz_final = float(np.median(hz_vals))
