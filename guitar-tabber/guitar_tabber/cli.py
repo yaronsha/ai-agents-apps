@@ -31,8 +31,8 @@ def build_parser() -> argparse.ArgumentParser:
             "Convert a full-mix MP3/MP4 (guitar + other instruments/vocals) "
             "into guitar tablature: ASCII text, a MIDI file and a browser "
             "viewer with playback (<input>.tab.html). Uses Demucs for guitar "
-            "stem separation, then librosa.pyin for pitch detection. A .mid "
-            "input skips the audio analysis."
+            "stem separation, then basic-pitch (or librosa.pyin) for note "
+            "detection. A .mid input skips the audio analysis."
         ),
     )
     p.add_argument(
@@ -80,6 +80,15 @@ def build_parser() -> argparse.ArgumentParser:
         default="cpu",
         choices=("cpu", "cuda"),
         help="Torch device for Demucs (default: cpu)",
+    )
+    p.add_argument(
+        "--engine",
+        default="basic-pitch",
+        choices=("basic-pitch", "pyin"),
+        help=(
+            "Note detector: basic-pitch hears chords and fingerpicking (default); "
+            "pyin follows a single melody line"
+        ),
     )
     p.add_argument(
         "--bpm",
@@ -184,6 +193,7 @@ def main(argv: list[str] | None = None) -> int:
             write_midi=not args.no_midi,
             write_html=not args.no_html,
             tempo_bpm=args.bpm,
+            engine=args.engine,
         )
     except Exception as exc:
         logging.exception("Pipeline failed")

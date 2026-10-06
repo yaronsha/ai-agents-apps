@@ -1,0 +1,53 @@
+{
+  "name": "תחזית גשם שמתבטלת בדוי אינתנון",
+  "description": "23.11 on Doi Inthanon. At 05:30 the forecast shows heavy rain on the Pha Dok Siew trail at 11:00; at 07:30 it clears again. Expect the warning to appear and then disappear before its 09:00 push, so nobody gets a push for nothing, and a green day.",
+  "start": "2026-11-23T05:00",
+  "end": "2026-11-23T12:00",
+  "events": [
+    {
+      "at": "2026-11-23T05:30",
+      "weather": {
+        "stops": [
+          "pha-dok-siew"
+        ],
+        "from": "2026-11-23T11:00",
+        "to": "2026-11-23T13:00",
+        "preset": "heavy-rain"
+      },
+      "note": "Heavy rain forecast for the trail, 11:00-13:00"
+    },
+    {
+      "at": "2026-11-23T07:30",
+      "weather": {
+        "stops": [
+          "pha-dok-siew"
+        ],
+        "from": "2026-11-23T11:00",
+        "to": "2026-11-23T13:00",
+        "preset": "clear"
+      },
+      "note": "The forecast clears again"
+    }
+  ],
+  "expect": [
+    {
+      "alert": "weather:pha-dok-siew:rain",
+      "by": "2026-11-23T06:00"
+    },
+    {
+      "noPush": "Pha Dok Siew"
+    },
+    {
+      "push": "תזכורת",
+      "after": "2026-11-23T06:15",
+      "before": "2026-11-23T06:15"
+    },
+    {
+      "day": "2026-11-23",
+      "status": "green"
+    },
+    {
+      "maxPushes": 1
+    }
+  ]
+}

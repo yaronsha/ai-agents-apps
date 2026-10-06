@@ -1,0 +1,122 @@
+{
+ "out-1": [
+  {
+   "number": "SIM 101",
+   "status": "Expected",
+   "codeshareStatus": "IsOperator",
+   "isCargo": false,
+   "departure": {
+    "airport": {
+     "iata": "TLV"
+    },
+    "scheduledTime": {
+     "utc": "2026-11-21 12:00Z",
+     "local": "2026-11-21 14:00+02:00"
+    },
+    "revisedTime": {
+     "utc": "2026-11-21 12:00Z",
+     "local": "2026-11-21 14:00+02:00"
+    },
+    "terminal": "1",
+    "gate": "4",
+    "quality": [
+     "Basic",
+     "Live"
+    ]
+   },
+   "arrival": {
+    "airport": {
+     "iata": "AUH"
+    },
+    "quality": [
+     "Basic"
+    ]
+   },
+   "airline": {
+    "name": "Etihad Airways",
+    "iata": "EY",
+    "icao": "ETD"
+   }
+  }
+ ],
+ "out-2": [
+  {
+   "number": "SIM 102",
+   "status": "Expected",
+   "codeshareStatus": "IsOperator",
+   "isCargo": false,
+   "departure": {
+    "airport": {
+     "iata": "AUH"
+    },
+    "scheduledTime": {
+     "utc": "2026-11-21 17:15Z",
+     "local": "2026-11-21 21:15+04:00"
+    },
+    "revisedTime": {
+     "utc": "2026-11-21 17:15Z",
+     "local": "2026-11-21 21:15+04:00"
+    },
+    "terminal": "1",
+    "gate": "4",
+    "quality": [
+     "Basic",
+     "Live"
+    ]
+   },
+   "arrival": {
+    "airport": {
+     "iata": "CNX"
+    },
+    "quality": [
+     "Basic"
+    ]
+   },
+   "airline": {
+    "name": "Etihad Airways",
+    "iata": "EY",
+    "icao": "ETD"
+   }
+  }
+ ],
+ "ret-1": [
+  {
+   "number": "SIM 103",
+   "status": "Expected",
+   "codeshareStatus": "IsOperator",
+   "isCargo": false,
+   "departure": {
+    "airport": {
+     "iata": "CNX"
+    },
+    "scheduledTime": {
+     "utc": "2026-12-03 01:40Z",
+     "local": "2026-12-03 08:40+07:00"
+    },
+    "revisedTime": {
+     "utc": "2026-12-03 01:40Z",
+     "local": "2026-12-03 08:40+07:00"
+    },
+    "terminal": "1",
+    "gate": "4",
+    "quality": [
+     "Basic",
+     "Live"
+    ]
+   },
+   "arrival": {
+    "airport": {
+     "iata": "AUH"
+    },
+    "quality": [
+     "Basic"
+    ]
+   },
+   "airline": {
+    "name": "Etihad Airways",
+    "iata": "EY",
+    "icao": "ETD"
+   }
+  }
+ ]
+}
