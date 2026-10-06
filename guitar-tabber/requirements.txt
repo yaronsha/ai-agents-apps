@@ -10,6 +10,9 @@ scipy>=1.10
 # MIDI export/import (pure Python)
 mido>=1.3
 
+# YouTube download -> MP3 (python -m guitar_tabber.youtube / URL input)
+yt-dlp>=2024.8
+
 # Stem separation (Demucs + PyTorch)
 # Install torch first (see setup.sh / README); the plain `pip install torch`
 # wheel is fine on macOS, the CPU index is smaller on Linux.

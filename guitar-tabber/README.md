@@ -64,7 +64,32 @@ python -m guitar_tabber song.mp3 --bpm 92
 
 # MIDI file in, tabs out (no audio analysis); --open launches the browser
 python -m guitar_tabber song.mid --open
+
+# Only tab part of a song (works on files and on YouTube links)
+python -m guitar_tabber song.mp3 --start 0:30 --end 1:00
 ```
+
+### From YouTube
+
+Pass a YouTube link instead of a file. The audio is downloaded with
+[yt-dlp](https://github.com/yt-dlp/yt-dlp), converted to MP3 with ffmpeg and
+saved in `./downloads` (change with `--download-dir`), then tabbed. Short
+clips work best, so `--start` / `--end` are worth using:
+
+```bash
+python -m guitar_tabber "https://www.youtube.com/watch?v=VIDEO_ID" --start 0:45 --end 1:15
+```
+
+Just download the MP3 without tabbing it:
+
+```bash
+python -m guitar_tabber.youtube "https://youtu.be/VIDEO_ID" --start 0:45 --end 1:15
+# prints the saved path, e.g. downloads/Song Title [VIDEO_ID].clip_0m45_0s-1m15_0s.mp3
+```
+
+Only download what you have the rights to use (your own uploads, licensed or
+freely licensed material, personal study). If YouTube downloads start failing,
+update yt-dlp first: `pip install -U yt-dlp`.
 
 ## Browser tab viewer (`.tab.html`)
 
@@ -152,6 +177,7 @@ guitar-tabber/
     cli.py
     pipeline.py      # extract → separate → pitch → tab
     audio.py
+    youtube.py       # YouTube URL → MP3 (yt-dlp + ffmpeg), trimming
     separation.py    # Demucs
     pitch.py         # librosa.pyin
     fretboard.py     # MIDI ↔ frets
@@ -164,6 +190,7 @@ guitar-tabber/
     generate_test_audio.py
     make_demo_midi.py
     test_viewer.py
+    test_youtube.py  # downloader tests (yt-dlp mocked)
     fixtures/        # created by the generators
 ```
 

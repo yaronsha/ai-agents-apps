@@ -9,3 +9,4 @@ tests/fixtures/*_guitar_stem.wav
 tests/fixtures/*.tab.html
 tests/fixtures/mixed_demo.mid
 tests/fixtures/open_a.mid
+downloads/
