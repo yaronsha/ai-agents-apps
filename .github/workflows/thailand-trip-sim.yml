@@ -1,3 +1,4 @@
+```yaml
 # Trip simulator (thailand-trip/sim): scenario days through the real worker, plus a live check
 # of the real data sources that also re-records the simulator's fixtures.
 name: thailand-trip simulator
@@ -9,8 +10,9 @@ on:
     branches: [main]
     paths: ["thailand-trip/**", ".github/workflows/thailand-trip-sim.yml"]
   schedule:
-    # Mondays 03:00 UTC: catches a source that changed its format before the trip does.
-    - cron: "0 3 * * 1"
+    # Mondays 06:00 UTC (09:00 Israel summer time, 08:00 winter): catches a source that changed
+    # its format before the trip does.
+    - cron: "0 6 * * 1"
   workflow_dispatch:
     inputs:
       commit:
@@ -46,23 +48,19 @@ jobs:
   live:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # A source being down for a moment should not block a pull request; on the weekly run it fails loudly.
-    continue-on-error: ${{ github.event_name == 'pull_request' }}
+    # Real sources only weekly and on request: pull requests run the scenarios on the recordings,
+    # so a source's rate limit or outage never turns a pull request red.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: thailand-trip/package-lock.json
       - run: npm ci
-      - id: seed
-        name: Are the recordings still starter files?
-        run: echo "seed=$(node -p "require('./sim/fixtures/meta.json').sources.weather.origin === 'seed'")" >> "$GITHUB_OUTPUT"
       - name: Check the real sources and record them
         run: npm run sim:live
         env:
@@ -78,15 +76,13 @@ jobs:
         with:
           name: live-recordings
           path: thailand-trip/sim/fixtures/
-      # Commits only the first real recording on a pull request, or when asked; never on main.
+      # Commits only when asked (Run workflow with "commit" ticked), never on main.
       - name: Commit the recordings
-        if: >-
-          github.ref_name != 'main' &&
-          (inputs.commit || (github.event_name == 'pull_request' && steps.seed.outputs.seed == 'true' &&
-          github.event.pull_request.head.repo.full_name == github.repository))
+        if: github.ref_name != 'main' && inputs.commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898315+github-actions[bot]@users.noreply.github.com"
           git add sim/fixtures
           git diff --cached --quiet || git commit -m "thailand-trip/sim: record real source responses"
           git push
+```
