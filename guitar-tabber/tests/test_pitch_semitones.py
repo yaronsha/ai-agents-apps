@@ -30,7 +30,7 @@ def test_half_step_up_and_down():
 
 
 def test_chromatic_walk_on_a_string():
-    # A0 A1 A2 A3 A4 A5 used to come out as A0 A3
+    # A-string frets 0..5 (A2..D3) used to come out as two notes
     walk = [45, 46, 47, 48, 49, 50]
     assert _detected(walk) == walk
 
