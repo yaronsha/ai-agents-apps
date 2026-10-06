@@ -126,4 +126,31 @@ def _romanza() -> RefSong:
 
 ROMANZA = _romanza()
 
-SONGS = (ODE_TO_JOY, GREENSLEEVES, PENTATONIC_5TH, REPEATS_AND_CHROMATIC, FAST_RUN, ROMANZA)
+
+def _strummed_chords() -> RefSong:
+    """Open chords and a power chord, each down-strummed twice (re-strum on beat 2)."""
+    bpm = 90
+    beat = 60.0 / bpm
+    strum_gap = 0.012  # seconds between strings in a down-strum
+    chords = [
+        {E: 0, A: 2, D: 2, G: 1, B: 0, e: 0},  # E major
+        {A: 0, D: 2, G: 2, B: 1, e: 0},  # A minor
+        {E: 3, A: 2, D: 0, G: 0, B: 0, e: 3},  # G major
+        {A: 3, D: 2, G: 0, B: 1, e: 0},  # C major
+        {D: 0, G: 2, B: 3, e: 2},  # D major
+        {A: 0, D: 2, G: 2},  # A5 power chord
+    ]
+    t = 0.25
+    notes = []
+    for chord in chords:
+        for _ in range(2):
+            for k, (s, f) in enumerate(sorted(chord.items())):
+                notes.append(RefNote(t + k * strum_gap, beat, s, f))
+            t += beat
+    notes.sort(key=lambda n: (n.time, n.string_index))
+    return RefSong("strummed_chords", bpm, tuple(notes), polyphonic=True)
+
+
+STRUMMED = _strummed_chords()
+
+SONGS = (ODE_TO_JOY, GREENSLEEVES, PENTATONIC_5TH, REPEATS_AND_CHROMATIC, FAST_RUN, ROMANZA, STRUMMED)

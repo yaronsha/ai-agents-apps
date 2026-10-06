@@ -84,54 +84,74 @@ def filter_guitar_artifacts(
     ringing_ratio: float = 0.9,
     min_amp: float = 0.4,
     short_note: float = 0.2,
+    strum_size: int = 4,
+    strum_overtone_dur: float = 0.6,
 ) -> list[_Event]:
     """Drop overtone ghosts, re-triggered ringing strings and faint blips.
 
     Overtones are judged loudest-first against notes already accepted, so one
     ghost can't knock out a real note; ringing re-triggers are then judged
     against the surviving notes.
+
+    When ``strum_size`` or more notes start together (a strummed chord), octaves,
+    fifths and re-sounded pitches are usually real chord tones, so both filters
+    get stricter there: an overtone must also die out well before its
+    fundamental, and a re-trigger needs a newly attacked louder note beside it.
     """
     accepted: list[_Event] = []
     for ev in sorted(events, key=lambda ev: -ev.amp):
-        if not _is_overtone(ev, accepted, tol, overtone_ratio, sub_octave_ratio):
+        strum = _attack_size(ev, events, tol) >= strum_size
+        if not _is_overtone(
+            ev, accepted, tol, overtone_ratio, sub_octave_ratio, strum_overtone_dur if strum else None
+        ):
             accepted.append(ev)
     accepted.sort(key=lambda ev: (ev.start, ev.midi))
     return [
         ev
         for ev in accepted
-        if not _is_ringing_retrigger(ev, accepted, tol, ringing_ratio)
+        if not _is_ringing_retrigger(ev, accepted, tol, ringing_ratio, strum_size)
         and not (ev.amp < min_amp and ev.end - ev.start < short_note)
     ]
 
 
-def _is_overtone(ev, events, tol, overtone_ratio, sub_octave_ratio) -> bool:
+def _attack_size(ev, events, tol) -> int:
+    """How many notes (``ev`` included) start together with ``ev``."""
+    return sum(1 for o in events if abs(o.start - ev.start) <= tol)
+
+
+def _continues(ev, events, tol) -> bool:
+    """A same-pitch note ended just as ``ev`` started."""
+    return any(o.midi == ev.midi and o.start < ev.start and abs(o.end - ev.start) <= tol for o in events)
+
+
+def _is_overtone(ev, events, tol, overtone_ratio, sub_octave_ratio, max_dur_ratio) -> bool:
     for other in events:
         # Only notes already sounding when ``ev`` starts
         if other is ev or other.start > ev.start + tol or other.end <= ev.start:
             continue
-        diff = ev.midi - other.midi
         # Overtone ghosts start together with their fundamental; a real note picked
         # over an already-ringing bass string must not be mistaken for one.
-        if (
-            diff in OVERTONE_INTERVALS
-            and abs(ev.start - other.start) <= tol
-            and ev.amp < overtone_ratio * other.amp
-        ):
+        if abs(ev.start - other.start) > tol:
+            continue
+        # In a strum, a real chord tone rings about as long as the string under it
+        if max_dur_ratio is not None and ev.end - ev.start >= max_dur_ratio * (other.end - other.start):
+            continue
+        diff = ev.midi - other.midi
+        if diff in OVERTONE_INTERVALS and ev.amp < overtone_ratio * other.amp:
             return True
         # Sub-octave ghost of a note attacked at the same moment
-        if diff == -12 and abs(ev.start - other.start) <= tol and ev.amp < sub_octave_ratio * other.amp:
+        if diff == -12 and ev.amp < sub_octave_ratio * other.amp:
             return True
     return False
 
 
-def _is_ringing_retrigger(ev, events, tol, ringing_ratio) -> bool:
+def _is_ringing_retrigger(ev, events, tol, ringing_ratio, strum_size) -> bool:
     """A same-pitch note that just ended, restarted only because another string was plucked."""
-    continues = any(
-        o.midi == ev.midi and o.start < ev.start and abs(o.end - ev.start) <= tol for o in events
-    )
-    if not continues:
+    if not _continues(ev, events, tol):
         return False
-    return any(
-        o.midi != ev.midi and abs(o.start - ev.start) <= tol and ev.amp < ringing_ratio * o.amp
-        for o in events
-    )
+    attacked = [o for o in events if o.midi != ev.midi and abs(o.start - ev.start) <= tol]
+    if len(attacked) + 1 >= strum_size:
+        # Re-strummed chord: every tone continues itself, so only a genuinely new
+        # pitch can be what set this string off
+        attacked = [o for o in attacked if not _continues(o, events, tol)]
+    return any(ev.amp < ringing_ratio * o.amp for o in attacked)
