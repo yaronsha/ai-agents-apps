@@ -26,9 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from guitar_tabber.fretboard import OPEN_STRING_MIDI  # noqa: E402
 from guitar_tabber.pipeline import ENGINES, detect_notes_for_engine  # noqa: E402
-from guitar_tabber.tab import cluster_to_frame, group_chords  # noqa: E402
+from guitar_tabber.tab import tab_fingerings  # noqa: E402
 from reference_songs import SONGS, RefSong  # noqa: E402
 
 SOUNDFONT = Path("/usr/share/sounds/sf2/FluidR3_GM.sf2")
@@ -105,14 +104,11 @@ def f1(hits: int, n_ref: int, n_est: int) -> float:
 
 
 def tab_positions(notes):
-    """(time, midi, string, fret) per note, grouped into chords exactly as the tab is."""
-    out = []
-    for cluster in group_chords(notes):
-        frame = cluster_to_frame(cluster)
-        for n in cluster:
-            s = next((s for s, f in frame.items() if OPEN_STRING_MIDI[s] + f == n.midi), -1)
-            out.append((n.time, n.midi, s, frame.get(s, -1)))
-    return out
+    """(time, midi, string, fret) per note, exactly as the tab shows it."""
+    return [
+        (n.time, n.midi, p.string_index if p else -1, p.fret if p else -1)
+        for n, p in zip(notes, tab_fingerings(notes)[1])
+    ]
 
 
 def evaluate(song: RefSong, guitar: str, verbose: bool = False, engine: str = "basic-pitch") -> dict:
