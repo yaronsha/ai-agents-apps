@@ -18,6 +18,9 @@
   --bad-soft: #f8dedb;
   /* Solid red under white text (SOS button, alert count); stays dark enough in both themes. */
   --alarm: #b02e24;
+  /* Bright status badges on the day strip; text-grade --warn/--bad are too dark at this size. */
+  --flag-yellow: #f2a516;
+  --flag-red: #e0362c;
   --shadow: 0 6px 24px rgb(21 48 42 / 0.14);
   --f-display: "Secular One", "Assistant", system-ui, sans-serif;
   --f-body: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -43,6 +46,8 @@
     --bad: #f07368;
     --bad-soft: #3d1d1a;
     --alarm: #b3352b;
+    --flag-yellow: #f5b43a;
+    --flag-red: #ff5a4e;
     --shadow: 0 6px 24px rgb(0 0 0 / 0.45);
     color-scheme: dark;
   }
@@ -199,60 +204,74 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 
-/* Day strip */
+/* Day strip: one-line pills ("א׳ 22"), the month named once where it starts */
 .daypicker {
   flex: none;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
   overflow-x: auto;
-  padding: 4px 16px 10px;
+  padding: 8px 16px 10px;
   scrollbar-width: none;
 }
 .daypicker::-webkit-scrollbar {
   display: none;
 }
+.month {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.month.next {
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--line);
+}
 .day {
   position: relative;
   flex: none;
-  min-width: 54px;
-  padding: 5px 10px;
-  border-radius: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface);
-  text-align: center;
+  font-size: 14px;
   line-height: 1.2;
 }
-.day b {
-  display: block;
-  font-size: 17px;
-  font-variant-numeric: tabular-nums;
-}
-.day span {
-  font-size: 11px;
+.day .wd {
+  font-size: 12px;
   color: var(--muted);
+}
+.day b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .day[aria-pressed="true"] {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--bg);
 }
-.day[aria-pressed="true"] span {
+.day[aria-pressed="true"] .wd {
   color: inherit;
-  opacity: 0.8;
+  opacity: 0.75;
 }
+/* A badge on the corner, ringed in the page colour so it never merges with the pill's edge. */
 .flag {
   position: absolute;
-  top: 5px;
-  inset-inline-start: 5px;
-  width: 7px;
-  height: 7px;
+  top: -3px;
+  inset-inline-start: -1px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg);
 }
 .flag.yellow {
-  background: var(--warn);
+  background: var(--flag-yellow);
 }
 .flag.red {
-  background: var(--bad);
+  background: var(--flag-red);
 }
 
 /* Day heading */
