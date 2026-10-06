@@ -47,6 +47,10 @@ def detect_notes(
         frame_length=frame_length,
         hop_length=hop_length,
     )
+    f0, voiced_flag, voiced_probs = _rescue_with_harmonic_salience(
+        y, sr, f0, voiced_flag, voiced_probs,
+        hop_length=hop_length, confidence_threshold=confidence_threshold,
+    )
     times = librosa.times_like(f0, sr=sr, hop_length=hop_length)
 
     notes: list[DetectedNote] = []
@@ -104,6 +108,106 @@ def detect_notes(
     notes = _refine_with_onsets(y, sr, notes, hop_length=hop_length)
     logger.info("Detected %d note events", len(notes))
     return notes
+
+
+def _harmonic_salience(
+    y: np.ndarray,
+    sr: int,
+    hop_length: int,
+    n_fft: int = 4096,
+    n_harmonics: int = 8,
+    midi_lo: float = 38.0,  # D2, drop-D low string
+    midi_hi: float = 88.0,  # E6
+    step: float = 0.2,  # semitones; tolerates slightly detuned guitars
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Per-frame pitch salience by weighted harmonic summation over the spectrum.
+
+    Returns (candidate_midis, salience[candidate, frame]). A candidate scores
+    high when its fundamental and harmonics all carry energy, so sub-octaves
+    (whose odd harmonics are empty) lose to the true pitch.
+    """
+    mag = np.sqrt(np.abs(librosa.stft(y, n_fft=n_fft, hop_length=hop_length)))
+    cands = np.arange(midi_lo, midi_hi + 1e-9, step)
+    bin_pos = librosa.midi_to_hz(cands) * n_fft / sr
+    sal = np.zeros((len(cands), mag.shape[1]))
+    for k in range(1, n_harmonics + 1):
+        b = k * bin_pos
+        ok = b < mag.shape[0] - 1
+        lo = np.floor(b[ok]).astype(int)
+        frac = (b[ok] - lo)[:, None]
+        sal[ok] += 0.8 ** (k - 1) * ((1 - frac) * mag[lo] + frac * mag[lo + 1])
+    return cands, sal
+
+
+def _rescue_with_harmonic_salience(
+    y: np.ndarray,
+    sr: int,
+    f0: np.ndarray,
+    voiced_flag: np.ndarray,
+    voiced_probs: np.ndarray,
+    hop_length: int,
+    confidence_threshold: float,
+    min_level_db: float = -30.0,
+    min_clarity: float = 2.0,
+    min_run_s: float = 0.06,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Fill in notes pyin gives up on, using the harmonic-salience pitch.
+
+    On steel-string guitars (issue #7) the waveform is only loosely periodic
+    even when the harmonics are clean, so pyin marks low notes (A2-E3)
+    unvoiced, or voices them with very low probability at a sub-harmonic near
+    fmin. A frame without a confident pyin pitch takes the salience pitch when
+    it is loud, the salience peak is clear, and the same pitch holds for at
+    least min_run_s. Shorter gaps are where one pyin note ends and the next
+    begins, so they are left alone.
+    """
+    cands, sal = _harmonic_salience(y, sr, hop_length)
+    n = min(len(f0), sal.shape[1])
+    f0 = f0.copy()
+    voiced_flag = voiced_flag.copy()
+    voiced_probs = voiced_probs.copy()
+
+    rms = librosa.feature.rms(y=y, frame_length=2048, hop_length=hop_length)[0]
+    level_db = librosa.amplitude_to_db(rms, ref=np.max(rms) if rms.size else 1.0)[:n]
+    best = np.argmax(sal[:, :n], axis=0)
+    clarity = sal[best, np.arange(n)] / np.maximum(np.median(sal[:, :n], axis=0), 1e-9)
+    sal_midi = cands[best]
+
+    confident = voiced_flag[:n] & ~np.isnan(f0[:n]) & (voiced_probs[:n] >= confidence_threshold)
+    pyin_midi = np.full(n, np.nan)
+    pyin_midi[confident] = librosa.hz_to_midi(f0[:n][confident])
+    candidate = ~confident & (level_db >= min_level_db) & (clarity >= min_clarity)
+
+    # Harmonic summation can pick the octave above when the fundamental is
+    # weak (common on electric). If pyin is confident an octave below within
+    # 0.1 s, it is the same note: keep pyin's octave.
+    nbr = int(round(0.1 * sr / hop_length))
+    for i in np.flatnonzero(candidate):
+        near = pyin_midi[max(0, i - nbr):i + nbr + 1]
+        if np.any(np.abs(near - (sal_midi[i] - 12)) < 0.5):
+            sal_midi[i] -= 12
+
+    min_run = max(1, int(round(min_run_s * sr / hop_length)))
+    rescued = 0
+    i = 0
+    while i < n:
+        if not candidate[i]:
+            i += 1
+            continue
+        j = i + 1
+        while j < n and candidate[j] and round(sal_midi[j]) == round(sal_midi[i]):
+            j += 1
+        if j - i >= min_run:
+            f0[i:j] = librosa.midi_to_hz(sal_midi[i:j])
+            voiced_flag[i:j] = True
+            voiced_probs[i:j] = confidence_threshold
+            rescued += j - i
+        i = j
+    if rescued:
+        logger.info("Harmonic salience filled %d frames pyin left unvoiced", rescued)
+    return f0, voiced_flag, voiced_probs
 
 
 def _refine_with_onsets(
