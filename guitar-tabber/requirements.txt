@@ -9,7 +9,9 @@ scipy>=1.10
 
 # Polyphonic note detection (chords, fingerpicking). Pulls in its own
 # inference backend (TensorFlow / tflite-runtime on Linux, CoreML on macOS).
-basic-pitch>=0.4
+# Its TensorFlow pin (<2.15.1) has no wheels for Python 3.12+, so there the
+# tabber falls back to monophonic pyin.
+basic-pitch>=0.4; python_version < "3.12"
 # basic-pitch's resampler (resampy) still imports pkg_resources, removed in setuptools 81
 setuptools<81
 

@@ -13,7 +13,7 @@ Pipeline:
 
 ## System requirements
 
-- Python 3.10+ (Linux Mint 21.x / Ubuntu 22.04 default of 3.10 works; macOS too)
+- Python 3.10+ (Linux Mint 21.x / Ubuntu 22.04 default of 3.10 works; macOS too). Chord and fingerpicking detection (basic-pitch) needs Python 3.10 or 3.11; on 3.12+ it falls back to single-note pyin
 - [ffmpeg](https://ffmpeg.org/) on `PATH`
   - Linux Mint/Ubuntu: `sudo apt install ffmpeg libsndfile1 python3-venv`
   - macOS: `brew install ffmpeg`

@@ -11,6 +11,8 @@ remove those.
 from __future__ import annotations
 
 import logging
+from bisect import bisect_left, bisect_right
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,11 +34,16 @@ class _Event:
 
 
 def basic_pitch_available() -> bool:
+    """basic-pitch and an inference backend it can load are installed."""
     try:
-        import basic_pitch  # noqa: F401
-    except ImportError:
+        # The inference module pulls in resampy (needs pkg_resources) and the backend
+        from basic_pitch import inference  # noqa: F401
+    except Exception:  # ImportError, or a backend failing to initialise
         return False
-    return True
+    import importlib.util
+
+    backends = ("tensorflow", "tflite_runtime", "coremltools", "onnxruntime")
+    return any(importlib.util.find_spec(b) is not None for b in backends)
 
 
 def detect_notes_polyphonic(
@@ -97,41 +104,63 @@ def filter_guitar_artifacts(
     fifths and re-sounded pitches are usually real chord tones, so both filters
     get stricter there: an overtone must also die out well before its
     fundamental, and a re-trigger needs a newly attacked louder note beside it.
+
+    Every rule only compares notes that start (or end) within ``tol`` of each
+    other, so lookups go through time-sorted indexes and stay near-linear.
     """
-    accepted: list[_Event] = []
+    everything = _Index(events, tol)
+    accepted_ids: set[int] = set()
     for ev in sorted(events, key=lambda ev: -ev.amp):
-        strum = _attack_size(ev, events, tol) >= strum_size
+        together = everything.starting_with(ev)
+        strum = len(together) >= strum_size
+        rivals = [o for o in together if id(o) in accepted_ids]
         if not _is_overtone(
-            ev, accepted, tol, overtone_ratio, sub_octave_ratio, strum_overtone_dur if strum else None
+            ev, rivals, overtone_ratio, sub_octave_ratio, strum_overtone_dur if strum else None
         ):
-            accepted.append(ev)
-    accepted.sort(key=lambda ev: (ev.start, ev.midi))
+            accepted_ids.add(id(ev))
+    accepted = sorted((ev for ev in events if id(ev) in accepted_ids), key=lambda ev: (ev.start, ev.midi))
+    kept = _Index(accepted, tol)
     return [
         ev
         for ev in accepted
-        if not _is_ringing_retrigger(ev, accepted, tol, ringing_ratio, strum_size)
+        if not _is_ringing_retrigger(ev, kept, ringing_ratio, strum_size)
         and not (ev.amp < min_amp and ev.end - ev.start < short_note)
     ]
 
 
-def _attack_size(ev, events, tol) -> int:
-    """How many notes (``ev`` included) start together with ``ev``."""
-    return sum(1 for o in events if abs(o.start - ev.start) <= tol)
+class _Index:
+    """Events by start time, and by (pitch, end time), for windowed lookups."""
+
+    def __init__(self, events: list[_Event], tol: float) -> None:
+        self.tol = tol
+        self.by_start = sorted(events, key=lambda ev: ev.start)
+        self.starts = [ev.start for ev in self.by_start]
+        by_pitch: dict[int, list[_Event]] = defaultdict(list)
+        for ev in events:
+            by_pitch[ev.midi].append(ev)
+        self.by_pitch_end = {m: sorted(evs, key=lambda ev: ev.end) for m, evs in by_pitch.items()}
+        self.pitch_ends = {m: [ev.end for ev in evs] for m, evs in self.by_pitch_end.items()}
+
+    def starting_with(self, ev: _Event) -> list[_Event]:
+        """Events (``ev`` included) starting within ``tol`` of ``ev``."""
+        lo = bisect_left(self.starts, ev.start - self.tol)
+        hi = bisect_right(self.starts, ev.start + self.tol)
+        return self.by_start[lo:hi]
+
+    def continues(self, ev: _Event) -> bool:
+        """A same-pitch note ended just as ``ev`` started."""
+        ends = self.pitch_ends.get(ev.midi, [])
+        lo = bisect_left(ends, ev.start - self.tol)
+        hi = bisect_right(ends, ev.start + self.tol)
+        return any(o.start < ev.start for o in self.by_pitch_end[ev.midi][lo:hi])
 
 
-def _continues(ev, events, tol) -> bool:
-    """A same-pitch note ended just as ``ev`` started."""
-    return any(o.midi == ev.midi and o.start < ev.start and abs(o.end - ev.start) <= tol for o in events)
-
-
-def _is_overtone(ev, events, tol, overtone_ratio, sub_octave_ratio, max_dur_ratio) -> bool:
-    for other in events:
-        # Only notes already sounding when ``ev`` starts
-        if other is ev or other.start > ev.start + tol or other.end <= ev.start:
-            continue
-        # Overtone ghosts start together with their fundamental; a real note picked
-        # over an already-ringing bass string must not be mistaken for one.
-        if abs(ev.start - other.start) > tol:
+def _is_overtone(ev, rivals, overtone_ratio, sub_octave_ratio, max_dur_ratio) -> bool:
+    # ``rivals`` are accepted notes attacked together with ``ev``: overtone ghosts
+    # start with their fundamental, so a real note picked over an already-ringing
+    # bass string is never compared against it.
+    for other in rivals:
+        if other is ev or other.end <= ev.start:
             continue
         # In a strum, a real chord tone rings about as long as the string under it
         if max_dur_ratio is not None and ev.end - ev.start >= max_dur_ratio * (other.end - other.start):
@@ -145,13 +174,13 @@ def _is_overtone(ev, events, tol, overtone_ratio, sub_octave_ratio, max_dur_rati
     return False
 
 
-def _is_ringing_retrigger(ev, events, tol, ringing_ratio, strum_size) -> bool:
+def _is_ringing_retrigger(ev, index: _Index, ringing_ratio, strum_size) -> bool:
     """A same-pitch note that just ended, restarted only because another string was plucked."""
-    if not _continues(ev, events, tol):
+    if not index.continues(ev):
         return False
-    attacked = [o for o in events if o.midi != ev.midi and abs(o.start - ev.start) <= tol]
+    attacked = [o for o in index.starting_with(ev) if o.midi != ev.midi]
     if len(attacked) + 1 >= strum_size:
         # Re-strummed chord: every tone continues itself, so only a genuinely new
         # pitch can be what set this string off
-        attacked = [o for o in attacked if not _continues(o, events, tol)]
+        attacked = [o for o in attacked if not index.continues(o)]
     return any(ev.amp < ringing_ratio * o.amp for o in attacked)

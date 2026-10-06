@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import subprocess
 import sys
 from pathlib import Path
@@ -25,10 +26,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from guitar_tabber.audio import load_audio  # noqa: E402
-from guitar_tabber.fretboard import map_midis_to_chord  # noqa: E402
-from guitar_tabber.pitch import detect_notes, merge_nearby_same_pitch  # noqa: E402
-from guitar_tabber.polyphonic import detect_notes_polyphonic  # noqa: E402
+from guitar_tabber.fretboard import OPEN_STRING_MIDI  # noqa: E402
+from guitar_tabber.pipeline import ENGINES, detect_notes_for_engine  # noqa: E402
+from guitar_tabber.tab import cluster_to_frame, group_chords  # noqa: E402
 from reference_songs import SONGS, RefSong  # noqa: E402
 
 SOUNDFONT = Path("/usr/share/sounds/sf2/FluidR3_GM.sf2")
@@ -62,11 +62,16 @@ def write_midi(song: RefSong, program: int, path: Path) -> None:
 
 
 def render(song: RefSong, guitar: str) -> Path:
+    """Render ``song`` to WAV, cached by the MIDI it renders from."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     mid_path = OUT_DIR / f"{song.name}_{guitar}.mid"
-    wav_path = OUT_DIR / f"{song.name}_{guitar}.wav"
+    write_midi(song, GUITARS[guitar], mid_path)
+    # Any change to the song, the guitar program or write_midi changes the hash
+    digest = hashlib.sha1(mid_path.read_bytes()).hexdigest()[:10]
+    wav_path = OUT_DIR / f"{song.name}_{guitar}_{digest}.wav"
     if not wav_path.exists():
-        write_midi(song, GUITARS[guitar], mid_path)
+        for stale in OUT_DIR.glob(f"{song.name}_{guitar}_*.wav"):
+            stale.unlink()
         subprocess.run(
             ["fluidsynth", "-ni", "-g", "0.8", "-r", "44100", "-F", str(wav_path),
              str(SOUNDFONT), str(mid_path)],
@@ -99,33 +104,19 @@ def f1(hits: int, n_ref: int, n_est: int) -> float:
     return 2 * p * r / (p + r)
 
 
-def tab_positions(notes, chord_window: float = 0.05):
-    """(time, midi, string, fret) per note, grouping chords the way tab.py does."""
+def tab_positions(notes):
+    """(time, midi, string, fret) per note, grouped into chords exactly as the tab is."""
     out = []
-    i = 0
-    while i < len(notes):
-        j = i + 1
-        while j < len(notes) and notes[j].time - notes[i].time <= chord_window:
-            j += 1
-        cluster = notes[i:j]
-        frame = map_midis_to_chord([n.midi for n in cluster])
+    for cluster in group_chords(notes):
+        frame = cluster_to_frame(cluster)
         for n in cluster:
-            s = next((s for s, f in frame.items() if OPEN_MIDI[s] + f == n.midi), -1)
+            s = next((s for s, f in frame.items() if OPEN_STRING_MIDI[s] + f == n.midi), -1)
             out.append((n.time, n.midi, s, frame.get(s, -1)))
-        i = j
     return out
 
 
-OPEN_MIDI = (40, 45, 50, 55, 59, 64)
-
-
 def evaluate(song: RefSong, guitar: str, verbose: bool = False, engine: str = "basic-pitch") -> dict:
-    wav = render(song, guitar)
-    if engine == "basic-pitch":
-        notes = detect_notes_polyphonic(wav)
-    else:
-        y, sr = load_audio(wav, sample_rate=22050)
-        notes = merge_nearby_same_pitch(detect_notes(y, sr))
+    notes = detect_notes_for_engine(render(song, guitar), engine)
 
     ref = [(n.time, n.midi, n.string_index, n.fret) for n in song.notes]
     est = tab_positions(notes)
@@ -160,7 +151,7 @@ def main() -> int:
     ap.add_argument("songs", nargs="*")
     ap.add_argument("-v", "--verbose", action="store_true")
     ap.add_argument("--guitar", choices=list(GUITARS), action="append")
-    ap.add_argument("--engine", choices=("basic-pitch", "pyin"), default="basic-pitch")
+    ap.add_argument("--engine", choices=ENGINES, default="basic-pitch")
     args = ap.parse_args()
 
     songs = [s for s in SONGS if not args.songs or s.name in args.songs]

@@ -6,9 +6,13 @@ exercises. Each note is (string_index, fret, beats), string_index 0 = low E.
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
-OPEN_STRING_MIDI = (40, 45, 50, 55, 59, 64)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from guitar_tabber.fretboard import OPEN_STRING_MIDI  # noqa: E402
 
 # string indices
 E, A, D, G, B, e = range(6)
