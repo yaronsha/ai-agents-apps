@@ -16,7 +16,7 @@ async function gdelt(label: string, query: string, extra = "timespan=24h") {
       try {
         const j = JSON.parse(text);
         n = String(j.articles?.length ?? 0);
-        sample = (j.articles ?? []).slice(0, 4).map((a: { title: string; domain: string; language: string }) => `      - [${a.domain}, ${a.language}] ${a.title.slice(0, 100)}`);
+        sample = (j.articles ?? []).slice(0, 3).map((a: { title: string; domain: string; language: string; seendate: string }) => `      - ${a.seendate} [${a.domain}, ${a.language}] ${a.title.slice(0, 80)}`);
       } catch { n = `not JSON: ${text.slice(0, 120)}`; }
       console.log(`  ${label} (${query.length} chars, ${extra}): HTTP ${res.status}, ${n} articles`);
       sample.forEach((s) => console.log(s));
@@ -30,15 +30,12 @@ async function gdelt(label: string, query: string, extra = "timespan=24h") {
 console.log("GDELT");
 const PLACES = '("Chiang Mai" OR "Chiang Rai" OR "Mae Hong Son")';
 const TROUBLE = "(protest OR closed OR flood OR landslide OR accident OR cancelled OR evacuation OR wildfire OR border)";
-await gdelt("A current query", `${PLACES} ${TROUBLE}`);
-await gdelt("B current query, 7 days", `${PLACES} ${TROUBLE}`, "timespan=7d");
-await gdelt("C places only", PLACES);
-await gdelt("D \"Chiang Mai\" only", '"Chiang Mai"');
-await gdelt("E places, English sources", `${PLACES} sourcelang:english`);
-await gdelt("F places + flood only", `${PLACES} flood`);
-await gdelt("G Thailand, 3 words", "Thailand (flood OR landslide OR protest)");
+await gdelt("A \"Thailand\" 24h", "Thailand");
+await gdelt("B \"Thailand\" 3 days", "Thailand", "timespan=3d");
+await gdelt("C current query, 3 days", `${PLACES} ${TROUBLE}`, "timespan=3d");
+await gdelt("D current query, 7 days", `${PLACES} ${TROUBLE}`, "timespan=7d");
 
-console.log("\nCoordinates vs OpenStreetMap (Nominatim)");
+console.log("\nWhat OpenStreetMap has at each stop's coordinates");
 const haversine = (a: number, b: number, c: number, d: number) => {
   const r = Math.PI / 180, dLat = (c - a) * r, dLng = (d - b) * r;
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(dLng / 2) ** 2;
@@ -46,14 +43,10 @@ const haversine = (a: number, b: number, c: number, d: number) => {
 };
 const stops = simTrip.days.flatMap((d) => d.stops);
 for (const s of stops) {
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=th&q=${encodeURIComponent(s.nameEn)}`, {
+  const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=17&accept-language=en&lat=${s.lat}&lon=${s.lng}`, {
     headers: { "User-Agent": "thailand-trip-sim/1.0 (github.com/yaronsha/ai-agents-apps)" },
   });
-  const hits = (await res.json().catch(() => [])) as { lat: string; lon: string; display_name: string }[];
-  if (!hits.length) console.log(`  ?  ${s.id} "${s.nameEn}": not found`);
-  else {
-    const km = haversine(s.lat, s.lng, +hits[0].lat, +hits[0].lon);
-    console.log(`  ${km > 3 ? "✗" : "✓"}  ${s.id} "${s.nameEn}": ${km.toFixed(1)} km from OSM (${hits[0].display_name.slice(0, 70)})`);
-  }
+  const hit = (await res.json().catch(() => ({}))) as { display_name?: string; name?: string };
+  console.log(`  ${s.id} "${s.nameEn}" @ ${s.lat},${s.lng} -> ${hit.name ? `"${hit.name}" | ` : ""}${(hit.display_name ?? "nothing").slice(0, 90)}`);
   await sleep(1_100);
 }
