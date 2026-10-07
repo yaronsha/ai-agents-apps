@@ -1,5 +1,6 @@
 // Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-03).
-// Coordinates are approximate (a few hundred metres to a couple of km); fix any that look off on the map.
+// Coordinates were checked on 2026-10-07 against map listings (AllTrails, Tripadvisor, Waze, Wikipedia,
+// Atlas Obscura, plus codes). `npm run verify:places` re-checks them against OpenStreetMap.
 import type { Day, Trip, TripPrivate } from "./types";
 
 const days: Day[] = [
@@ -24,8 +25,8 @@ const days: Day[] = [
     titleHe: "דוי אינתנון: פגודות המלך והמלכה וטרק המפלים",
     lodgingId: "cm1",
     stops: [
-      { id: "twin-pagodas", nameHe: "פגודות המלך והמלכה", nameEn: "Naphamethinidon & Naphaphonphumisiri", lat: 18.5446, lng: 98.5005, start: "2026-11-23T09:00", end: "2026-11-23T10:30", outdoor: true, highland: true, noteHe: "קר בבוקר, לפעמים פחות מ-15 מעלות." },
-      { id: "pha-dok-siew", nameHe: "טרק Pha Dok Siew עם מדריך קארן", nameEn: "Pha Dok Siew Trail", lat: 18.5336, lng: 98.5245, start: "2026-11-23T11:00", end: "2026-11-23T13:00", outdoor: true, highland: true },
+      { id: "twin-pagodas", nameHe: "פגודות המלך והמלכה", nameEn: "Naphamethinidon & Naphaphonphumisiri", lat: 18.5529, lng: 98.4798, start: "2026-11-23T09:00", end: "2026-11-23T10:30", outdoor: true, highland: true, noteHe: "קר בבוקר, לפעמים פחות מ-15 מעלות." },
+      { id: "pha-dok-siew", nameHe: "טרק Pha Dok Siew עם מדריך קארן", nameEn: "Pha Dok Siew Trail", lat: 18.5383, lng: 98.5248, start: "2026-11-23T11:00", end: "2026-11-23T13:00", outdoor: true, highland: true },
       { id: "mae-klang-luang", nameHe: "צהריים בכפר Mae Klang Luang", nameEn: "Mae Klang Luang village", lat: 18.5275, lng: 98.5337, start: "2026-11-23T13:00", end: "2026-11-23T14:30", outdoor: false },
       { id: "old-city-night", nameHe: "סיור לילי בעיר העתיקה", nameEn: "Old City temples by night", lat: 18.7869, lng: 98.9866, start: "2026-11-23T19:30", end: "2026-11-23T21:30", outdoor: true },
     ],
@@ -46,7 +47,7 @@ const days: Day[] = [
     stops: [
       { id: "old-city-temples", nameHe: "ואט פרה סינג, ואט פאן טאו, ואט צ'די לואנג", nameEn: "Old City temples", lat: 18.7884, lng: 98.9819, start: "2026-11-24T09:00", end: "2026-11-24T12:00", outdoor: true },
       { id: "khao-soi", nameHe: "צהריים: קאו סוי", nameEn: "Khao Soi lunch", lat: 18.7953, lng: 98.962, start: "2026-11-24T12:00", end: "2026-11-24T13:00", outdoor: false },
-      { id: "lantern-festival", nameHe: "פסטיבל הפנסים CAD Khomloy", nameEn: "CAD Khomloy Sky Lantern Festival", lat: 18.873, lng: 99.139, start: "2026-11-24T17:00", end: "2026-11-24T21:30", outdoor: true, noteHe: "מיקום משוער, לעדכן לפי הכרטיס. נקודת האיסוף ב-15:30." },
+      { id: "lantern-festival", nameHe: "פסטיבל הפנסים CAD Khomloy", nameEn: "CAD Khomloy Sky Lantern Festival", lat: 18.7664, lng: 99.2422, start: "2026-11-24T17:00", end: "2026-11-24T21:30", outdoor: true, noteHe: "CAD Cultural Center במחוז מאה און, כשעה נסיעה מהעיר. ההסעה יוצאת מ-CMEC או מקניון MAYA, לפי סוג הכרטיס. נקודת האיסוף ב-15:30." },
     ],
     drives: [],
     reminders: [{ id: "r24-pickup", at: "2026-11-24T14:45", textHe: "האיסוף לפסטיבל הפנסים ב-15:30. לקחת כרטיסים ודרכונים." }],
@@ -60,7 +61,7 @@ const days: Day[] = [
     titleHe: "דרך ההרים לפאי, מעיינות חמים ולוי קראטונג",
     lodgingId: "pai",
     stops: [
-      { id: "pai-memorial-bridge", nameHe: "גשר הזיכרון של פאי", nameEn: "Pai Memorial Bridge", lat: 19.297, lng: 98.456, start: "2026-11-25T11:45", end: "2026-11-25T12:15", outdoor: true },
+      { id: "pai-memorial-bridge", nameHe: "גשר הזיכרון של פאי", nameEn: "Pai Memorial Bridge", lat: 19.2977, lng: 98.465, start: "2026-11-25T11:45", end: "2026-11-25T12:15", outdoor: true },
       { id: "tha-pai-hot-springs", nameHe: "המעיינות החמים טא פאי", nameEn: "Tha Pai Hot Springs", lat: 19.3053, lng: 98.4744, start: "2026-11-25T12:30", end: "2026-11-25T14:30", outdoor: true },
       { id: "pai-loy-krathong", nameHe: "לוי קראטונג על נהר פאי", nameEn: "Loy Krathong, Pai river", lat: 19.3596, lng: 98.4455, start: "2026-11-25T17:00", end: "2026-11-25T21:00", outdoor: true, noteHe: "הלילה המרכזי הוא 24.11; ב-25.11 החגיגות כנראה קטנות יותר." },
     ],
@@ -76,9 +77,9 @@ const days: Day[] = [
     titleHe: "מערת תאם לוד ושקיעה בקניון פאי",
     lodgingId: "pai",
     stops: [
-      { id: "doi-kiew-lom", nameHe: "תצפית דוי קיו לו", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4228, lng: 98.3265, start: "2026-11-26T10:30", end: "2026-11-26T10:50", outdoor: true },
+      { id: "doi-kiew-lom", nameHe: "תצפית דוי קיו לו", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4458, lng: 98.3192, start: "2026-11-26T10:30", end: "2026-11-26T10:50", outdoor: true },
       { id: "tham-lod", nameHe: "מערת תאם לוד", nameEn: "Tham Lod Cave", lat: 19.5664, lng: 98.2789, start: "2026-11-26T11:30", end: "2026-11-26T14:00", outdoor: false },
-      { id: "yun-lai", nameHe: "תצפית Yun Lai", nameEn: "Yun Lai Viewpoint", lat: 19.3518, lng: 98.4196, start: "2026-11-26T15:00", end: "2026-11-26T15:30", outdoor: true },
+      { id: "yun-lai", nameHe: "תצפית Yun Lai", nameEn: "Yun Lai Viewpoint", lat: 19.369, lng: 98.3954, start: "2026-11-26T15:00", end: "2026-11-26T15:30", outdoor: true },
       { id: "pai-canyon", nameHe: "שקיעה בקניון פאי", nameEn: "Pai Canyon", lat: 19.3076, lng: 98.4558, start: "2026-11-26T16:30", end: "2026-11-26T18:15", outdoor: true },
       { id: "pai-walking-street", nameHe: "שוק הלילה של פאי", nameEn: "Pai Walking Street", lat: 19.3589, lng: 98.4406, start: "2026-11-26T20:00", end: "2026-11-26T22:00", outdoor: true },
     ],
@@ -97,9 +98,9 @@ const days: Day[] = [
     titleHe: "גשר הבמבוק, מפלים ומעבר לצ'אנג דאו",
     lodgingId: "cd",
     stops: [
-      { id: "boon-ko-ku-so", nameHe: "גשר הבמבוק בון קו קו סו", nameEn: "Boon Ko Ku So Bamboo Bridge", lat: 19.3172, lng: 98.3953, start: "2026-11-27T09:20", end: "2026-11-27T10:15", outdoor: true },
-      { id: "pam-bok", nameHe: "מפל פאם בוק", nameEn: "Pam Bok Waterfall", lat: 19.3564, lng: 98.3688, start: "2026-11-27T10:30", end: "2026-11-27T11:00", outdoor: true },
-      { id: "doi-kiew-lom-27", nameHe: "תצפית דוי קיו לו (שוב)", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4228, lng: 98.3265, start: "2026-11-27T13:00", end: "2026-11-27T13:20", outdoor: true, noteHe: "מופיעה כך בקובץ, אבל היא לא על הדרך לצ'אנג דאו. כדאי לבדוק." },
+      { id: "boon-ko-ku-so", nameHe: "גשר הבמבוק בון קו קו סו", nameEn: "Boon Ko Ku So Bamboo Bridge", lat: 19.3229, lng: 98.3944, start: "2026-11-27T09:20", end: "2026-11-27T10:15", outdoor: true },
+      { id: "pam-bok", nameHe: "מפל פאם בוק", nameEn: "Pam Bok Waterfall", lat: 19.3208, lng: 98.4051, start: "2026-11-27T10:30", end: "2026-11-27T11:00", outdoor: true },
+      { id: "doi-kiew-lom-27", nameHe: "תצפית דוי קיו לו (שוב)", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4458, lng: 98.3192, start: "2026-11-27T13:00", end: "2026-11-27T13:20", outdoor: true, noteHe: "מופיעה כך בקובץ, אבל היא לא על הדרך לצ'אנג דאו. כדאי לבדוק." },
       { id: "mok-fa", nameHe: "מפל מוק פה", nameEn: "Mok Fa Waterfall", lat: 19.1088, lng: 98.7718, start: "2026-11-27T14:15", end: "2026-11-27T15:00", outdoor: true },
     ],
     drives: [
@@ -128,10 +129,10 @@ const days: Day[] = [
     titleHe: "מפל קון קורן, המקדש הלבן והכחול",
     lodgingId: "cr",
     stops: [
-      { id: "khun-korn", nameHe: "טרק מפל קון קורן", nameEn: "Khun Korn Waterfall", lat: 19.8628, lng: 99.6433, start: "2026-11-29T09:30", end: "2026-11-29T12:30", outdoor: true },
+      { id: "khun-korn", nameHe: "טרק מפל קון קורן", nameEn: "Khun Korn Waterfall", lat: 19.876, lng: 99.6264, start: "2026-11-29T09:30", end: "2026-11-29T12:30", outdoor: true },
       { id: "white-temple", nameHe: "המקדש הלבן", nameEn: "Wat Rong Khun", lat: 19.8243, lng: 99.7633, start: "2026-11-29T15:50", end: "2026-11-29T16:50", outdoor: true },
       { id: "blue-temple", nameHe: "המקדש הכחול", nameEn: "Wat Rong Suea Ten", lat: 19.9218, lng: 99.8421, start: "2026-11-29T17:10", end: "2026-11-29T17:55", outdoor: true },
-      { id: "cr-walking-street", nameHe: "שוק יום ראשון בצ'יאנג ראי", nameEn: "Chiang Rai Walking Street", lat: 19.9071, lng: 99.8302, start: "2026-11-29T19:30", end: "2026-11-29T22:00", outdoor: true },
+      { id: "cr-walking-street", nameHe: "שוק יום ראשון בצ'יאנג ראי", nameEn: "Chiang Rai Sunday Walking Street", lat: 19.9015, lng: 99.819, start: "2026-11-29T19:30", end: "2026-11-29T22:00", outdoor: true },
     ],
     drives: [
       { id: "d29-khunkorn", fromId: "lodging:dc", toId: "khun-korn", departAt: "2026-11-29T08:30" },

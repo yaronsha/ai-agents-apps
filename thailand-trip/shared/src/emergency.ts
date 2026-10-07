@@ -1,4 +1,5 @@
-// Phone numbers marked verify: true came from memory, not from an official page. Check them before the trip.
+// Checked on 2026-10-07: the Thai numbers against tourist guides, the Foreign Ministry situation room against
+// Israeli embassy pages (embassies.gov.il). A number marked verify: true is not confirmed yet.
 export interface EmergencyNumber {
   labelHe: string;
   phone: string;
@@ -10,7 +11,7 @@ export const emergencyNumbers: EmergencyNumber[] = [
   { labelHe: "אמבולנס", phone: "1669" },
   { labelHe: "משטרה", phone: "191" },
   { labelHe: "כבאות", phone: "199" },
-  { labelHe: "חמ\"ל משרד החוץ (ישראל)", phone: "+97225303155", verify: true },
+  { labelHe: "חמ\"ל משרד החוץ (ישראל)", phone: "+97225303155" },
 ];
 
 export const embassyUrl = "https://embassies.gov.il/thailand/en/contacts";
@@ -20,16 +21,18 @@ export interface Hospital {
   area: string;
   lat: number;
   lng: number;
+  /** Main or emergency line, local format. */
+  phone?: string;
 }
 
-/** Larger private and provincial hospitals near the route. Approximate coordinates. */
+/** Larger private and provincial hospitals near the route. Locations and phones checked on 2026-10-07. */
 export const hospitals: Hospital[] = [
-  { name: "Chiang Mai Ram Hospital", area: "צ'אנג מאי", lat: 18.7963, lng: 98.9733 },
-  { name: "Bangkok Hospital Chiang Mai", area: "צ'אנג מאי", lat: 18.8105, lng: 99.0175 },
-  { name: "Pai Hospital", area: "פאי", lat: 19.3614, lng: 98.4423 },
+  { name: "Chiang Mai Ram Hospital", area: "צ'אנג מאי", lat: 18.7963, lng: 98.9733, phone: "053-999-777" },
+  { name: "Bangkok Hospital Chiang Mai", area: "צ'אנג מאי", lat: 18.7887, lng: 99.0263, phone: "052-089-888" },
+  { name: "Pai Hospital", area: "פאי", lat: 19.3615, lng: 98.4374, phone: "053-699-211" },
   { name: "Chiang Dao Hospital", area: "צ'אנג דאו", lat: 19.3655, lng: 98.9652 },
-  { name: "Overbrook Hospital", area: "צ'יאנג ראי", lat: 19.9127, lng: 99.8355 },
-  { name: "Chiangrai Prachanukroh Hospital", area: "צ'יאנג ראי", lat: 19.9037, lng: 99.8279 },
+  { name: "Overbrook Hospital", area: "צ'יאנג ראי", lat: 19.9123, lng: 99.8292, phone: "053-711-366" },
+  { name: "Chiangrai Prachanukroh Hospital", area: "צ'יאנג ראי", lat: 19.901, lng: 99.8292, phone: "053-910-600" },
 ];
 
 export interface Phrase {
