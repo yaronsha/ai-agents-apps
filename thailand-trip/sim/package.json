@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "sim": "tsx src/run.ts",
-    "live": "tsx src/live.ts"
+    "live": "tsx src/probe.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
