@@ -13,7 +13,7 @@ A trip companion PWA for a northern Thailand road trip. It watches weather, air 
 | `app/` | The PWA (React + Vite + Leaflet). Hebrew, RTL, works offline with the last known state. |
 | `sim/` | Trip simulator: plays scenario days (storm, landslide, cancelled flight, quake, news) through the real worker on a fast clock and checks the alerts, pushes and screens. See [sim/README.md](sim/README.md). |
 
-Screens: **היום** (today's timeline with forecast per stop and a green/yellow/red status), **מפה** (the day's route, hotels, hospitals, "where am I"), **בלת"מים** (active alerts, prepared Plan B, and "re-plan for me" with Claude), **חירום** (emergency numbers, nearest hospitals, Thai phrases), **הגדרות** (server, push, preview the engine at any moment of the trip).
+Screens: **היום** (today's timeline with forecast per stop and a green/yellow/red status), **מפה** (the day's route, hotels, hospitals, "where am I"), **בלת"מים** (active alerts, prepared Plan B, and "re-plan for me" with Claude or OpenAI), **חירום** (emergency numbers, nearest hospitals, Thai phrases), **הגדרות** (server, push, preview the engine at any moment of the trip).
 
 ## Data sources
 
@@ -22,12 +22,12 @@ Screens: **היום** (today's timeline with forecast per stop and a green/yello
 | Open-Meteo forecast + air quality | Rain, storms, cold, PM2.5, sea-of-clouds chance | Free |
 | USGS earthquakes | M5+ within 300 km | Free |
 | GOV.UK FCDO Thailand advice | Advisory changes | Free |
-| GDELT | News about the route, screened by Claude | Free (Claude is paid) |
+| GDELT | News about the route, screened by Claude or OpenAI | Free (the model is paid) |
 | Google Routes API | Traffic-aware drive time in the 3 h before each drive | Paid, optional |
 | AeroDataBox (RapidAPI) | Delays, gate changes, cancellations | Paid, optional |
-| Claude API | News triage and "re-plan for me" | Paid, optional |
+| Claude API or OpenAI API | News triage and "re-plan for me" (pick one with `AI_PROVIDER`) | Paid, optional |
 
-Every paid source is optional; without its key the app simply skips it. Daily caps in `worker/src/engine.ts` (`DAILY_CAPS`: 100 route calls, 60 flight calls, 60 Claude calls) stop a bug from running up a bill.
+Every paid source is optional; without its key the app simply skips it. Daily caps in `worker/src/engine.ts` (`DAILY_CAPS`: 100 route calls, 60 flight calls, 60 news-triage calls) stop a bug from running up a bill.
 
 ## Privacy
 
@@ -59,7 +59,8 @@ Put the public key in `VAPID_PUBLIC_KEY` and your email in `VAPID_CONTACT` in `w
 ```bash
 npx wrangler secret put APP_TOKEN            # any shared code; you type it into the app once
 npx wrangler secret put VAPID_PRIVATE_JWK    # the JSON line from npm run vapid
-npx wrangler secret put ANTHROPIC_API_KEY    # optional
+npx wrangler secret put ANTHROPIC_API_KEY    # optional, when AI_PROVIDER = "claude"
+npx wrangler secret put OPENAI_API_KEY       # optional, when AI_PROVIDER = "openai"
 npx wrangler secret put GOOGLE_MAPS_KEY      # optional, Routes API enabled
 npx wrangler secret put RAPIDAPI_KEY         # optional, subscribed to AeroDataBox
 npm run deploy
@@ -100,4 +101,4 @@ Worker secrets (`APP_TOKEN`, `VAPID_PRIVATE_JWK` and the optional keys) stay in 
 
 - Stop and hospital coordinates are approximate. Check them before the trip, especially the lantern festival and Akha Kitchen.
 - Check the Israeli emergency number in `shared/src/emergency.ts` before you go.
-- The Claude models are set in `wrangler.toml` (`CLAUDE_TRIAGE_MODEL`, `CLAUDE_REPLAN_MODEL`). Re-plan uses server-side fallback, so it still answers if the main model is busy.
+- `AI_PROVIDER` in `wrangler.toml` picks who runs news triage and re-plan: `"claude"` (default) or `"openai"`. Both use the same prompts. The models are set next to it (`CLAUDE_TRIAGE_MODEL`, `CLAUDE_REPLAN_MODEL`, `OPENAI_TRIAGE_MODEL`, `OPENAI_REPLAN_MODEL`). Claude re-plan uses server-side fallback, so it still answers if the main model is busy.

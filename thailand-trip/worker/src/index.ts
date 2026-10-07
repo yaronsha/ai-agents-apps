@@ -3,7 +3,7 @@ import type { Env } from "./env";
 import { runCheck } from "./engine";
 import { Store } from "./store";
 import { sendToAll, type PushSubscriptionJSON } from "./push";
-import { replan } from "./claude";
+import { aiProvider, replan } from "./ai";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -25,7 +25,7 @@ export default {
     const store = new Store(env.TRIP_KV);
 
     if (req.method === "GET" && url.pathname === "/api/config") {
-      return json({ vapidPublicKey: env.VAPID_PUBLIC_KEY, claude: Boolean(env.ANTHROPIC_API_KEY) });
+      return json({ vapidPublicKey: env.VAPID_PUBLIC_KEY, ai: aiProvider(env) });
     }
 
     // Everything else (state included: alerts can name hotels) needs the access code.
@@ -70,7 +70,7 @@ export default {
         return json(await runCheck(env, now, { dryRun: Boolean(at) }));
       }
       case "/api/replan": {
-        if (!env.ANTHROPIC_API_KEY) return json({ error: "אין מפתח Claude בשרת" }, 400);
+        if (!aiProvider(env)) return json({ error: env.AI_PROVIDER === "openai" ? "אין מפתח OpenAI בשרת" : "אין מפתח Claude בשרת" }, 400);
         const { date, problem } = (await req.json()) as { date: string; problem?: string };
         if (!trip.days.some((d) => d.date === date)) return json({ error: "תאריך לא בטיול" }, 400);
         const state = await store.state();
