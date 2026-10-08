@@ -1,26 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { hhmm, hospitals, placeOf, publicTrip, googleMapsDirections } from "@trip/shared";
+import { dayOf, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../App";
-import { DayPicker } from "./DayPicker";
-import { shortDay } from "../format";
+import { dayLabel, severityText, shortDay } from "../format";
+import { GROUPS, worstOf } from "../categories";
+import { Icon } from "../icons";
 
 const dayColor = (i: number) => `hsl(${(i * 360) / publicTrip.days.length + 170}, 62%, 38%)`;
 
-export function MapView({ date, setDate, live }: { date: string; setDate: (d: string) => void; live: Live }) {
+export function MapView({ date, setDate, live, openAlerts }: { date: string; setDate: (d: string) => void; live: Live; openAlerts: () => void }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
   const [showHospitals, setShowHospitals] = useState(false);
   const [locating, setLocating] = useState(false);
   const me = useRef<L.CircleMarker | null>(null);
+  const sheet = useRef<HTMLDivElement>(null);
+  const tools = useRef<HTMLDivElement>(null);
+  const focus = useRef<L.LatLngBounds | null>(null);
   const trip = useTrip();
 
   useEffect(() => {
     if (!el.current || map.current) return;
     map.current = L.map(el.current, { zoomControl: false }).setView([19.3, 99.2], 8);
-    L.control.zoom({ position: "bottomleft" }).addTo(map.current);
+    L.control.zoom({ position: "topleft" }).addTo(map.current);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -38,7 +42,7 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
     if (!m || !g) return;
     g.clearLayers();
     const alerted = new Set(live.state?.alerts.filter((a) => a.stopId && a.severity !== "info").map((a) => a.stopId));
-    let focus: L.LatLngBounds | null = null;
+    focus.current = null;
 
     trip.days.forEach((day, i) => {
       const selected = day.date === date;
@@ -62,7 +66,7 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
           .on("click", () => day.date !== date && setDate(day.date))
           .addTo(g);
       });
-      if (selected && path.length) focus = L.latLngBounds(path);
+      if (selected && path.length) focus.current = L.latLngBounds(path);
     });
 
     trip.lodgings.forEach((l) =>
@@ -78,8 +82,17 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
           .addTo(g),
       );
     }
-    if (focus) m.fitBounds(focus, { padding: [40, 40], maxZoom: 12 });
+    fitDay();
   }, [date, showHospitals, live.state, setDate, trip]);
+
+  /** Frames the selected day's route between the map buttons and the day card. */
+  function fitDay() {
+    const m = map.current;
+    if (!m || !focus.current) return;
+    const above = (tools.current?.offsetHeight ?? 0) + 20;
+    const below = (sheet.current?.offsetHeight ?? 0) + 36;
+    m.fitBounds(focus.current, { paddingTopLeft: [40, above], paddingBottomRight: [40, below], maxZoom: 12 });
+  }
 
   const locate = () => {
     if (!navigator.geolocation || !map.current) return;
@@ -97,16 +110,63 @@ export function MapView({ date, setDate, live }: { date: string; setDate: (d: st
     );
   };
 
+  const day = dayOf(trip, date)!;
+  const dayAlerts = live.state?.alerts.filter((a) => a.date === date && a.category !== "reminder") ?? [];
+  const lodging = day.lodgingId ? placeOf(trip, `lodging:${day.lodgingId}`) : undefined;
+  const temps = day.stops.map((s) => live.state?.forecasts[s.id]).filter((f) => f && f.tempMax !== null);
+  const hi = temps.length ? Math.round(Math.max(...temps.map((f) => f!.tempMax!))) : null;
+  const lo = temps.length ? Math.round(Math.min(...temps.map((f) => f!.tempMin ?? f!.tempMax!))) : null;
+
   return (
     <div className="map-screen">
-      <DayPicker date={date} setDate={setDate} status={live.state?.dayStatus} />
       <div className="map" ref={el} />
-      <div className="map-tools">
-        <button onClick={locate}>{locating ? "מאתר..." : "איפה אני"}</button>
-        <button className={showHospitals ? "on" : ""} onClick={() => setShowHospitals((v) => !v)}>
+      <div className="map-tools" ref={tools}>
+        <button onClick={locate}>
+          <Icon name="locate" size={18} />
+          {locating ? "מאתר..." : "איפה אני"}
+        </button>
+        <button className={showHospitals ? "on" : ""} aria-pressed={showHospitals} onClick={() => setShowHospitals((v) => !v)}>
+          <Icon name="hospital" size={18} />
           בתי חולים
         </button>
+        <button onClick={fitDay}>
+          <Icon name="fit" size={18} />
+          המסלול של היום
+        </button>
       </div>
+      <section className="map-sheet" ref={sheet}>
+        <div className="sheet-row">
+          <div className="sheet-title">
+            <div className="eyebrow">{dayLabel(date)}</div>
+            <h2>{day.titleHe}</h2>
+          </div>
+          {hi !== null && (
+            <div className="sheet-temp">
+              <span className="sr-only">טמפרטורה </span>
+              <strong>{hi}°</strong>
+              <span>/{lo}°</span>
+            </div>
+          )}
+        </div>
+        {lodging && (
+          <div className="sheet-meta">
+            <Icon name="bed" size={16} />
+            {lodging.nameHe}
+          </div>
+        )}
+        <button className="sheet-chips" onClick={openAlerts}>
+          {GROUPS.map((g) => {
+            const w = live.state ? worstOf(dayAlerts, g.categories) : undefined;
+            const sev = !live.state ? "none" : w?.severity ?? "ok";
+            return (
+              <span key={g.id} className={`pill ${sev}`} title={w ? `${severityText[w.severity]}: ${w.titleHe}` : undefined}>
+                <i />
+                {g.labelHe}
+              </span>
+            );
+          })}
+        </button>
+      </section>
     </div>
   );
 }
