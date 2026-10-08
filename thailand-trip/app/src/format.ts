@@ -7,6 +7,18 @@ export function dayLabel(date: string): string {
   return `יום ${WEEKDAYS[d.getUTCDay()]}, ${d.getUTCDate()}.${d.getUTCMonth() + 1}`;
 }
 
+const WEEKDAYS_SHORT = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+
+/** "ב׳" for a Monday: the short weekday letter used on the day strip. */
+export function weekdayShort(date: string): string {
+  return WEEKDAYS_SHORT[new Date(`${date}T12:00:00Z`).getUTCDay()];
+}
+
+/** Whole days between two "YYYY-MM-DD" dates. */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
+}
+
 export function shortDay(date: string): string {
   const d = new Date(`${date}T12:00:00Z`);
   return `${d.getUTCDate()}.${d.getUTCMonth() + 1}`;
