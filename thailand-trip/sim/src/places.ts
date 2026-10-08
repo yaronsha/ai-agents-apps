@@ -24,7 +24,7 @@ const QUERY: Record<string, string | null> = {
 type Place = { id: string; name: string; lat: number; lng: number };
 const places = new Map<string, Place>();
 for (const day of publicTrip.days)
-  for (const s of day.stops) if (QUERY[s.id] !== null) places.set(s.nameEn, { id: s.id, name: QUERY[s.id] ?? s.nameEn, lat: s.lat, lng: s.lng });
+  for (const s of day.stops) if (QUERY[s.id] !== null) places.set(s.id, { id: s.id, name: QUERY[s.id] ?? s.nameEn, lat: s.lat, lng: s.lng });
 for (const h of hospitals) places.set(h.name, { id: h.name, name: h.name, lat: h.lat, lng: h.lng });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

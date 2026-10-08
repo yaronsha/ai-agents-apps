@@ -761,6 +761,10 @@ button.link {
 .hosp .muted {
   font-size: 13px;
 }
+.list-row .actions {
+  display: flex;
+  gap: 8px;
+}
 .phrase {
   padding: 8px 0;
   border-bottom: 1px solid var(--line);

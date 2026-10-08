@@ -2,6 +2,10 @@ import { dayOf, distanceKm, embassyUrl, emergencyNumbers, googleMapsDirections, 
 import { useTrip } from "../tripContext";
 import { Icon } from "../icons";
 
+// Hospital numbers are stored in Thai local format (053-...). Dial them with +66 so they also work
+// from an Israeli SIM roaming in Thailand.
+const intlPhone = (local: string) => "+66" + local.replace(/-/g, "").replace(/^0/, "");
+
 export function Emergency({ date }: { date: string }) {
   const trip = useTrip();
   const day = dayOf(trip, date)!;
@@ -51,11 +55,24 @@ export function Emergency({ date }: { date: string }) {
               <bdi>{h.name}</bdi>
               <span className="muted">
                 {h.area} · {Math.round(distanceKm(here, h))} ק"מ
+                {h.phone && (
+                  <>
+                    {" · "}
+                    <bdi dir="ltr">{h.phone}</bdi>
+                  </>
+                )}
               </span>
             </span>
-            <a className="btn" href={googleMapsDirections(h)} target="_blank" rel="noreferrer">
-              ניווט
-            </a>
+            <span className="actions">
+              {h.phone && (
+                <a className="btn" href={`tel:${intlPhone(h.phone)}`}>
+                  חיוג
+                </a>
+              )}
+              <a className="btn" href={googleMapsDirections(h)} target="_blank" rel="noreferrer">
+                ניווט
+              </a>
+            </span>
           </div>
         ))}
       </section>

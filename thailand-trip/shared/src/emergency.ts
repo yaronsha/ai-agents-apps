@@ -25,7 +25,10 @@ export interface Hospital {
   phone?: string;
 }
 
-/** Larger private and provincial hospitals near the route. Locations and phones checked on 2026-10-07. */
+/**
+ * Larger private and provincial hospitals near the route. Locations and phones checked on 2026-10-07,
+ * except Chiang Dao Hospital: its pin is the town centre and no phone number was found.
+ */
 export const hospitals: Hospital[] = [
   { name: "Chiang Mai Ram Hospital", area: "צ'אנג מאי", lat: 18.7963, lng: 98.9733, phone: "053-999-777" },
   { name: "Bangkok Hospital Chiang Mai", area: "צ'אנג מאי", lat: 18.7887, lng: 99.0263, phone: "052-089-888" },
