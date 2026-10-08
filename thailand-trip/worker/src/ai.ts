@@ -8,7 +8,7 @@ export type AiProvider = "claude" | "openai";
 
 /** The provider AI_PROVIDER picks, or null when its key isn't set (news triage and re-plan then stay off). */
 export function aiProvider(env: Env): AiProvider | null {
-  if (env.AI_PROVIDER === "openai") return env.OPENAI_API_KEY ? "openai" : null;
+  if (env.AI_PROVIDER?.toLowerCase() === "openai") return env.OPENAI_API_KEY ? "openai" : null;
   return env.ANTHROPIC_API_KEY ? "claude" : null;
 }
 

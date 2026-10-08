@@ -6,7 +6,7 @@ import { FakeKV, makeEnv, trip } from "./fakes";
 afterEach(() => vi.unstubAllGlobals());
 
 /** Answers OpenAI's Responses API with `text`, recording what was asked. */
-function stubOpenAI(text: string, seen: Array<{ url: string; body: Record<string, unknown> }>) {
+function stubOpenAI(text: string, seen: Array<{ url: string; body: Record<string, unknown> }>, extra: Record<string, unknown> = {}) {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const req = new Request(input, init);
     seen.push({ url: req.url, body: (await req.json()) as Record<string, unknown> });
@@ -17,6 +17,7 @@ function stubOpenAI(text: string, seen: Array<{ url: string; body: Record<string
       status: "completed",
       model: "stub",
       output: [{ type: "message", id: "msg_1", role: "assistant", status: "completed", content: [{ type: "output_text", text, annotations: [] }] }],
+      ...extra,
     };
     return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
   };
@@ -35,6 +36,7 @@ describe("ai provider", () => {
     expect(aiProvider({ ...env, ANTHROPIC_API_KEY: "k" })).toBe("claude");
     expect(aiProvider({ ...env, AI_PROVIDER: "openai", ANTHROPIC_API_KEY: "k" })).toBe(null);
     expect(aiProvider({ ...env, AI_PROVIDER: "openai", OPENAI_API_KEY: "k" })).toBe("openai");
+    expect(aiProvider({ ...env, AI_PROVIDER: "OpenAI", OPENAI_API_KEY: "k" })).toBe("openai");
   });
 
   it("triages news with OpenAI when configured", async () => {
@@ -51,7 +53,31 @@ describe("ai provider", () => {
     expect(items).toEqual([{ url: "https://a/1", date: day, severity: "urgent", titleHe: "כביש 1095 חסום", bodyHe: "מפולת." }]);
     expect(seen[0].url).toBe("https://api.openai.com/v1/responses");
     expect(seen[0].body.model).toBe("gpt-5.4-mini");
+    expect(seen[0].body.reasoning).toEqual({ effort: "low" });
   });
+
+  it("reports a triage answer cut off by the token cap clearly", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    vi.stubGlobal("fetch", stubOpenAI('{"items":[{"index":0,', [], { status: "incomplete", incomplete_details: { reason: "max_output_tokens" } }));
+    await expect(triageNews(env, trip, day, articles)).rejects.toThrow("OpenAI triage incomplete: max_output_tokens");
+  });
+
+  it("tells the app when the AI provider is out of credits", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    vi.stubGlobal("fetch", async () =>
+      new Response(JSON.stringify({ error: { type: "insufficient_quota", code: "insufficient_quota", message: "You exceeded your current quota" } }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const res = await worker.fetch(
+      new Request("https://w/api/replan", { method: "POST", headers: { "X-Trip-Token": "secret" }, body: JSON.stringify({ date: day }) }),
+      env,
+    );
+    expect(res.status).toBe(502);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(await res.json()).toEqual({ error: "נגמרה המכסה או הקרדיט אצל ספק ה־AI" });
+  }, 20_000); // the SDK retries a 429 twice with backoff first
 
   it("re-plans with OpenAI through the http api", async () => {
     const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };

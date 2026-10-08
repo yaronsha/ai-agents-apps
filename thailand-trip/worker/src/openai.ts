@@ -13,14 +13,17 @@ function client(env: Env): OpenAI {
 
 export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
   if (!articles.length) return [];
-  const response = await client(env).responses.parse({
+  // Reasoning tokens count toward max_output_tokens, so keep effort low and leave room for the answer.
+  const response = await client(env).responses.create({
     model: env.OPENAI_TRIAGE_MODEL,
-    max_output_tokens: 4000,
+    max_output_tokens: 16000,
+    reasoning: { effort: "low" },
     instructions: TRIAGE_SYSTEM,
     input: triagePrompt(trip, today, articles),
     text: { format: zodTextFormat(Triage, "triage") },
   });
-  return toNewsItems(response.output_parsed, articles, today);
+  if (response.status === "incomplete") throw new Error(`OpenAI triage incomplete: ${response.incomplete_details?.reason ?? "unknown"}`);
+  return toNewsItems(Triage.parse(JSON.parse(response.output_text)), articles, today);
 }
 
 export async function replan(env: Env, trip: Trip, date: string, alerts: TripAlert[], problem: string): Promise<string> {

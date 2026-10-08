@@ -70,11 +70,17 @@ export default {
         return json(await runCheck(env, now, { dryRun: Boolean(at) }));
       }
       case "/api/replan": {
-        if (!aiProvider(env)) return json({ error: env.AI_PROVIDER === "openai" ? "אין מפתח OpenAI בשרת" : "אין מפתח Claude בשרת" }, 400);
+        if (!aiProvider(env)) return json({ error: env.AI_PROVIDER?.toLowerCase() === "openai" ? "אין מפתח OpenAI בשרת" : "אין מפתח Claude בשרת" }, 400);
         const { date, problem } = (await req.json()) as { date: string; problem?: string };
         if (!trip.days.some((d) => d.date === date)) return json({ error: "תאריך לא בטיול" }, 400);
         const state = await store.state();
-        return json({ text: await replan(env, trip, date, state?.alerts ?? [], problem ?? "") });
+        try {
+          return json({ text: await replan(env, trip, date, state?.alerts ?? [], problem ?? "") });
+        } catch (err) {
+          // e.g. out of credits (429) or an outage: say so in the app rather than a bare network error.
+          const status = (err as { status?: number }).status;
+          return json({ error: status === 429 ? "נגמרה המכסה או הקרדיט אצל ספק ה־AI" : `שגיאה מספק ה־AI: ${(err as Error).message}` }, 502);
+        }
       }
     }
     return json({ error: "not found" }, 404);
