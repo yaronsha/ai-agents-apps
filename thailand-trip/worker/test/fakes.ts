@@ -59,6 +59,7 @@ export function stubFetch(log: FetchLog, wetDate = "2026-11-26") {
     }
     if (u.host === "www.gov.uk") return json({ public_updated_at: "2026-11-20T10:00:00Z", details: { change_description: "Minor edits" } });
     if (u.host === "api.gdeltproject.org") return json({ articles: [] });
+    if (u.host === "news.google.com") return new Response('<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>');
     if (init?.method === "POST" && u.host === "push.example") {
       log.pushes++;
       return new Response(null, { status: 201 });

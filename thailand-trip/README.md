@@ -22,7 +22,7 @@ Screens: **היום** (today's timeline with forecast per stop and a green/yello
 | Open-Meteo forecast + air quality | Rain, storms, cold, PM2.5, sea-of-clouds chance | Free |
 | USGS earthquakes | M5+ within 300 km | Free |
 | GOV.UK FCDO Thailand advice | Advisory changes | Free |
-| GDELT | News about the route, screened by Claude or OpenAI | Free (the model is paid) |
+| Google News RSS | News about the route, screened by OpenAI or Claude | Free (the model is paid) |
 | Google Routes API | Traffic-aware drive time in the 3 h before each drive | Paid, optional |
 | AeroDataBox (RapidAPI) | Delays, gate changes, cancellations | Paid, optional |
 | Claude API or OpenAI API | News triage and "re-plan for me" (pick one with `AI_PROVIDER`) | Paid, optional |
@@ -104,10 +104,10 @@ Worker secrets (`APP_TOKEN`, `VAPID_PRIVATE_JWK` and the optional keys) stay in 
 
 ## News shadow mode
 
-GDELT's index lags more than a day, so its 24-hour news query often comes back empty. Before switching to Google News, the worker runs both side by side for a few weeks without acting on either: once an hour it fetches Google News (past day), GDELT 24 h and GDELT 3 d, and logs for each whether it answered, how many headlines, how old the newest one is, how many mention a place on the route, and the first 10 titles. No alerts, no pushes; news alerts still come from GDELT as before. One KV write an hour (`shadow:news:<date>`, kept 45 days); the code is in `worker/src/shadow.ts`.
+News alerts come from Google News; GDELT, the previous source, lags more than a day, so its 24-hour query came back empty. To confirm the choice on real data, the worker also logs both side by side without acting on the log: once an hour it fetches Google News (past day), GDELT 24 h and GDELT 3 d, and logs for each whether it answered, how many headlines, how old the newest one is, how many mention a place on the route, and the first 10 titles. The log sends no alerts and no pushes. One KV write an hour (`shadow:news:<date>`, kept 45 days); the code is in `worker/src/shadow.ts`.
 
 - `SHADOW_NEWS` in `wrangler.toml`: `"on"` (default) or `"off"`.
-- `SHADOW_AI`: `"off"` (default). `"on"` sends each source's past-day headlines to the news triage once a day, from 08:00 Thailand time, and logs how many it judged relevant. That is at most 2 AI calls a day, counted in the same daily cap as the real triage.
+- `SHADOW_AI`: `"off"` (default). `"on"` sends each source's past-day headlines to the news triage once a day, from 08:00 Thailand time, and logs how many it judged relevant. That is at most 2 triage runs a day (each one or two calls), counted in the same daily cap as the real triage.
 - Cost: $0 with `SHADOW_AI` off.
 - Read it with `npm run shadow:report` (uses `WORKER_URL` and `APP_TOKEN` from `.env`, or asks for the code). It prints success rate, lag, headline and route-mention counts per source with a verdict, and writes `sim/reports/shadow-news.md`. The raw log is `GET /api/shadow?days=21` with the access code.
 - After choosing a source, set `SHADOW_NEWS = "off"` (or remove the shadow code).
@@ -116,4 +116,6 @@ GDELT's index lags more than a day, so its 24-hour news query often comes back e
 
 - Stop and hospital coordinates are approximate. Check them before the trip, especially the lantern festival and Akha Kitchen.
 - Check the Israeli emergency number in `shared/src/emergency.ts` before you go.
-- `AI_PROVIDER` in `wrangler.toml` picks who runs news triage and re-plan: `"claude"` (default) or `"openai"`. Both use the same prompts. The models are set next to it (`CLAUDE_TRIAGE_MODEL`, `CLAUDE_REPLAN_MODEL`, `OPENAI_TRIAGE_MODEL`, `OPENAI_REPLAN_MODEL`). Claude re-plan uses server-side fallback, so it still answers if the main model is busy.
+- `AI_PROVIDER` in `wrangler.toml` picks who runs news triage and re-plan: `"openai"` (current) or `"claude"`. Both use the same prompts. The models are set next to it (`OPENAI_FILTER_MODEL`, `OPENAI_TRIAGE_MODEL`, `OPENAI_REPLAN_MODEL` and the `CLAUDE_*` ones).
+- News triage is two calls. The filter model (`gpt-5.4-nano`) reads every new headline with the whole itinerary and the flights, and answers only with the numbers of those that could matter, so most hours cost one small call. Only if it keeps any does the triage model (`gpt-5.4-mini`) write severity, date and the Hebrew text for those. `npm run check:paid` tests both steps on planted headlines with known answers, 3 times each.
+- Claude re-plan uses server-side fallback, so it still answers if the main model is busy.

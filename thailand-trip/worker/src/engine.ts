@@ -35,7 +35,7 @@ import { sendToAll } from "./push";
 import { fetchAir, fetchForecasts } from "./sources/openmeteo";
 import { fetchQuakes } from "./sources/usgs";
 import { fetchAdvisory } from "./sources/fcdo";
-import { fetchArticles } from "./sources/gdelt";
+import { fetchGoogleNews } from "./sources/googlenews";
 import { fetchDriveTime } from "./sources/routes";
 import { fetchFlightStatus } from "./sources/flights";
 import { aiProvider, triageNews } from "./ai";
@@ -143,14 +143,15 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   advisoryAlerts = advisoryAlerts.filter((a) => a.date >= addDays(today, -1)).slice(0, 5);
   alerts.push(...advisoryAlerts);
 
-  // News: hourly from a week before the trip. Only unseen headlines go to the AI model.
+  // News: hourly from a week before the trip. Only unseen headlines go to the AI model (two calls at
+  // most, see claude.ts; the budget counts the run as one).
   let newsItems = await store.json<NewsItem[]>("news:items", []);
   const newsBefore = newsItems;
   let seen = await store.json<string[]>("news:seen", []);
   const seenBefore = seen;
   if (hourly && newsWindow && aiProvider(env) && !opts.dryRun) {
     try {
-      const fresh = (await fetchArticles()).filter((a) => !seen.includes(a.url)).slice(0, 25);
+      const fresh = (await fetchGoogleNews(1)).filter((a) => !seen.includes(a.url)).slice(0, 25);
       if (fresh.length && spend("claude")) {
         newsItems = [...(await triageNews(env, trip, today, fresh)), ...newsItems];
         seen = [...fresh.map((a) => a.url), ...seen].slice(0, 500);

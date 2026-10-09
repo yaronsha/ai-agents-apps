@@ -5,11 +5,13 @@ import { FakeKV, makeEnv, trip } from "./fakes";
 
 afterEach(() => vi.unstubAllGlobals());
 
-/** Answers OpenAI's Responses API with `text`, recording what was asked. */
-function stubOpenAI(text: string, seen: Array<{ url: string; body: Record<string, unknown> }>, extra: Record<string, unknown> = {}) {
+/** Answers OpenAI's Responses API with `text` (or each of `text` in turn), recording what was asked. */
+function stubOpenAI(text: string | string[], seen: Array<{ url: string; body: Record<string, unknown> }>, extra: Record<string, unknown> = {}) {
+  const answers = [text].flat();
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const req = new Request(input, init);
     seen.push({ url: req.url, body: (await req.json()) as Record<string, unknown> });
+    const text = answers[Math.min(seen.length, answers.length) - 1];
     const body = {
       id: "resp_1",
       object: "response",
@@ -39,27 +41,45 @@ describe("ai provider", () => {
     expect(aiProvider({ ...env, AI_PROVIDER: "OpenAI", OPENAI_API_KEY: "k" })).toBe("openai");
   });
 
-  it("triages news with OpenAI when configured", async () => {
-    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+  it("triages news with OpenAI in two steps: a cheap filter, then the headlines it kept", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k", OPENAI_FILTER_MODEL: "gpt-5.4-nano" };
     const seen: Array<{ url: string; body: Record<string, unknown> }> = [];
     const answer = {
-      items: [
-        { index: 0, relevant: true, severity: "urgent", affectedDate: day, titleHe: "כביש 1095 חסום", bodyHe: "מפולת." },
-        { index: 1, relevant: false, severity: "info", affectedDate: "", titleHe: "", bodyHe: "" },
-      ],
+      items: [{ index: 0, relevant: true, severity: "urgent", affectedDate: day, titleHe: "כביש 1095 חסום", bodyHe: "מפולת." }],
     };
-    vi.stubGlobal("fetch", stubOpenAI(JSON.stringify(answer), seen));
+    vi.stubGlobal("fetch", stubOpenAI([JSON.stringify({ relevant: [0] }), JSON.stringify(answer)], seen));
     const items = await triageNews(env, trip, day, articles);
     expect(items).toEqual([{ url: "https://a/1", date: day, severity: "urgent", titleHe: "כביש 1095 חסום", bodyHe: "מפולת." }]);
-    expect(seen[0].url).toBe("https://api.openai.com/v1/responses");
-    expect(seen[0].body.model).toBe("gpt-5.4-mini");
-    expect(seen[0].body.reasoning).toEqual({ effort: "low" });
+    expect(seen.map((s) => s.url)).toEqual(["https://api.openai.com/v1/responses", "https://api.openai.com/v1/responses"]);
+    expect(seen.map((s) => s.body.model)).toEqual(["gpt-5.4-nano", "gpt-5.4-mini"]);
+    expect(seen[0].body.input).toContain("Football results");
+    expect(seen[1].body.input).toContain("Landslide closes Route 1095");
+    expect(seen[1].body.input).not.toContain("Football results");
+    expect(seen[1].body.reasoning).toEqual({ effort: "low" });
+  });
+
+  it("makes one call only when the filter keeps nothing", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    const seen: Array<{ url: string; body: Record<string, unknown> }> = [];
+    vi.stubGlobal("fetch", stubOpenAI(JSON.stringify({ relevant: [] }), seen));
+    expect(await triageNews(env, trip, day, articles)).toEqual([]);
+    expect(seen).toHaveLength(1);
+  });
+
+  it("shows the flights and the later days to the model", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    const seen: Array<{ url: string; body: Record<string, unknown> }> = [];
+    vi.stubGlobal("fetch", stubOpenAI(JSON.stringify({ relevant: [] }), seen));
+    await triageNews(env, trip, trip.startDate, articles);
+    const input = String(seen[0].body.input);
+    expect(input).toContain(`${trip.days.at(-1)!.date}:`);
+    for (const f of trip.flights) expect(input).toContain(`flight ${f.fromIata} to ${f.toIata}`);
   });
 
   it("reports a triage answer cut off by the token cap clearly", async () => {
     const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
-    vi.stubGlobal("fetch", stubOpenAI('{"items":[{"index":0,', [], { status: "incomplete", incomplete_details: { reason: "max_output_tokens" } }));
-    await expect(triageNews(env, trip, day, articles)).rejects.toThrow("OpenAI triage incomplete: max_output_tokens");
+    vi.stubGlobal("fetch", stubOpenAI('{"relevant":[0,', [], { status: "incomplete", incomplete_details: { reason: "max_output_tokens" } }));
+    await expect(triageNews(env, trip, day, articles)).rejects.toThrow("OpenAI news filter incomplete: max_output_tokens");
   });
 
   it("tells the app when the AI provider is out of credits", async () => {

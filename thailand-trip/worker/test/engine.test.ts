@@ -66,7 +66,7 @@ describe("engine", () => {
       const t = new Date(thLocal("2026-11-27T00:00").getTime() + m * 60_000);
       await runCheck(env, t);
     }
-    expect(log.urls.some((u) => u.includes("googleapis") || u.includes("rapidapi") || u.includes("gdelt"))).toBe(false);
+    expect(log.urls.some((u) => u.includes("googleapis") || u.includes("rapidapi") || u.includes("gdelt") || u.includes("news.google"))).toBe(false);
     expect(kv.writes).toBeLessThan(1000);
   });
 
@@ -77,7 +77,7 @@ describe("engine", () => {
     vi.stubGlobal("fetch", stubFetch(log));
     await runCheck(env, thLocal("2026-11-26T08:00"), { dryRun: true });
     expect(kv.writes).toBe(0);
-    expect(log.urls.some((u) => u.includes("googleapis") || u.includes("rapidapi") || u.includes("anthropic") || u.includes("gdelt"))).toBe(false);
+    expect(log.urls.some((u) => u.includes("googleapis") || u.includes("rapidapi") || u.includes("anthropic") || u.includes("gdelt") || u.includes("news.google"))).toBe(false);
   });
 });
 

@@ -14,8 +14,10 @@ export function aiProvider(env: Env): AiProvider | null {
 
 const impl = (env: Env) => (aiProvider(env) === "openai" ? openai : claude);
 
-export function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
-  return impl(env).triageNews(env, trip, today, articles);
+/** News triage in two steps (see claude.ts): a cheap filter over every headline, then triage of the few it kept. */
+export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
+  const kept = await impl(env).filterNews(env, trip, today, articles);
+  return kept.length ? impl(env).triageNews(env, trip, today, kept) : [];
 }
 
 export function replan(env: Env, trip: Trip, date: string, alerts: TripAlert[], problem: string): Promise<string> {

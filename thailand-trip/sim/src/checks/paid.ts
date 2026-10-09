@@ -1,19 +1,21 @@
-// npm run check:paid [-- --yes] [--replan] [--models gpt-5.4-mini,gpt-5.4-nano,claude-haiku-4-5] [--runs 3]
+// npm run check:paid [-- --yes] [--replan] [--models gpt-5.4-nano>gpt-5.4-mini,gpt-5.4-mini] [--runs 3]
 //
 // Local, by-hand live check of the PAID sources, through the worker's own fetch and parse code:
 // Google Routes, AeroDataBox and AI news triage on planted headlines (plus "re-plan for me" with
 // --replan). Every call costs money or plan quota, so this never runs in CI. Keys come from
 // thailand-trip/.env; a source without its key is reported as skipped. Before any call it prints
 // the plan with a rough cost and asks; --yes answers yes, and without a terminal the answer is no.
-// --models sets the triage models (gpt-* runs on OpenAI, claude-* on Anthropic). A model can answer
+// --models sets the triage setups to compare, each "filter>triage" (the worker's two steps) or one
+// model for both (gpt-* runs on OpenAI, claude-* on Anthropic). A model can answer
 // differently each time, so each one sees the planted headlines --runs times (default 3) and must
 // catch every relevant one every time.
 import { distanceKm, placeOf, type NewsItem } from "@trip/shared";
 import { fetchDriveTime } from "../../../worker/src/sources/routes";
 import { fetchFlightStatus } from "../../../worker/src/sources/flights";
 import type { Article } from "../../../worker/src/sources/gdelt";
-import { replan, triageNews as openaiTriage } from "../../../worker/src/openai";
-import { triageNews as claudeTriage } from "../../../worker/src/claude";
+import { replan } from "../../../worker/src/openai";
+import * as openai from "../../../worker/src/openai";
+import * as claude from "../../../worker/src/claude";
 import type { Env } from "../../../worker/src/env";
 import { simTrip } from "../world";
 import { CheckFailed, confirm, expect, flag, recordBodies, Report, warnUnless } from "./common";
@@ -33,7 +35,9 @@ const REPLAN_TOKENS: [number, number] = [1200, 3000];
 // Compute Routes Pro (traffic-aware) is $10 per 1000 calls beyond the free monthly allowance.
 const ROUTES_PER_CALL = 0.01;
 
-const TRIAGE_DEFAULTS = ["gpt-5.4-mini", "gpt-5.4-nano", "claude-haiku-4-5"]; // wrangler.toml models + nano
+const TRIAGE_DEFAULTS = ["gpt-5.4-nano>gpt-5.4-mini", "gpt-5.4-mini", "claude-haiku-4-5"];
+// The filter answers with a short list of numbers; the triage call sees only the headlines it kept.
+const FILTER_TOKENS: [number, number] = [1500, 600];
 const REPLAN_MODEL = "gpt-5.5";
 const TODAY = "2026-11-24"; // lantern festival night; the drive to Pai on Route 1095 is tomorrow
 const PAI_DRIVE_DATE = "2026-11-25";
@@ -80,8 +84,16 @@ const modelsArg = process.argv.find((a, i) => process.argv[i - 1] === "--models"
 const runsArg = process.argv.find((a, i) => process.argv[i - 1] === "--runs" || a.startsWith("--runs="));
 const RUNS = Math.max(1, Number(runsArg?.replace(/^--runs=/, "") ?? 3) || 3);
 const models = (modelsArg?.replace(/^--models=/, "").split(",") ?? TRIAGE_DEFAULTS).map((m) => m.trim()).filter(Boolean);
-const keyFor = (model: string) => (model.startsWith("claude") ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY");
-const triageName = (model: string) => `news triage (${model.startsWith("claude") ? "Claude" : "OpenAI"} ${model})`;
+const keyFor = (setup: string) => (setup.startsWith("claude") ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY");
+const stepsOf = (setup: string) => {
+  const [filter, triage = filter] = setup.split(">");
+  return { filter, triage };
+};
+const triageName = (setup: string) => {
+  const { filter, triage } = stepsOf(setup);
+  return `news triage (${setup.startsWith("claude") ? "Claude" : "OpenAI"} ${filter === triage ? filter : `${filter} > ${triage}`})`;
+};
+const setupCost = (setup: string) => costOf(stepsOf(setup).filter, FILTER_TOKENS) + costOf(stepsOf(setup).triage, TRIAGE_TOKENS);
 
 const ROUTES = "drive time (Google Routes)";
 const FLIGHT = "flight status (AeroDataBox)";
@@ -92,7 +104,7 @@ const LEVELS = ["format", "correctness", "reliability"] as const;
 const plan: Array<{ source: string; calls: number; cost: string; est: number }> = [];
 if (has("GOOGLE_MAPS_KEY")) plan.push({ source: ROUTES, calls: 1, cost: `~${usd(ROUTES_PER_CALL)} beyond the free monthly allowance`, est: ROUTES_PER_CALL });
 if (has("RAPIDAPI_KEY") && has("LIVE_FLIGHT")) plan.push({ source: FLIGHT, calls: 1, cost: "1 request of the RapidAPI plan quota", est: 0 });
-for (const m of models) if (has(keyFor(m))) plan.push({ source: triageName(m), calls: RUNS, cost: `~${usd(RUNS * costOf(m, TRIAGE_TOKENS))}`, est: RUNS * costOf(m, TRIAGE_TOKENS) || 0 });
+for (const m of models) if (has(keyFor(m))) plan.push({ source: triageName(m), calls: 2 * RUNS, cost: `~${usd(RUNS * setupCost(m))}`, est: RUNS * setupCost(m) || 0 });
 if (flag("replan") && has("OPENAI_API_KEY")) plan.push({ source: REPLAN, calls: 1, cost: `~${usd(costOf(REPLAN_MODEL, REPLAN_TOKENS))}`, est: costOf(REPLAN_MODEL, REPLAN_TOKENS) });
 
 let go = false;
@@ -205,29 +217,36 @@ const PLANTED = [MUST[0], MUST_NOT[0], MUST[1], MUST_NOT[1], MUST[3], MUST[2], M
 const slug = (a: Article) => a.url.split("/").pop()!;
 const HEBREW = /[֐-׿]/;
 
-for (const model of models) {
-  const source = triageName(model);
-  if (unavailable(source, [keyFor(model)])) continue;
-  const env = { OPENAI_API_KEY: process.env.OPENAI_API_KEY, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY, OPENAI_TRIAGE_MODEL: model, CLAUDE_TRIAGE_MODEL: model } as Env;
+for (const setup of models) {
+  const source = triageName(setup);
+  if (unavailable(source, [keyFor(setup)])) continue;
+  const { filter, triage } = stepsOf(setup);
+  const env = { OPENAI_API_KEY: process.env.OPENAI_API_KEY, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY, OPENAI_FILTER_MODEL: filter, OPENAI_TRIAGE_MODEL: triage, CLAUDE_FILTER_MODEL: filter, CLAUDE_TRIAGE_MODEL: triage } as Env;
+  const impl = setup.startsWith("claude") ? claude : openai;
+  // The same two steps as ai.ts triageNews, kept apart to see what the filter let through.
   const runs: NewsItem[][] = [];
+  const kept: Article[][] = [];
   const from = usage.length;
   const ok = await report.check(source, "format", async () => {
     for (let i = 0; i < RUNS; i++) {
-      const items = await (model.startsWith("claude") ? claudeTriage : openaiTriage)(env, simTrip, TODAY, PLANTED);
+      const passed = await impl.filterNews(env, simTrip, TODAY, PLANTED);
+      kept.push(passed);
+      const items = passed.length ? await impl.triageNews(env, simTrip, TODAY, passed) : [];
       expect(items.length, `run ${i + 1}: no relevant items (or the answer did not parse)`);
       expect(items.every((x) => ["urgent", "warning", "info"].includes(x.severity) && HEBREW.test(x.titleHe) && HEBREW.test(x.bodyHe)), `run ${i + 1}: severity and Hebrew title/body on every item`);
       runs.push(items);
     }
-    return `${RUNS} runs, ${runs.map((r) => r.length).join("/")} of ${PLANTED.length} flagged; ${usageSince(from)}`;
+    return `${RUNS} runs; filter kept ${kept.map((k) => k.length).join("/")}, triage flagged ${runs.map((r) => r.length).join("/")} of ${PLANTED.length}; ${usageSince(from)}`;
   });
   console.log(`${source}: ${usageSince(from)}`);
+  const keptMissed = MUST.filter((a) => kept.some((k) => !k.some((x) => x.url === a.url))).map(slug);
   // How many runs flagged each headline.
   const times = (a: Article) => runs.filter((r) => r.some((i) => i.url === a.url)).length;
   await followUp(source, ok, [
     ["correctness", async () => {
       const missed = MUST.filter((a) => times(a) < RUNS).map((a) => `${slug(a)} ${times(a)}/${RUNS}`);
       const wrong = MUST_NOT.filter((a) => times(a) > 0).map((a) => `${slug(a)} ${times(a)}/${RUNS}`);
-      const note = `every relevant headline caught in all ${RUNS} runs: ${missed.length ? "no" : "yes"}; irrelevant flagged: ${wrong.length ? wrong.join(", ") : "none"}`;
+      const note = `every relevant headline caught in all ${RUNS} runs: ${missed.length ? "no" : "yes"}; irrelevant flagged: ${wrong.length ? wrong.join(", ") : "none"}; filter dropped a relevant one: ${keptMissed.length ? keptMissed.join(", ") : "never"}`;
       expect(!missed.length, `MISSED ${missed.join(", ")}. ${note}`);
       warnUnless(!wrong.length, note);
       return note;

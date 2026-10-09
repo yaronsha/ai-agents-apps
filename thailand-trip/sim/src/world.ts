@@ -108,8 +108,11 @@ export class World {
         log("advisory");
         return json(this.advisoryPage());
       case "api.gdeltproject.org":
-        log("news");
+        log("news", "gdelt");
         return json({ articles: this.articles() });
+      case "news.google.com":
+        log("news");
+        return new Response(this.googleNews(), { headers: { "Content-Type": "application/rss+xml; charset=utf-8" } });
       case "routes.googleapis.com": {
         const body = (await req.json()) as { origin: Waypoint; destination: Waypoint };
         const { id, reply } = this.route(body);
@@ -221,6 +224,16 @@ export class World {
     return [...fresh, ...base];
   }
 
+  // Google News RSS: the same headlines as the GDELT feed above, with RFC 822 dates.
+  private googleNews(): string {
+    const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const date = (stamp: string) => new Date(stamp.replace(/^(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)Z$/, "$1-$2-$3T$4:$5:$6Z")).toUTCString();
+    const items = (this.articles() as Array<{ title: string; url: string; domain: string; seendate: string }>).map(
+      (a) => `<item><title>${esc(a.title)} - ${esc(a.domain)}</title><link>${esc(a.url)}</link><pubDate>${date(a.seendate)}</pubDate><source url="https://${esc(a.domain)}">${esc(a.domain)}</source></item>`,
+    );
+    return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>sim</title>${items.join("")}</channel></rss>`;
+  }
+
   private route(body: { origin: Waypoint; destination: Waypoint }) {
     const from = latLng(body.origin);
     const to = latLng(body.destination);
@@ -263,13 +276,14 @@ export class World {
   }
 
   // Claude news triage: the scenario says what each of its headlines means; everything else is noise.
+  // The filter step (see worker/src/claude.ts) gets the numbers of the scenario's own headlines.
   private async claude(req: Request): Promise<Response> {
     if (this.opts.realClaudeKey) {
       const headers = new Headers(req.headers);
       headers.set("x-api-key", this.opts.realClaudeKey);
       return fetch("https://api.anthropic.com" + new URL(req.url).pathname, { method: req.method, headers, body: await req.text() });
     }
-    const body = (await req.json()) as { model: string; messages: Array<{ content: string }> };
+    const body = (await req.json()) as { model: string; system?: string; messages: Array<{ content: string }> };
     const prompt = body.messages[0].content;
     const headlines = [...prompt.matchAll(/^(\d+)\. \[[^\]]*\] (.*)$/gm)].map((m) => ({ index: Number(m[1]), title: m[2] }));
     const news = this.scenario.events.flatMap((e) => ("news" in e ? [e.news] : []));
@@ -279,13 +293,14 @@ export class World {
         ? { index, relevant: true, ...t }
         : { index, relevant: false, severity: "info", affectedDate: "", titleHe: "", bodyHe: "" };
     });
+    const filter = /When unsure, include it/.test(body.system ?? "");
     return new Response(
       JSON.stringify({
         id: `msg_sim_${this.calls.length}`,
         type: "message",
         role: "assistant",
         model: body.model,
-        content: [{ type: "text", text: JSON.stringify({ items }) }],
+        content: [{ type: "text", text: JSON.stringify(filter ? { relevant: items.filter((i) => i.relevant).map((i) => i.index) } : { items }) }],
         stop_reason: "end_turn",
         stop_sequence: null,
         usage: { input_tokens: Math.ceil(prompt.length / 4), output_tokens: 40 * items.length },
