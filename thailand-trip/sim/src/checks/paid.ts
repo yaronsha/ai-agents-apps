@@ -1,11 +1,13 @@
-// npm run check:paid [-- --yes] [--replan] [--models gpt-5.4-mini,gpt-5.4-nano,claude-haiku-4-5]
+// npm run check:paid [-- --yes] [--replan] [--models gpt-5.4-mini,gpt-5.4-nano,claude-haiku-4-5] [--runs 3]
 //
 // Local, by-hand live check of the PAID sources, through the worker's own fetch and parse code:
 // Google Routes, AeroDataBox and AI news triage on planted headlines (plus "re-plan for me" with
 // --replan). Every call costs money or plan quota, so this never runs in CI. Keys come from
 // thailand-trip/.env; a source without its key is reported as skipped. Before any call it prints
 // the plan with a rough cost and asks; --yes answers yes, and without a terminal the answer is no.
-// --models sets the triage models (gpt-* runs on OpenAI, claude-* on Anthropic).
+// --models sets the triage models (gpt-* runs on OpenAI, claude-* on Anthropic). A model can answer
+// differently each time, so each one sees the planted headlines --runs times (default 3) and must
+// catch every relevant one every time.
 import { distanceKm, placeOf, type NewsItem } from "@trip/shared";
 import { fetchDriveTime } from "../../../worker/src/sources/routes";
 import { fetchFlightStatus } from "../../../worker/src/sources/flights";
@@ -75,6 +77,8 @@ const usageSince = (from: number) => {
 const report = new Report("Live check: paid sources");
 const has = (k: string) => !!process.env[k];
 const modelsArg = process.argv.find((a, i) => process.argv[i - 1] === "--models" || a.startsWith("--models="));
+const runsArg = process.argv.find((a, i) => process.argv[i - 1] === "--runs" || a.startsWith("--runs="));
+const RUNS = Math.max(1, Number(runsArg?.replace(/^--runs=/, "") ?? 3) || 3);
 const models = (modelsArg?.replace(/^--models=/, "").split(",") ?? TRIAGE_DEFAULTS).map((m) => m.trim()).filter(Boolean);
 const keyFor = (model: string) => (model.startsWith("claude") ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY");
 const triageName = (model: string) => `news triage (${model.startsWith("claude") ? "Claude" : "OpenAI"} ${model})`;
@@ -88,7 +92,7 @@ const LEVELS = ["format", "correctness", "reliability"] as const;
 const plan: Array<{ source: string; calls: number; cost: string; est: number }> = [];
 if (has("GOOGLE_MAPS_KEY")) plan.push({ source: ROUTES, calls: 1, cost: `~${usd(ROUTES_PER_CALL)} beyond the free monthly allowance`, est: ROUTES_PER_CALL });
 if (has("RAPIDAPI_KEY") && has("LIVE_FLIGHT")) plan.push({ source: FLIGHT, calls: 1, cost: "1 request of the RapidAPI plan quota", est: 0 });
-for (const m of models) if (has(keyFor(m))) plan.push({ source: triageName(m), calls: 1, cost: `~${usd(costOf(m, TRIAGE_TOKENS))}`, est: costOf(m, TRIAGE_TOKENS) || 0 });
+for (const m of models) if (has(keyFor(m))) plan.push({ source: triageName(m), calls: RUNS, cost: `~${usd(RUNS * costOf(m, TRIAGE_TOKENS))}`, est: RUNS * costOf(m, TRIAGE_TOKENS) || 0 });
 if (flag("replan") && has("OPENAI_API_KEY")) plan.push({ source: REPLAN, calls: 1, cost: `~${usd(costOf(REPLAN_MODEL, REPLAN_TOKENS))}`, est: costOf(REPLAN_MODEL, REPLAN_TOKENS) });
 
 let go = false;
@@ -205,31 +209,36 @@ for (const model of models) {
   const source = triageName(model);
   if (unavailable(source, [keyFor(model)])) continue;
   const env = { OPENAI_API_KEY: process.env.OPENAI_API_KEY, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY, OPENAI_TRIAGE_MODEL: model, CLAUDE_TRIAGE_MODEL: model } as Env;
-  let items: NewsItem[] = [];
+  const runs: NewsItem[][] = [];
   const from = usage.length;
   const ok = await report.check(source, "format", async () => {
-    items = await (model.startsWith("claude") ? claudeTriage : openaiTriage)(env, simTrip, TODAY, PLANTED);
-    expect(items.length, "no relevant items (or the answer did not parse)");
-    expect(items.every((i) => ["urgent", "warning", "info"].includes(i.severity) && HEBREW.test(i.titleHe) && HEBREW.test(i.bodyHe)), "severity and Hebrew title/body on every item");
-    return `${items.length} of ${PLANTED.length} flagged; ${usageSince(from)}`;
+    for (let i = 0; i < RUNS; i++) {
+      const items = await (model.startsWith("claude") ? claudeTriage : openaiTriage)(env, simTrip, TODAY, PLANTED);
+      expect(items.length, `run ${i + 1}: no relevant items (or the answer did not parse)`);
+      expect(items.every((x) => ["urgent", "warning", "info"].includes(x.severity) && HEBREW.test(x.titleHe) && HEBREW.test(x.bodyHe)), `run ${i + 1}: severity and Hebrew title/body on every item`);
+      runs.push(items);
+    }
+    return `${RUNS} runs, ${runs.map((r) => r.length).join("/")} of ${PLANTED.length} flagged; ${usageSince(from)}`;
   });
   console.log(`${source}: ${usageSince(from)}`);
-  const flagged = (a: Article) => items.find((i) => i.url === a.url);
+  // How many runs flagged each headline.
+  const times = (a: Article) => runs.filter((r) => r.some((i) => i.url === a.url)).length;
   await followUp(source, ok, [
     ["correctness", async () => {
-      const missed = MUST.filter((a) => !flagged(a)).map(slug);
-      const wrong = MUST_NOT.filter(flagged).map(slug);
-      const note = `${MUST.length - missed.length}/${MUST.length} must-flag caught, ${wrong.length}/${MUST_NOT.length} irrelevant flagged${wrong.length ? ` (${wrong.join(", ")})` : ""}`;
+      const missed = MUST.filter((a) => times(a) < RUNS).map((a) => `${slug(a)} ${times(a)}/${RUNS}`);
+      const wrong = MUST_NOT.filter((a) => times(a) > 0).map((a) => `${slug(a)} ${times(a)}/${RUNS}`);
+      const note = `every relevant headline caught in all ${RUNS} runs: ${missed.length ? "no" : "yes"}; irrelevant flagged: ${wrong.length ? wrong.join(", ") : "none"}`;
       expect(!missed.length, `MISSED ${missed.join(", ")}. ${note}`);
       warnUnless(!wrong.length, note);
       return note;
     }],
     ["reliability", async () => {
-      const l = flagged(MUST[0]);
-      expect(l, "landslide not flagged");
-      expect(l.severity !== "info", `landslide only "info"`);
-      warnUnless(l.date === PAI_DRIVE_DATE, `landslide dated ${l.date}, the Pai drive is ${PAI_DRIVE_DATE} (severity ${l.severity})`);
-      return `landslide: ${l.severity}, ${l.date}, "${l.titleHe}"`;
+      const l = runs.map((r) => r.find((i) => i.url === MUST[0].url));
+      expect(l.every(Boolean), "landslide not flagged in every run");
+      expect(l.every((x) => x!.severity !== "info"), `landslide only "info" in a run`);
+      const dates = l.map((x) => x!.date);
+      warnUnless(dates.every((d) => d === PAI_DRIVE_DATE), `landslide dated ${dates.join(", ")}; the Pai drive is ${PAI_DRIVE_DATE}`);
+      return `landslide: ${l.map((x) => x!.severity).join("/")}, ${PAI_DRIVE_DATE} every run, "${l[0]!.titleHe}"`;
     }],
   ]);
 }

@@ -19,7 +19,7 @@ const QUERY: Record<string, string | null> = {
   "khao-soi": null,
   "kok-river-lunch": null,
   "akha-kitchen": null,
-  "doi-chang-coffee": "Doi Chang, Mae Suai",
+  "doi-chang-coffee": "Doi Chang Coffee Farm",
 };
 
 type Place = { id: string; name: string; lat: number; lng: number };
