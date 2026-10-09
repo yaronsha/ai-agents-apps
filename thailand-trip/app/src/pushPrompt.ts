@@ -11,10 +11,12 @@ export function pushPromptMode(o: {
   support: "ok" | "no-sw" | "ios-not-installed" | "unsupported";
   permission: NotificationPermission | null;
   enabled: boolean;
+  /** No server address means the button could only fail. */
+  hasServer: boolean;
   dismissedAt: number | null;
   now: number;
 }): PushPromptMode {
-  if (o.enabled) return null;
+  if (o.enabled || !o.hasServer) return null;
   if (o.dismissedAt !== null && o.now - o.dismissedAt < PUSH_PROMPT_SNOOZE_MS) return null;
   if (o.support === "ios-not-installed") return "install";
   if (o.support !== "ok") return null;

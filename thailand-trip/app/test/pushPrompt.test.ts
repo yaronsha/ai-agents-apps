@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PUSH_PROMPT_SNOOZE_MS, pushPromptMode } from "../src/pushPrompt";
 
 const now = Date.parse("2026-11-22T08:00:00Z");
-const base = { support: "ok" as const, permission: "default" as NotificationPermission, enabled: false, dismissedAt: null, now };
+const base = { support: "ok" as const, permission: "default" as NotificationPermission, enabled: false, hasServer: true, dismissedAt: null, now };
 
 describe("pushPromptMode", () => {
   it("offers the enable button to a new unsubscribed device", () => {
@@ -15,6 +15,11 @@ describe("pushPromptMode", () => {
 
   it("shows install steps on iPhone Safari that is not installed", () => {
     expect(pushPromptMode({ ...base, support: "ios-not-installed", permission: null })).toBe("install");
+  });
+
+  it("shows nothing until a server address is set", () => {
+    expect(pushPromptMode({ ...base, hasServer: false })).toBeNull();
+    expect(pushPromptMode({ ...base, support: "ios-not-installed", hasServer: false })).toBeNull();
   });
 
   it("shows nothing where push can't work", () => {

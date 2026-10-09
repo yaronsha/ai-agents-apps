@@ -18,6 +18,7 @@ export function PushPrompt() {
     support: pushSupport(),
     permission: "Notification" in window ? Notification.permission : null,
     enabled,
+    hasServer: Boolean(settings.apiUrl()),
     dismissedAt,
     now: Date.now(),
   });
