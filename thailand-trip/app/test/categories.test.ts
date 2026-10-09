@@ -23,6 +23,11 @@ describe("worstOf", () => {
     expect(worstOf(alerts, ["weather", "cold", "clouds"])?.id).toBe("weather:x");
   });
 
+  it("keeps a good sea-of-clouds chance off the weather tile", () => {
+    expect(worstOf([alert("clouds:phu-chi-fa:high", "clouds", "info")], ["weather", "cold", "clouds"])).toBeUndefined();
+    expect(worstOf([alert("clouds:phu-chi-fa:low", "clouds", "warning")], ["weather", "cold", "clouds"])?.id).toBe("clouds:phu-chi-fa:low");
+  });
+
   it("is all clear without alerts in the group", () => {
     expect(worstOf([alert("air:y", "air", "urgent")], ["road", "flight"])).toBeUndefined();
   });

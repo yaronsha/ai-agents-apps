@@ -73,12 +73,11 @@ Keep place names in English letters. Reply with the Hebrew text only.`;
 
 /** The advisory change note in Hebrew (the triage model is enough for a short translation). */
 export async function translateAdvisory(env: Env, text: string): Promise<string> {
-  const response = await client(env).messages.create({
-    model: env.CLAUDE_TRIAGE_MODEL,
-    max_tokens: 2000,
-    system: ADVISORY_SYSTEM,
-    messages: [{ role: "user", content: text }],
-  });
+  // It runs before the flight check in the same cron run, and the English note is a fine fallback.
+  const response = await client(env).messages.create(
+    { model: env.CLAUDE_TRIAGE_MODEL, max_tokens: 2000, system: ADVISORY_SYSTEM, messages: [{ role: "user", content: text }] },
+    { timeout: 15_000, maxRetries: 1 },
+  );
   return response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
 }
 

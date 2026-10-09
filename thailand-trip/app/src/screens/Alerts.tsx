@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { dayOf, thDate, type TripAlert } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../App";
-import { replan } from "../api";
+import { errorText, replan } from "../api";
 import { dayLabel, severityText, shortDay } from "../format";
 import { CATEGORY_HE, GROUPS, worstOf } from "../categories";
 import { Icon } from "../icons";
@@ -79,7 +79,7 @@ export function Alerts({ date, live, refresh }: { date: string; live: Live; refr
       const { text } = await replan(asked, problem);
       if (shownDate.current === asked) setPlan(text);
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(errorText(e));
     } finally {
       setBusy(false);
     }

@@ -27,13 +27,11 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
 }
 
 export async function translateAdvisory(env: Env, text: string): Promise<string> {
-  const response = await client(env).responses.create({
-    model: env.OPENAI_TRIAGE_MODEL,
-    max_output_tokens: 4000,
-    reasoning: { effort: "low" },
-    instructions: ADVISORY_SYSTEM,
-    input: text,
-  });
+  // It runs before the flight check in the same cron run, and the English note is a fine fallback.
+  const response = await client(env).responses.create(
+    { model: env.OPENAI_TRIAGE_MODEL, max_output_tokens: 4000, reasoning: { effort: "low" }, instructions: ADVISORY_SYSTEM, input: text },
+    { timeout: 15_000, maxRetries: 1 },
+  );
   return response.output_text.trim();
 }
 
