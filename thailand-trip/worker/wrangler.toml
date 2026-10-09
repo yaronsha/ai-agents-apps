@@ -22,7 +22,9 @@ OPENAI_TRIAGE_MODEL = "gpt-5.4-mini"
 OPENAI_REPLAN_MODEL = "gpt-5.5"
 
 # Secrets (set with `npx wrangler secret put NAME`, or put them in .dev.vars for local dev):
-#   APP_TOKEN           shared code the app sends; protects push, test and re-plan endpoints
+#   APP_TOKEN           shared code the app sends; the only lock until Cloudflare Access is set up
+#   ACCESS_TEAM_DOMAIN  e.g. myteam.cloudflareaccess.com; with ACCESS_AUD, only signed-in allowed emails get in
+#   ACCESS_AUD          the Access application's "Application Audience (AUD) Tag"
 #   VAPID_PRIVATE_JWK   private key JSON from `npm run vapid`
 #   ANTHROPIC_API_KEY   optional: news triage and "re-plan for me" when AI_PROVIDER = "claude"
 #   OPENAI_API_KEY      optional: the same when AI_PROVIDER = "openai"

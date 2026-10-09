@@ -1,0 +1,9 @@
+# Cloudflare Pages project for the app (deployed with `wrangler pages deploy` from this folder).
+name = "thailand-trip-app"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-10-01"
+
+# functions/api/[[path]].ts passes /api/* to the worker (worker/wrangler.toml, name "thailand-trip").
+[[services]]
+binding = "WORKER"
+service = "thailand-trip"

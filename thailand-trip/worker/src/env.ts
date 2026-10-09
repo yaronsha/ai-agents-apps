@@ -1,6 +1,11 @@
 export interface Env {
   TRIP_KV: KVNamespace;
+  /** Shared access code; used only while Cloudflare Access is not set up. */
   APP_TOKEN: string;
+  /** Cloudflare Access team domain, e.g. "myteam.cloudflareaccess.com". With ACCESS_AUD, turns on sign-in. */
+  ACCESS_TEAM_DOMAIN?: string;
+  /** "Application Audience (AUD) Tag" of the Access application in front of the app. */
+  ACCESS_AUD?: string;
   VAPID_PUBLIC_KEY: string;
   VAPID_PRIVATE_JWK: string;
   VAPID_CONTACT: string;

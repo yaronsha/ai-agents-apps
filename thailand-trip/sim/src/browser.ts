@@ -62,7 +62,7 @@ export async function checkInBrowser(app: App, workerUrl: URL, r: Result, report
   });
   await context.addInitScript(
     ([api, token]) => {
-      localStorage.setItem("trip.apiUrl", api);
+      localStorage.setItem("trip.devApiUrl", api);
       localStorage.setItem("trip.token", token);
     },
     [workerUrl.origin, SIM_TOKEN],

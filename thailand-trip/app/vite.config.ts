@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  // In production a Pages Function passes /api to the worker; locally, `npm run dev:worker` runs it on 8787.
+  server: { proxy: { "/api": "http://localhost:8787" } },
   plugins: [
     react(),
     VitePWA({
