@@ -21,8 +21,11 @@ export type ScenarioEvent =
     }
   | {
       at: string;
-      /** The UK travel advice page is republished with this change note. */
-      advisory: { description: string };
+      /**
+       * The UK travel advice page is republished with this change note. `descriptionHe` is what the
+       * simulated AI answers when the worker asks for a Hebrew translation.
+       */
+      advisory: { description: string; descriptionHe?: string };
       note?: string;
     }
   | {

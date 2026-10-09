@@ -38,7 +38,7 @@ import { fetchAdvisory } from "./sources/fcdo";
 import { fetchArticles } from "./sources/gdelt";
 import { fetchDriveTime } from "./sources/routes";
 import { fetchFlightStatus } from "./sources/flights";
-import { aiProvider, triageNews } from "./ai";
+import { aiProvider, translateAdvisory, triageNews } from "./ai";
 
 const MIN = 60_000;
 
@@ -133,7 +133,18 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
     try {
       const adv = await fetchAdvisory();
       const last = await env.TRIP_KV.get("advisory:last");
-      if (last && last !== adv.updatedAt) advisoryAlerts = [advisoryAlert(adv, now), ...advisoryAlerts];
+      if (last && last !== adv.updatedAt) {
+        // The change note is English; translate it when an AI model is set, or show it as is.
+        let he: string | undefined;
+        if (aiProvider(env) && !opts.dryRun && spend("claude")) {
+          try {
+            he = await translateAdvisory(env, adv.description);
+          } catch (err) {
+            console.error("advisory translation", err);
+          }
+        }
+        advisoryAlerts = [advisoryAlert(adv, now, he), ...advisoryAlerts];
+      }
       if (last !== adv.updatedAt && !opts.dryRun) await env.TRIP_KV.put("advisory:last", adv.updatedAt);
       note("advisory", true);
     } catch (err) {
@@ -195,10 +206,11 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
       try {
         const status = await fetchFlightStatus(env.RAPIDAPI_KEY, f);
         if (status) {
-          // A gate change is reported once, when the gate moves; keep it until the next move.
+          // A gate change is reported once, when the gate moves; keep it until the next move, or
+          // until the flight is cancelled, when the old gate is noise next to the cancellation.
           const fresh = flightAlerts(f, status, flights.gates[f.id], now);
           const gate = `flight:${f.id}:gate:`;
-          const keepGate = !fresh.some((a) => a.id.startsWith(gate));
+          const keepGate = !fresh.some((a) => a.id.startsWith(gate) || a.id === `flight:${f.id}:cancel`);
           flights.alerts = [
             ...flights.alerts.filter((a) => !a.id.startsWith(`flight:${f.id}:`) || (keepGate && a.id.startsWith(gate))),
             ...fresh,

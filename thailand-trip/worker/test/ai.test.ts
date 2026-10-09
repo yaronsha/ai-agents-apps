@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { aiProvider, replan, triageNews } from "../src/ai";
+import { aiProvider, replan, translateAdvisory, triageNews } from "../src/ai";
 import worker from "../src/index";
 import { FakeKV, makeEnv, trip } from "./fakes";
 
@@ -106,5 +106,14 @@ describe("ai provider", () => {
     const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
     vi.stubGlobal("fetch", stubOpenAI("", []));
     expect(await replan(env, trip, day, [], "")).toContain("לא הצלחתי");
+  });
+
+  it("translates a travel advice change with OpenAI's triage model", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    const seen: Array<{ url: string; body: Record<string, unknown> }> = [];
+    vi.stubGlobal("fetch", stubOpenAI(" לא לנסוע ליד הגבול. ", seen));
+    expect(await translateAdvisory(env, "Avoid the border.")).toBe("לא לנסוע ליד הגבול.");
+    expect(seen[0].body.model).toBe("gpt-5.4-mini");
+    expect(seen[0].body.input).toBe("Avoid the border.");
   });
 });

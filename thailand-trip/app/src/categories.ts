@@ -24,9 +24,10 @@ export const GROUPS: Array<{ id: string; labelHe: string; icon: IconName; okHe: 
 
 const RANK: Record<Severity, number> = { info: 0, warning: 1, urgent: 2 };
 
-/** The most severe alert of the group that day, or undefined when it is all clear. */
+/**
+ * The most severe alert of the group that day, or undefined when it is all clear. Info alerts
+ * count too: a smoke notice must not leave the air tile saying there is no pollution.
+ */
 export function worstOf(alerts: TripAlert[], categories: AlertCategory[]): TripAlert | undefined {
-  return alerts
-    .filter((a) => categories.includes(a.category) && a.severity !== "info")
-    .sort((a, b) => RANK[b.severity] - RANK[a.severity])[0];
+  return alerts.filter((a) => categories.includes(a.category)).sort((a, b) => RANK[b.severity] - RANK[a.severity])[0];
 }
