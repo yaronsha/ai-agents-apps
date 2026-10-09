@@ -16,11 +16,15 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json; charset=utf-8", ...CORS } });
 
+const hasToken = (req: Request, env: Env) => Boolean(env.APP_TOKEN) && req.headers.get("X-Trip-Token") === env.APP_TOKEN;
+
 // With Cloudflare Access set up, only a signed-in allowed email gets through and the old
-// access code no longer opens anything. Until then the access code is the only lock.
-async function authorized(req: Request, env: Env): Promise<boolean> {
-  if (accessEnabled(env)) return (await accessEmail(req, env)) !== null;
-  return Boolean(env.APP_TOKEN) && req.headers.get("X-Trip-Token") === env.APP_TOKEN;
+// access code opens nothing but the news shadow log, which `npm run shadow:report` reads from
+// a terminal and which holds only public headlines. Until then the access code is the only lock.
+async function authorized(req: Request, env: Env, path: string): Promise<boolean> {
+  if (!accessEnabled(env)) return hasToken(req, env);
+  if (path === "/api/shadow" && hasToken(req, env)) return true;
+  return (await accessEmail(req, env)) !== null;
 }
 
 export default {
@@ -35,7 +39,7 @@ export default {
 
     // Everything else (state included: alerts can name hotels) needs sign-in or the access code.
     if (!url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
-    if (!(await authorized(req, env))) return json({ error: accessEnabled(env) ? "צריך להתחבר מחדש" : "קוד גישה שגוי" }, 401);
+    if (!(await authorized(req, env, url.pathname))) return json({ error: accessEnabled(env) ? "צריך להתחבר מחדש" : "קוד גישה שגוי" }, 401);
 
     if (req.method === "GET" && url.pathname === "/api/state") {
       // Before the first cron run there is no saved state; a dry run uses only the free sources.

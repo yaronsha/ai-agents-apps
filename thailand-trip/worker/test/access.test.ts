@@ -64,6 +64,12 @@ describe("cloudflare access", () => {
     expect((await get(await accessEnv(), undefined, { "X-Trip-Token": "secret" })).status).toBe(401);
   });
 
+  it("still lets the access code read the news shadow log, for the terminal report", async () => {
+    stubCerts();
+    const res = await worker.fetch(new Request("https://w/api/shadow", { headers: { "X-Trip-Token": "secret" } }), await accessEnv());
+    expect(res.status).toBe(200);
+  });
+
   it("tells the app which kind of sign-in the server uses", async () => {
     const config = async (env: Env) => ((await (await worker.fetch(new Request("https://w/api/config"), env)).json()) as { auth: string }).auth;
     expect(await config(await accessEnv())).toBe("access");
