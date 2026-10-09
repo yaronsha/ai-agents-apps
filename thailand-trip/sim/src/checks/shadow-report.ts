@@ -27,7 +27,8 @@ interface ShadowRecord {
 }
 
 const days = Number(process.argv.find((a) => a.startsWith("--days="))?.slice(7)) || 21;
-const base = (process.env.WORKER_URL || "https://thailand-trip.yaron-shapira7.workers.dev").replace(/\/$/, "");
+// The worker has no workers.dev address; the app's address passes /api on to it.
+const base = (process.env.WORKER_URL || "https://thailand-trip-app.pages.dev").replace(/\/$/, "");
 
 /** Asks for the access code without echoing it. */
 async function askToken(): Promise<string> {

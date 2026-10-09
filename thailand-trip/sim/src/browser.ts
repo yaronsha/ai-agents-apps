@@ -66,7 +66,7 @@ export async function checkInBrowser(app: App, workerUrl: URL, r: Result, report
   await context.route("**/*", (route) => (local.has(new URL(route.request().url()).host) ? route.continue() : route.abort("blockedbyclient")));
   await context.addInitScript(
     ([api, token]) => {
-      localStorage.setItem("trip.apiUrl", api);
+      localStorage.setItem("trip.devApiUrl", api);
       localStorage.setItem("trip.token", token);
     },
     [workerUrl.origin, SIM_TOKEN],

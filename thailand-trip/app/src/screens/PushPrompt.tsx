@@ -18,7 +18,8 @@ export function PushPrompt() {
     support: pushSupport(),
     permission: "Notification" in window ? Notification.permission : null,
     enabled,
-    hasServer: Boolean(settings.apiUrl()),
+    // The app always reaches its server at its own /api now.
+    hasServer: true,
     dismissedAt,
     now: Date.now(),
   });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Live } from "../App";
-import { enablePush, previewAt, pushEnabled, pushSupport, settings, testPush } from "../api";
+import { enablePush, previewAt, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
 import { ago } from "../format";
 
 const SOURCE_HE: Record<string, string> = {
@@ -13,8 +13,8 @@ const SOURCE_HE: Record<string, string> = {
 };
 
 export function Settings({ live, refresh }: { live: Live; refresh: () => void }) {
-  const [api, setApi] = useState(settings.apiUrl());
   const [token, setToken] = useState(settings.token());
+  const [auth, setAuth] = useState<"access" | "token" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [push, setPush] = useState(false);
   const [at, setAt] = useState("2026-11-26T12:00");
@@ -22,6 +22,8 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
 
   useEffect(() => {
     pushEnabled().then(setPush);
+    // Older servers don't say; treat them as access-code servers.
+    serverConfig().then((c) => setAuth(c.auth ?? "token"), () => setAuth(null));
   }, []);
 
   const run = async (fn: () => Promise<string>) => {
@@ -34,7 +36,6 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
   };
 
   const save = () => {
-    settings.setApiUrl(api);
     settings.setToken(token);
     setMsg("נשמר");
     refresh();
@@ -46,19 +47,18 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
         <h1>הגדרות</h1>
       </header>
 
-      <section className="card form">
-        <label>
-          כתובת השרת
-          <input dir="ltr" value={api} onChange={(e) => setApi(e.target.value)} placeholder="https://thailand-trip.example.workers.dev" />
-        </label>
-        <label>
-          קוד גישה
-          <input dir="ltr" value={token} onChange={(e) => setToken(e.target.value)} type="password" />
-        </label>
-        <button className="primary" onClick={save}>
-          שמירה
-        </button>
-      </section>
+      {/* With Cloudflare sign-in the allow list does the job and there is no code to type. */}
+      {auth === "token" && (
+        <section className="card form">
+          <label>
+            קוד גישה
+            <input dir="ltr" value={token} onChange={(e) => setToken(e.target.value)} type="password" />
+          </label>
+          <button className="primary" onClick={save}>
+            שמירה
+          </button>
+        </section>
+      )}
 
       <section className="card">
         <h2>התראות פוש</h2>

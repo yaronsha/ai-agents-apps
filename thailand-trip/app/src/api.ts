@@ -1,7 +1,7 @@
 import type { TripPrivate, TripState } from "@trip/shared";
 
 const KEYS = {
-  api: "trip.apiUrl",
+  api: "trip.devApiUrl",
   token: "trip.token",
   state: "trip.lastState",
   private: "trip.private",
@@ -29,22 +29,46 @@ function write(key: string, value: string | null) {
   }
 }
 
+// Older versions saved the worker's own address on the phone. The app now calls /api on its own
+// address (the Pages Function passes it on), so the sign-in covers it; drop the old setting.
+write("trip.apiUrl", null);
+
 export const settings = {
-  apiUrl: () => (read(KEYS.api) || import.meta.env.VITE_API_URL || "").replace(/\/$/, ""),
-  setApiUrl: (v: string) => write(KEYS.api, v.trim() || null),
+  /** Empty means this site's own /api. Only the simulator points it elsewhere. */
+  apiUrl: () => (read(KEYS.api) || "").replace(/\/$/, ""),
   token: () => read(KEYS.token) || "",
   setToken: (v: string) => write(KEYS.token, v.trim() || null),
   pushPromptDismissedAt: () => Number(read(KEYS.pushPromptDismissed)) || null,
   dismissPushPrompt: () => write(KEYS.pushPromptDismissed, String(Date.now())),
 };
 
+const SIGN_IN_KEY = "trip.signInAt";
+
+/**
+ * When the Cloudflare Access sign-in runs out, /api answers with a redirect to the login page,
+ * which fetch cannot follow. Open /api/login as a page instead (at most once a minute, so a
+ * broken setup can't loop); Access signs in and sends the browser back to the app.
+ */
+function signInAgain(): never {
+  let last = 0;
+  try {
+    last = Number(sessionStorage.getItem(SIGN_IN_KEY) ?? 0);
+    sessionStorage.setItem(SIGN_IN_KEY, String(Date.now()));
+  } catch {
+    /* no session storage: still try once */
+  }
+  if (Date.now() - last > 60_000) window.location.assign("/api/login");
+  throw new Error("צריך להתחבר מחדש");
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const base = settings.apiUrl();
-  if (!base) throw new Error("לא הוגדרה כתובת שרת (בהגדרות)");
-  const res = await fetch(`${base}${path}`, {
+  const token = settings.token();
+  const res = await fetch(`${settings.apiUrl()}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", "X-Trip-Token": settings.token(), ...(init?.headers ?? {}) },
+    redirect: "manual",
+    headers: { "Content-Type": "application/json", ...(token ? { "X-Trip-Token": token } : {}), ...(init?.headers ?? {}) },
   });
+  if (res.type === "opaqueredirect") signInAgain();
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((body as { error?: string }).error ?? `שגיאת שרת ${res.status}`);
   return body as T;
@@ -63,8 +87,8 @@ export async function loadState(): Promise<{ state: TripState | null; offline: b
 }
 
 /**
- * Hotels and flights are not in the app bundle (the site is public); the worker sends them
- * to anyone with the access code, and the phone keeps a copy for offline use.
+ * Hotels and flights are not in the app bundle; the worker sends them only to a signed-in
+ * allowed email (or the access code), and the phone keeps a copy for offline use.
  */
 export async function loadPrivate(): Promise<TripPrivate | null> {
   try {
@@ -113,11 +137,19 @@ export function pushSupport(): "ok" | "no-sw" | "ios-not-installed" | "unsupport
   return "ok";
 }
 
+export interface ServerConfig {
+  vapidPublicKey: string;
+  /** "access": Cloudflare sign-in; "token": the shared access code (before Access is set up). */
+  auth?: "access" | "token";
+}
+
+export const serverConfig = () => call<ServerConfig>("/api/config");
+
 export async function enablePush(): Promise<number> {
   // Ask first, while still inside the tap: iOS drops the user gesture after a network round trip.
   const permission = await Notification.requestPermission();
   if (permission !== "granted") throw new Error("לא אושרו התראות בדפדפן");
-  const { vapidPublicKey } = await call<{ vapidPublicKey: string }>("/api/config");
+  const { vapidPublicKey } = await serverConfig();
   if (!vapidPublicKey) throw new Error("לשרת אין מפתח VAPID");
   const reg = await navigator.serviceWorker.ready;
   const sub =

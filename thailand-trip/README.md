@@ -33,7 +33,7 @@ Every paid source is optional; without its key the app simply skips it. Daily ca
 
 This repository is public, so hotel names and flight numbers are not committed. They live in `shared/src/trip-private.json`, which is git-ignored. `npm install` copies `trip-private.example.json` to it if it is missing; replace it with your real file. Set `number` and `departLocal` on each flight to turn on flight tracking.
 
-Only the worker bundles this file (through `@trip/shared/private`). The app is a public site, so it is built from the itinerary alone and fetches hotels and flights from `GET /api/trip-private`, which, like `/api/state`, needs the access code. Never import `@trip/shared/private` from `app/`.
+Only the worker bundles this file (through `@trip/shared/private`). The app is built from the itinerary alone and fetches hotels and flights from `GET /api/trip-private`, which, like `/api/state`, needs a signed-in allowed email (see [Who can open the app](#4-who-can-open-the-app)) or, before that is set up, the access code. Never import `@trip/shared/private` from `app/`.
 
 ## Setup
 
@@ -70,15 +70,15 @@ For local development put the same values in `worker/.dev.vars` and run `npm run
 
 ### 2. App
 
-Deploy `app/` to any static host. With Cloudflare Pages: build command `npm run build -w app`, output `app/dist`, root `thailand-trip`, and the environment variable `VITE_API_URL` set to the worker address (see `app/.env.example`).
+The app is a Cloudflare Pages project (`app/wrangler.toml`). It calls `/api/*` on its own address, and the Pages Function in `app/functions/api/` hands those calls to the worker through a service binding, so the app and the API share one address and one sign-in. Build with `npm run build -w app`, then deploy from `app/` with `npx wrangler pages deploy`. Locally, `npm run dev` proxies `/api` to the worker on port 8787.
 
-Open the site, go to **הגדרות**, check the server address, enter the `APP_TOKEN` and tap **הפעלת התראות**, then **שליחת התראה בדיקה**.
+Open the site, go to **הגדרות** and tap **הפעלת התראות**, then **שליחת התראה בדיקה**. Until Cloudflare Access is set up, the settings screen also asks for the `APP_TOKEN`.
 
 **iPhone:** Web Push works only after adding the site to the home screen (Share → Add to Home Screen) and opening it from there.
 
 ### 3. Automatic deploy from main
 
-`.github/workflows/thailand-trip-deploy.yml` runs on every push to `main` that touches `thailand-trip/`: it type-checks, runs the tests, builds the app with `VITE_API_URL` set to the worker, then deploys the worker and the Pages project `thailand-trip-app`. Other branches and pull requests never deploy. It can also be run by hand from the Actions tab (on `main` only).
+`.github/workflows/thailand-trip-deploy.yml` runs on every push to `main` that touches `thailand-trip/`: it type-checks, runs the tests, builds the app, then deploys the worker and the Pages project `thailand-trip-app`. Other branches and pull requests never deploy. It can also be run by hand from the Actions tab (on `main` only).
 
 Repository secrets it needs (Settings → Secrets and variables → Actions):
 
@@ -88,7 +88,19 @@ Repository secrets it needs (Settings → Secrets and variables → Actions):
 | `CLOUDFLARE_ACCOUNT_ID` | The Cloudflare account id |
 | `TRIP_PRIVATE_JSON` | The full contents of `shared/src/trip-private.json` |
 
-Worker secrets (`APP_TOKEN`, `VAPID_PRIVATE_JWK` and the optional keys) stay in Cloudflare; a deploy keeps them.
+Worker secrets (`APP_TOKEN`, `VAPID_PRIVATE_JWK`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` and the optional keys) stay in Cloudflare; a deploy keeps them.
+
+### 4. Who can open the app
+
+Cloudflare Access (Zero Trust, free up to 50 users) puts a sign-in page in front of the app: Google, or a one-time code sent by email. Only emails on the allow list get in. The list lives only in the Zero Trust dashboard, never in this repository.
+
+1. **Zero Trust → Settings → Authentication → Login methods:** add Google (or keep "One-time PIN" alone, which needs no setup).
+2. **Zero Trust → Access → Applications → Add → Self-hosted:** domain `thailand-trip-app.pages.dev`, session duration 1 month. Add a policy: Action *Allow*, Include *Emails* (or an email *List* from **My Team → Lists**). Then also add `*.thailand-trip-app.pages.dev` so preview deployments are covered.
+3. From the application's **Overview**, copy the *Application Audience (AUD) Tag*; the team domain (`<team>.cloudflareaccess.com`) is shown under **Settings** as *Team domain*.
+4. So `npm run shadow:report` still works from a terminal, add one more self-hosted application for the path `thailand-trip-app.pages.dev/api/shadow` with a policy of Action *Bypass*, Include *Everyone*. The worker still asks for the access code there, and that path holds only public headlines.
+5. **Workers → thailand-trip → Settings → Variables and Secrets:** add both as type *Secret*: `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. From then on the worker answers `/api` only for requests signed by Access, and the access code stops working.
+
+To add someone, add their email to the policy or list; it works at once. To remove someone, delete the email and revoke their session in **Access → Users**. The worker has no `workers.dev` address (`workers_dev = false`): the only way in is through the app's address and its sign-in. Cron runs inside Cloudflare and needs no sign-in.
 
 ## Checks
 
