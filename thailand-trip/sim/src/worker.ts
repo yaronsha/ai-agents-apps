@@ -73,6 +73,8 @@ export async function startWorker(world: World, opts: { port?: number } = {}): P
       ANTHROPIC_API_KEY: "sim-anthropic-key",
       GOOGLE_MAPS_KEY: "sim-google-key",
       RAPIDAPI_KEY: "sim-rapidapi-key",
+      // News shadow mode calls Google News, which the simulated world doesn't answer.
+      SHADOW_NEWS: "off",
     },
     outboundService: (req: unknown) => world.handle(req as Request) as never,
   });

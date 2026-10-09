@@ -16,8 +16,11 @@
     "test": "vitest run",
     "typecheck": "tsc -p shared && tsc -p app --noEmit && tsc -p worker --noEmit && tsc -p sim",
     "sim": "npm run sim -w sim --",
-    "sim:live": "npm run live -w sim --",
-    "verify:places": "npm run places -w sim"
+    "verify:places": "npm run places -w sim",
+    "check:free": "npm run check:free -w sim --",
+    "check:paid": "npm run check:paid -w sim --",
+    "check:live": "npm run check:free && npm run check:paid",
+    "shadow:report": "npm run shadow:report -w sim --"
   },
   "devDependencies": {
     "typescript": "^5.9.0",

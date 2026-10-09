@@ -20,7 +20,11 @@ export async function fetchDriveTime(key: string, from: LatLng, to: LatLng, now:
       departureTime: new Date(now.getTime() + 60_000).toISOString(),
     }),
   });
-  if (!res.ok) throw new Error(`routes ${res.status}`);
+  if (!res.ok) {
+    // Google explains a refusal (API disabled, key restricted) in error.message; keep it for the note.
+    const why = await res.json().then((b) => (b as { error?: { message?: string } }).error?.message, () => undefined);
+    throw new Error(`routes ${res.status}${why ? `: ${why.slice(0, 160)}` : ""}`);
+  }
   const body = (await res.json()) as { routes?: Array<{ duration: string; staticDuration: string }> };
   const r = body.routes?.[0];
   if (!r) return { noRoute: true };

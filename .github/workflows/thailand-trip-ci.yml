@@ -1,0 +1,41 @@
+# Offline checks for thailand-trip: type-check, unit tests and the trip simulator on recorded data.
+# Nothing here calls a real data source or a paid API: the simulator answers every worker request
+# from sim/fixtures, the browser check blocks every outside host, and the unit tests block fetch.
+# Checks against the real sources run only by hand on a developer machine (npm run check:free,
+# npm run check:paid; see thailand-trip/sim/README.md).
+name: thailand-trip CI
+
+on:
+  pull_request:
+    paths: ["thailand-trip/**", ".github/workflows/thailand-trip-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["thailand-trip/**", ".github/workflows/thailand-trip-ci.yml"]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: thailand-trip
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: thailand-trip/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+        working-directory: thailand-trip/sim
+      - run: npm run sim -- --browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sim-reports
+          path: thailand-trip/sim/reports/

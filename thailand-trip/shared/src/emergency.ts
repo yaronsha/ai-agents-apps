@@ -26,14 +26,15 @@ export interface Hospital {
 }
 
 /**
- * Larger private and provincial hospitals near the route. Locations and phones checked on 2026-10-07,
- * except Chiang Dao Hospital: its pin is the town centre and no phone number was found.
+ * Larger private and provincial hospitals near the route. Locations and phones checked on 2026-10-07.
+ * Chiang Dao Hospital's location was checked on 2026-10-09 (Google Maps and OpenStreetMap agree within
+ * 120 m); its phone is not set because no second source confirmed the one Google lists.
  */
 export const hospitals: Hospital[] = [
   { name: "Chiang Mai Ram Hospital", area: "צ'אנג מאי", lat: 18.7963, lng: 98.9733, phone: "053-999-777" },
   { name: "Bangkok Hospital Chiang Mai", area: "צ'אנג מאי", lat: 18.7887, lng: 99.0263, phone: "052-089-888" },
   { name: "Pai Hospital", area: "פאי", lat: 19.3615, lng: 98.4374, phone: "053-699-211" },
-  { name: "Chiang Dao Hospital", area: "צ'אנג דאו", lat: 19.3655, lng: 98.9652 },
+  { name: "Chiang Dao Hospital", area: "צ'אנג דאו", lat: 19.4029, lng: 98.9752 },
   { name: "Overbrook Hospital", area: "צ'יאנג ראי", lat: 19.9123, lng: 99.8292, phone: "053-711-366" },
   { name: "Chiangrai Prachanukroh Hospital", area: "צ'יאנג ראי", lat: 19.901, lng: 99.8292, phone: "053-910-600" },
 ];
