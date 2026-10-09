@@ -3,6 +3,7 @@ import { useTrip } from "../tripContext";
 import type { Live } from "../App";
 import { ago, dayLabel, statusText } from "../format";
 import { Icon } from "../icons";
+import { InstallPrompt } from "./InstallPrompt";
 import { PushPrompt } from "./PushPrompt";
 
 function Forecast({ f }: { f?: StopForecast }) {
@@ -84,6 +85,7 @@ export function Today({ date, live, refresh, openAlerts }: { date: string; live:
           {live.offline ? `מוצג מידע שמור. ${live.error ?? ""}` : "המידע מהשרת לא התעדכן לאחרונה."} עודכן {live.state ? ago(live.state.generatedAt) : "אף פעם"} · לחצו לרענון
         </button>
       )}
+      <InstallPrompt />
       <PushPrompt />
 
       <h2 className="section-title">התוכנית</h2>
