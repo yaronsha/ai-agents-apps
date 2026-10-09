@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Live } from "../App";
-import { enablePush, previewAt, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
+import { enablePush, errorText, previewAt, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
 import { ago } from "../format";
 
 const SOURCE_HE: Record<string, string> = {
@@ -31,7 +31,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
     try {
       setMsg(await fn());
     } catch (e) {
-      setMsg((e as Error).message);
+      setMsg(errorText(e));
     }
   };
 

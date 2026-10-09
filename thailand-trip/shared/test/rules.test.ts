@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  advisoryAlert,
   cloudSeaChance,
   dayOf,
   dayStatuses,
@@ -66,7 +67,9 @@ describe("weather", () => {
 
   it("always warns about thunderstorms", () => {
     const fc = hourly("2026-11-26", { code: 95 });
-    expect(weatherAlerts(day, { [canyon.id]: summarizeStop(canyon, fc) })[0].id).toContain("storm");
+    const [storm] = weatherAlerts(day, { [canyon.id]: summarizeStop(canyon, fc) });
+    expect(storm.id).toContain("storm");
+    expect(storm.titleHe).toBe(`סופת רעמים צפויה ב${canyon.nameHe}`);
   });
 
   it("moves a pre-dawn warning out of quiet hours when the van has not left yet", () => {
@@ -147,5 +150,21 @@ describe("push scheduling", () => {
     const d = eveningDigest(trip, [alert], {}, thLocal("2026-11-25T20:00"))!;
     expect(d.title).toContain("קניון");
     expect(d.body).toContain("09:30");
+  });
+});
+
+describe("advisoryAlert", () => {
+  const change = { updatedAt: "2026-11-28T03:05:00Z", description: "Advice against travel near the Myanmar border in Chiang Rai.", url: "https://www.gov.uk/foreign-travel-advice/thailand" };
+  const now = new Date("2026-11-28T03:10:00Z");
+
+  it("shows the Hebrew translation when there is one", () => {
+    const a = advisoryAlert(change, now, "לא לנסוע ליד גבול מיאנמר במחוז Chiang Rai.");
+    expect(a.bodyHe).toBe("לא לנסוע ליד גבול מיאנמר במחוז Chiang Rai.");
+    expect(a.severity).toBe("urgent");
+  });
+
+  it("falls back to the English note", () => {
+    expect(advisoryAlert(change, now).bodyHe).toBe(change.description);
+    expect(advisoryAlert(change, now, "").bodyHe).toBe(change.description);
   });
 });

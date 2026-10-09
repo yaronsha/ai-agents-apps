@@ -269,8 +269,13 @@ export class World {
       headers.set("x-api-key", this.opts.realClaudeKey);
       return fetch("https://api.anthropic.com" + new URL(req.url).pathname, { method: req.method, headers, body: await req.text() });
     }
-    const body = (await req.json()) as { model: string; messages: Array<{ content: string }> };
+    const body = (await req.json()) as { model: string; system?: string; messages: Array<{ content: string }> };
     const prompt = body.messages[0].content;
+    // Travel advice translation: the scenario's Hebrew text for that change note.
+    if (body.system?.includes("travel advice")) {
+      const adv = this.scenario.events.flatMap((e) => ("advisory" in e ? [e.advisory] : [])).find((a) => a.description === prompt);
+      return this.claudeText(body.model, adv?.descriptionHe ?? `(תרגום מדומה) ${prompt}`, prompt.length);
+    }
     const headlines = [...prompt.matchAll(/^(\d+)\. \[[^\]]*\] (.*)$/gm)].map((m) => ({ index: Number(m[1]), title: m[2] }));
     const news = this.scenario.events.flatMap((e) => ("news" in e ? [e.news] : []));
     const items = headlines.map(({ index, title }) => {
@@ -279,16 +284,20 @@ export class World {
         ? { index, relevant: true, ...t }
         : { index, relevant: false, severity: "info", affectedDate: "", titleHe: "", bodyHe: "" };
     });
+    return this.claudeText(body.model, JSON.stringify({ items }), prompt.length, 40 * items.length);
+  }
+
+  private claudeText(model: string, text: string, promptChars: number, outputTokens = Math.ceil(text.length / 4)): Response {
     return new Response(
       JSON.stringify({
         id: `msg_sim_${this.calls.length}`,
         type: "message",
         role: "assistant",
-        model: body.model,
-        content: [{ type: "text", text: JSON.stringify({ items }) }],
+        model,
+        content: [{ type: "text", text }],
         stop_reason: "end_turn",
         stop_sequence: null,
-        usage: { input_tokens: Math.ceil(prompt.length / 4), output_tokens: 40 * items.length },
+        usage: { input_tokens: Math.ceil(promptChars / 4), output_tokens: outputTokens },
       }),
       { headers: { "Content-Type": "application/json", "request-id": "req_sim" } },
     );

@@ -74,6 +74,15 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+/**
+ * A failed fetch is a TypeError whose message is the browser's own English ("Failed to fetch",
+ * Safari's "Load failed"); say it in Hebrew. Errors the server sent are Hebrew already.
+ */
+export function errorText(err: unknown): string {
+  if (err instanceof TypeError) return navigator.onLine === false ? "אין חיבור לאינטרנט." : "אין חיבור לשרת.";
+  return (err as Error).message;
+}
+
 /** Live state from the worker; falls back to the last copy saved on the phone when offline. */
 export async function loadState(): Promise<{ state: TripState | null; offline: boolean; stale: boolean; error?: string }> {
   try {
@@ -82,7 +91,7 @@ export async function loadState(): Promise<{ state: TripState | null; offline: b
     return { state, offline: false, stale: Date.now() - Date.parse(state.generatedAt) > STALE_MS };
   } catch (err) {
     const saved = read(KEYS.state);
-    return { state: saved ? (JSON.parse(saved) as TripState) : null, offline: true, stale: true, error: (err as Error).message };
+    return { state: saved ? (JSON.parse(saved) as TripState) : null, offline: true, stale: true, error: errorText(err) };
   }
 }
 

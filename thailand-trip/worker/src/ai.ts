@@ -18,6 +18,10 @@ export function triageNews(env: Env, trip: Trip, today: string, articles: Articl
   return impl(env).triageNews(env, trip, today, articles);
 }
 
+export function translateAdvisory(env: Env, text: string): Promise<string> {
+  return impl(env).translateAdvisory(env, text);
+}
+
 export function replan(env: Env, trip: Trip, date: string, alerts: TripAlert[], problem: string): Promise<string> {
   return impl(env).replan(env, trip, date, alerts, problem);
 }

@@ -1,6 +1,6 @@
 {
   "name": "שינוי שער, עיכוב וביטול בטיסה הביתה",
-  "description": "The flight home leaves Chiang Mai on 3.12 at 08:40 (made-up flight number SIM103). Tracking starts 24 hours before: hourly, then every 15 minutes in the last 6 hours, so the 02:10 delay is seen at 02:45. At 18:00 the gate changes, at 02:10 the flight is 90 minutes late, at 04:30 it is cancelled. Expect one urgent push per change and a red last day.",
+  "description": "The flight home leaves Chiang Mai on 3.12 at 08:40 (made-up flight number SIM103). Tracking starts 24 hours before: hourly, then every 15 minutes in the last 6 hours, so the 02:10 delay is seen at 02:45. At 18:00 the gate changes, at 02:10 the flight is 90 minutes late, at 04:30 it is cancelled. Expect one urgent push per change, the gate notice to stay until the cancellation replaces it, and a red last day.",
   "start": "2026-12-02T08:00",
   "end": "2026-12-03T08:00",
   "events": [
@@ -49,6 +49,10 @@
       "at": "2026-12-02T23:00"
     },
     {
+      "visible": "flight:ret-1:gate:7",
+      "at": "2026-12-03T04:15"
+    },
+    {
       "alert": "flight:ret-1:delay90",
       "by": "2026-12-03T02:45"
     },
@@ -76,7 +80,6 @@
     }
   ],
   "screen": [
-    "בוטלה",
-    "שער חדש לטיסה"
+    "בוטלה"
   ]
 }

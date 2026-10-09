@@ -68,6 +68,19 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
   return toNewsItems(response.parsed_output, articles, today);
 }
 
+export const ADVISORY_SYSTEM = `Translate this change note from the UK government's travel advice for Thailand into short, natural Hebrew for two Israeli tourists.
+Keep place names in English letters. Reply with the Hebrew text only.`;
+
+/** The advisory change note in Hebrew (the triage model is enough for a short translation). */
+export async function translateAdvisory(env: Env, text: string): Promise<string> {
+  // It runs before the flight check in the same cron run, and the English note is a fine fallback.
+  const response = await client(env).messages.create(
+    { model: env.CLAUDE_TRIAGE_MODEL, max_tokens: 2000, system: ADVISORY_SYSTEM, messages: [{ role: "user", content: text }] },
+    { timeout: 15_000, maxRetries: 1 },
+  );
+  return response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
+}
+
 export const REPLAN_SYSTEM = `אתה עוזר תכנון לזוג ישראלים בטיול בצפון תאילנד עם נהג פרטי וואן.
 כשמשהו משתבש, הצע תוכנית מעודכנת ליום הזה: שעות יציאה, סדר עצירות, מה לבטל ומה להוסיף במקום.
 העדף שינויים קטנים וריאליים: מרחקי נסיעה אמיתיים, שעות פתיחה סבירות, וזמן מנוחה.

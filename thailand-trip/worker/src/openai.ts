@@ -3,7 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type { NewsItem, Trip, TripAlert } from "@trip/shared";
 import type { Article } from "./sources/gdelt";
 import type { Env } from "./env";
-import { REPLAN_REFUSED, REPLAN_SYSTEM, replanPrompt, toNewsItems, Triage, TRIAGE_SYSTEM, triagePrompt } from "./claude";
+import { ADVISORY_SYSTEM, REPLAN_REFUSED, REPLAN_SYSTEM, replanPrompt, toNewsItems, Triage, TRIAGE_SYSTEM, triagePrompt } from "./claude";
 
 // The same prompts and answer shape as ./claude, sent to OpenAI's Responses API.
 
@@ -24,6 +24,15 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
   });
   if (response.status === "incomplete") throw new Error(`OpenAI triage incomplete: ${response.incomplete_details?.reason ?? "unknown"}`);
   return toNewsItems(Triage.parse(JSON.parse(response.output_text)), articles, today);
+}
+
+export async function translateAdvisory(env: Env, text: string): Promise<string> {
+  // It runs before the flight check in the same cron run, and the English note is a fine fallback.
+  const response = await client(env).responses.create(
+    { model: env.OPENAI_TRIAGE_MODEL, max_output_tokens: 4000, reasoning: { effort: "low" }, instructions: ADVISORY_SYSTEM, input: text },
+    { timeout: 15_000, maxRetries: 1 },
+  );
+  return response.output_text.trim();
 }
 
 export async function replan(env: Env, trip: Trip, date: string, alerts: TripAlert[], problem: string): Promise<string> {

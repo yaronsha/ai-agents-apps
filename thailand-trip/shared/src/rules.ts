@@ -85,14 +85,14 @@ export function weatherAlerts(day: Day, summaries: Record<string, StopForecast>)
     if (!stop.outdoor || !s) continue;
     const wet = (s.maxRainProb ?? 0) >= RULES.rainProbPct && (s.rainMm ?? 0) >= RULES.rainMm;
     if (!s.thunder && !wet) continue;
-    const what = s.thunder ? "סופת רעמים" : `גשם (${s.maxRainProb}%, כ-${s.rainMm} מ"מ)`;
+    const what = s.thunder ? "סופת רעמים צפויה" : `גשם (${s.maxRainProb}%, כ-${s.rainMm} מ"מ) צפוי`;
     out.push({
       id: `weather:${stop.id}:${s.thunder ? "storm" : "rain"}`,
       category: "weather",
       severity: "warning",
       date: day.date,
       stopId: stop.id,
-      titleHe: `${what} צפוי ב${stop.nameHe}`,
+      titleHe: `${what} ב${stop.nameHe}`,
       // The day's Plan B lines are about particular stops; quoting the first one sent the canyon
       // sunset advice with a night-market warning. The alerts screen lists them all.
       bodyHe: `בין ${hhmm(stop.start)} ל-${hhmm(stop.end)}.${day.planB.length ? " תוכניות ב' ליום במסך הבלת\"מים." : ""}`,
@@ -262,7 +262,8 @@ export function flightAlerts(flight: Flight, status: FlightStatus, previousGate:
 
 const ROUTE_AREAS = /chiang mai|chiang rai|mae hong son|pai\b|chiang dao|north(ern)? thailand|phu chi fa|myanmar border|laos border/i;
 
-export function advisoryAlert(change: { updatedAt: string; description: string; url: string }, now: Date): TripAlert {
+/** `descriptionHe` is the change note in Hebrew when the AI model translated it; otherwise the English original is shown. */
+export function advisoryAlert(change: { updatedAt: string; description: string; url: string }, now: Date, descriptionHe?: string): TripAlert {
   const onRoute = ROUTE_AREAS.test(change.description);
   return {
     id: `advisory:${change.updatedAt}`,
@@ -270,7 +271,7 @@ export function advisoryAlert(change: { updatedAt: string; description: string; 
     severity: onRoute ? "urgent" : "info",
     date: thDate(now),
     titleHe: onRoute ? "שינוי באזהרת המסע שנוגע לאזור הטיול" : "עדכון באזהרת המסע הבריטית לתאילנד",
-    bodyHe: change.description,
+    bodyHe: descriptionHe || change.description,
     url: change.url,
     pushAt: onRoute ? [now.toISOString()] : [],
     digest: !onRoute,

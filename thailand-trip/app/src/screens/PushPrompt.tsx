@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { enablePush, pushEnabled, pushSupport, settings } from "../api";
+import { enablePush, errorText, pushEnabled, pushSupport, settings } from "../api";
 import { pushPromptMode } from "../pushPrompt";
 
 /** Home-screen nudge to turn on push; the Settings card stays the full control. */
@@ -33,7 +33,7 @@ export function PushPrompt() {
       await enablePush();
       setEnabled(await pushEnabled());
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
