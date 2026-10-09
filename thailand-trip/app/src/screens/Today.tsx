@@ -3,6 +3,8 @@ import { useTrip } from "../tripContext";
 import type { Live } from "../App";
 import { ago, dayLabel, statusText } from "../format";
 import { Icon } from "../icons";
+import { useInstallPrompt } from "../installPrompt";
+import { InstallPrompt } from "./InstallPrompt";
 import { PushPrompt } from "./PushPrompt";
 
 function Forecast({ f }: { f?: StopForecast }) {
@@ -50,6 +52,7 @@ function DriveRow({ drive, to }: { drive: Drive; to?: string }) {
 
 export function Today({ date, live, refresh, openAlerts }: { date: string; live: Live; refresh: () => void; openAlerts: () => void }) {
   const trip = useTrip();
+  const installCard = useInstallPrompt();
   const day = dayOf(trip, date)!;
   const status = live.state?.dayStatus[date];
   const lodging = day.lodgingId ? placeOf(trip, `lodging:${day.lodgingId}`) : undefined;
@@ -84,7 +87,8 @@ export function Today({ date, live, refresh, openAlerts }: { date: string; live:
           {live.offline ? `מוצג מידע שמור. ${live.error ?? ""}` : "המידע מהשרת לא התעדכן לאחרונה."} עודכן {live.state ? ago(live.state.generatedAt) : "אף פעם"} · לחצו לרענון
         </button>
       )}
-      <PushPrompt />
+      {/* One card at a time: install first, then push (better asked from the installed app). */}
+      {installCard.show ? <InstallPrompt {...installCard} /> : <PushPrompt />}
 
       <h2 className="section-title">התוכנית</h2>
       <ol className="timeline">{rows.map((r) => r.el)}</ol>

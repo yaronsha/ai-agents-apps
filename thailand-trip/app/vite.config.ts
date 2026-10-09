@@ -15,7 +15,7 @@ export default defineConfig({
       injectManifest: { globPatterns: ["**/*.{js,css,html,svg,png,webmanifest,woff2}"] },
       manifest: {
         name: "צפון תאילנד 2026",
-        short_name: "תאילנד",
+        short_name: "צפון תאילנד",
         lang: "he",
         dir: "rtl",
         start_url: "/",
