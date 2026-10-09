@@ -95,10 +95,10 @@ export default {
   // (sim/) play a whole trip day through the real handler in seconds.
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
     const now = new Date(event.scheduledTime);
-    const state = await runCheck(env, now);
+    await runCheck(env, now);
     // News shadow mode only logs; whatever goes wrong there must not fail the real check.
     try {
-      await runShadow(env, now, { gdeltCalled: "news" in state.sources });
+      await runShadow(env, now);
     } catch (err) {
       console.error("shadow", err);
     }

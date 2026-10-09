@@ -6,9 +6,13 @@ export interface Env {
   VAPID_CONTACT: string;
   /** "claude" (default) or "openai": which model runs news triage and re-plan. */
   AI_PROVIDER?: string;
+  /** The cheap first step of news triage; the triage model when unset. */
+  CLAUDE_FILTER_MODEL?: string;
   CLAUDE_TRIAGE_MODEL: string;
   CLAUDE_REPLAN_MODEL: string;
   ANTHROPIC_API_KEY?: string;
+  /** The cheap first step of news triage; the triage model when unset. */
+  OPENAI_FILTER_MODEL?: string;
   OPENAI_TRIAGE_MODEL: string;
   OPENAI_REPLAN_MODEL: string;
   OPENAI_API_KEY?: string;
