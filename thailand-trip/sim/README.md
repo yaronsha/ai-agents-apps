@@ -10,7 +10,6 @@ npm run sim -- road-to-pai           # one scenario
 npm run sim -- --browser             # also open the real app in Chromium (see below)
 npm run sim -- storm-pai-canyon --serve   # keep the worker running at :8787 afterwards (access code: sim-token)
 npm run sim -- --real-claude         # real Claude news triage instead of the scenario's answers (needs ANTHROPIC_API_KEY)
-npm run sim:live                     # check the real sources and re-record the fixtures
 ```
 
 Each run prints the day as the travellers would live it and writes `reports/<scenario>.md`:
@@ -51,13 +50,24 @@ By default a scenario runs on a calm baseline: the recorded temperatures, clouds
 
 ## In the browser
 
-`--browser` builds the app (production build, service worker included), opens it in headless Chromium at phone size with the clock set to the end of the scenario, and checks that the scenario's `screen` texts are on the alerts screen. Then it hands every push the worker sent to the app's service worker, the way the phone's push service would, and checks each one became a notification. Screenshots of the alerts and today screens go to `reports/`.
+`--browser` builds the app (production build, service worker included), opens it in headless Chromium at phone size with the clock set to the end of the scenario, and checks that the scenario's `screen` texts are on the alerts screen. Then it hands every push the worker sent to the app's service worker, the way the phone's push service would, and checks each one became a notification. Screenshots of the alerts and today screens go to `reports/`. The browser may reach only the app and the simulated worker; every other host (map tiles included) is blocked.
 
-## Recordings and the live check
+## Offline in CI, live only by hand
 
-`fixtures/` holds one response per source, in that API's exact format. `fixtures/meta.json` says for each source whether it is a real recording (`live`) or a starter file (`seed`, written by `src/seed.ts` from the API documentation with typical late-November values).
+Everything above is offline: the worker's requests are answered from `fixtures/`, the browser check blocks outside hosts, and the unit tests block `fetch`. `.github/workflows/thailand-trip-ci.yml` runs it (type-check, `npm test`, `npm run sim -- --browser`) on every pull request and push to `main`. No workflow calls a real source.
 
-`npm run sim:live` calls each real source once through the worker's own fetch and parse code, so a changed API format shows up as a failure, and saves the answers as the new recordings. Weather is recorded for the coming week at every stop and replayed onto the trip days. Free sources always run. Paid ones run when their key is set: `GOOGLE_MAPS_KEY` (records every planned drive), `RAPIDAPI_KEY` with `LIVE_FLIGHT="EY 432 2026-10-20"` (the trip's flights are weeks away, so it checks the format on a flight you name), and `ANTHROPIC_API_KEY` (plants a Route 1095 landslide headline among real ones and checks Claude flags it).
+Checks against the real sources run only on your machine, from `thailand-trip/`:
+
+```bash
+npm run check:free                   # free sources, no keys
+npm run check:free -- --record       # the same, and save the answers as the new fixtures
+npm run check:paid                   # paid sources with a key in .env; shows the calls and cost, asks first
+npm run check:live                   # both
+```
+
+Keys go in `thailand-trip/.env` (git-ignored; copy `.env.example`). A paid source without its key is skipped. Each source is checked on three levels: **format** (the worker's own fetch and parse code accepts the answer), **correctness** (plausible values: ranges, recency, known statuses) and **reliability** (an independent second source agrees, for example USGS against EMSC and Open-Meteo against MET Norway, or the AI flags planted headlines with a known answer). Results go to `reports/live-free.md` and `reports/live-paid.md`.
+
+`fixtures/` holds one response per source, in that API's exact format. `fixtures/meta.json` says for each source whether it is a real recording (`live`) or a starter file (`seed`, written by `src/seed.ts` from the API documentation with typical late-November values). `--record` rewrites the free sources' fixtures; weather is recorded for the coming week at every stop and replayed onto the trip days. Commit the new fixtures yourself after `npm run sim` passes on them.
 
 The simulator uses `trip-private.sim.json`, made-up hotels and flight numbers, never the real private file.
 

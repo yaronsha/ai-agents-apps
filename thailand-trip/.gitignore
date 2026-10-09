@@ -4,3 +4,4 @@ dist/
 .dev.vars
 *.log
 shared/src/trip-private.json
+.env
