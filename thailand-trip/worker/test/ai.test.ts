@@ -82,6 +82,17 @@ describe("ai provider", () => {
     await expect(triageNews(env, trip, day, articles)).rejects.toThrow("OpenAI news filter incomplete: max_output_tokens");
   });
 
+  it("fails the Claude news filter when it gives no answer, rather than reading it as nothing relevant", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), ANTHROPIC_API_KEY: "k" };
+    vi.stubGlobal("fetch", async () =>
+      new Response(
+        JSON.stringify({ id: "msg_1", type: "message", role: "assistant", model: "stub", content: [], stop_reason: "refusal", stop_sequence: null, usage: { input_tokens: 1, output_tokens: 0 } }),
+        { headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    await expect(triageNews(env, trip, day, articles)).rejects.toThrow("Claude news filter gave no answer: refusal");
+  });
+
   it("tells the app when the AI provider is out of credits", async () => {
     const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
     vi.stubGlobal("fetch", async () =>

@@ -44,6 +44,9 @@ const MIN = 60_000;
 
 /** Daily caps on paid calls, so a bug can never run up a bill. */
 export const DAILY_CAPS = { routes: 100, flights: 60, claude: 60 } as const;
+// Every unseen headline goes to the cheap filter in one call (Google News returns at most 100), so
+// on a busy day older headlines can't pass the 30-hour cutoff while waiting for their turn.
+const NEWS_BATCH = 100;
 type Budget = Record<keyof typeof DAILY_CAPS, number>;
 
 interface WeatherCache {
@@ -151,7 +154,7 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   const seenBefore = seen;
   if (hourly && newsWindow && aiProvider(env) && !opts.dryRun) {
     try {
-      const fresh = (await fetchGoogleNews(1)).filter((a) => !seen.includes(a.url)).slice(0, 25);
+      const fresh = (await fetchGoogleNews(1)).filter((a) => !seen.includes(a.url)).slice(0, NEWS_BATCH);
       if (fresh.length && spend("claude")) {
         newsItems = [...(await triageNews(env, trip, today, fresh)), ...newsItems];
         seen = [...fresh.map((a) => a.url), ...seen].slice(0, 500);

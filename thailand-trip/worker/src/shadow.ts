@@ -101,8 +101,6 @@ async function probe(fetcher: () => Promise<Article[]>, now: Date, keep: Map<str
 }
 
 export interface ShadowOptions {
-  /** The engine already called GDELT in this run, so wait before the first GDELT call too. */
-  gdeltCalled?: boolean;
   /** Pause between GDELT calls (tests set 0). */
   gapMs?: number;
 }
@@ -120,10 +118,10 @@ export async function runShadow(env: Env, now: Date, opts: ShadowOptions = {}): 
 
   try {
     // Google and GDELT are different hosts, so the first pair runs in parallel; worst case
-    // (timeouts and both gaps) stays near 30 s, well within a cron run's wall time.
+    // (timeouts and the gap) stays near 30 s, well within a cron run's wall time.
     const [google, gdelt1] = await Promise.all([
       probe(() => fetchGoogleNews(1), now, articles, "google-1d"),
-      (opts.gdeltCalled ? sleep(gap) : Promise.resolve()).then(() => probe(() => fetchArticles("24h"), now, articles, "gdelt-24h")),
+      probe(() => fetchArticles("24h"), now, articles, "gdelt-24h"),
     ]);
     await sleep(gap);
     const gdelt3 = await probe(() => fetchArticles("3d"), now, articles, "gdelt-3d");

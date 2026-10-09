@@ -90,6 +90,9 @@ export async function filterNews(env: Env, trip: Trip, today: string, articles: 
     messages: [{ role: "user", content: triagePrompt(trip, today, articles) }],
     output_config: { format: zodOutputFormat(Filter) },
   });
+  // No parsed answer (cut off, refused) must fail the run, not read as "nothing relevant": the engine
+  // marks every headline it sends as seen, so they would never be looked at again.
+  if (!response.parsed_output) throw new Error(`Claude news filter gave no answer: ${response.stop_reason}`);
   return toFiltered(response.parsed_output, articles);
 }
 
@@ -102,6 +105,7 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
     messages: [{ role: "user", content: triagePrompt(trip, today, articles) }],
     output_config: { format: zodOutputFormat(Triage) },
   });
+  if (!response.parsed_output) throw new Error(`Claude triage gave no answer: ${response.stop_reason}`);
   return toNewsItems(response.parsed_output, articles, today);
 }
 
