@@ -930,3 +930,12 @@ button.sheet-chips {
     scroll-behavior: auto !important;
   }
 }
+
+/* Home-screen push opt-in */
+.card.push-prompt {
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+.card.push-prompt h2 {
+  font-size: 15px;
+}

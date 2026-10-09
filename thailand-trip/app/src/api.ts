@@ -1,6 +1,14 @@
 import type { TripPrivate, TripState } from "@trip/shared";
 
-const KEYS = { api: "trip.apiUrl", token: "trip.token", state: "trip.lastState", private: "trip.private" };
+const KEYS = {
+  api: "trip.apiUrl",
+  token: "trip.token",
+  state: "trip.lastState",
+  private: "trip.private",
+  pushPromptDismissed: "trip.pushPromptDismissedAt",
+  /** Endpoint of the push subscription the server confirmed, so a half-done signup doesn't count. */
+  pushEndpoint: "trip.pushEndpoint",
+};
 
 /** The cron saves state at least hourly; older than this means something stopped. */
 const STALE_MS = 90 * 60_000;
@@ -26,6 +34,8 @@ export const settings = {
   setApiUrl: (v: string) => write(KEYS.api, v.trim() || null),
   token: () => read(KEYS.token) || "",
   setToken: (v: string) => write(KEYS.token, v.trim() || null),
+  pushPromptDismissedAt: () => Number(read(KEYS.pushPromptDismissed)) || null,
+  dismissPushPrompt: () => write(KEYS.pushPromptDismissed, String(Date.now())),
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -90,28 +100,38 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+/** iPadOS Safari reports a Mac user agent; a touch screen gives it away. */
+function isIOS(): boolean {
+  const ua = navigator.userAgent;
+  return /iphone|ipad|ipod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
 export function pushSupport(): "ok" | "no-sw" | "ios-not-installed" | "unsupported" {
   if (!("serviceWorker" in navigator)) return "no-sw";
   const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone;
-  if (!("PushManager" in window)) return /iphone|ipad/i.test(navigator.userAgent) && !standalone ? "ios-not-installed" : "unsupported";
+  if (!("PushManager" in window)) return isIOS() && !standalone ? "ios-not-installed" : "unsupported";
   return "ok";
 }
 
 export async function enablePush(): Promise<number> {
-  const { vapidPublicKey } = await call<{ vapidPublicKey: string }>("/api/config");
-  if (!vapidPublicKey) throw new Error("לשרת אין מפתח VAPID");
+  // Ask first, while still inside the tap: iOS drops the user gesture after a network round trip.
   const permission = await Notification.requestPermission();
   if (permission !== "granted") throw new Error("לא אושרו התראות בדפדפן");
+  const { vapidPublicKey } = await call<{ vapidPublicKey: string }>("/api/config");
+  if (!vapidPublicKey) throw new Error("לשרת אין מפתח VAPID");
   const reg = await navigator.serviceWorker.ready;
   const sub =
     (await reg.pushManager.getSubscription()) ??
     (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }));
   const res = await call<{ devices: number }>("/api/subscribe", { method: "POST", body: JSON.stringify(sub.toJSON()) });
+  write(KEYS.pushEndpoint, sub.endpoint);
   return res.devices;
 }
 
+/** True only when this device has a subscription and the server confirmed it. */
 export async function pushEnabled(): Promise<boolean> {
   if (pushSupport() !== "ok") return false;
   const reg = await navigator.serviceWorker.getRegistration();
-  return Boolean(await reg?.pushManager.getSubscription());
+  const sub = await reg?.pushManager.getSubscription();
+  return Boolean(sub && sub.endpoint === read(KEYS.pushEndpoint));
 }
