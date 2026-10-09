@@ -97,9 +97,10 @@ Cloudflare Access (Zero Trust, free up to 50 users) puts a sign-in page in front
 1. **Zero Trust → Settings → Authentication → Login methods:** add Google (or keep "One-time PIN" alone, which needs no setup).
 2. **Zero Trust → Access → Applications → Add → Self-hosted:** domain `thailand-trip-app.pages.dev`, session duration 1 month. Add a policy: Action *Allow*, Include *Emails* (or an email *List* from **My Team → Lists**). Then also add `*.thailand-trip-app.pages.dev` so preview deployments are covered.
 3. From the application's **Overview**, copy the *Application Audience (AUD) Tag*; the team domain (`<team>.cloudflareaccess.com`) is shown under **Settings** as *Team domain*.
-4. **Workers → thailand-trip → Settings → Variables and Secrets:** add both as type *Secret*: `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. From then on the worker answers `/api` only for requests signed by Access, and the access code stops working.
+4. So `npm run shadow:report` still works from a terminal, add one more self-hosted application for the path `thailand-trip-app.pages.dev/api/shadow` with a policy of Action *Bypass*, Include *Everyone*. The worker still asks for the access code there, and that path holds only public headlines.
+5. **Workers → thailand-trip → Settings → Variables and Secrets:** add both as type *Secret*: `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. From then on the worker answers `/api` only for requests signed by Access, and the access code stops working.
 
-To add someone, add their email to the policy or list; it works at once. To remove someone, delete the email and revoke their session in **Access → Users**. The worker's `workers.dev` address stays reachable, but without a valid Access token it serves nothing private. Cron runs inside Cloudflare and needs no sign-in.
+To add someone, add their email to the policy or list; it works at once. To remove someone, delete the email and revoke their session in **Access → Users**. The worker has no `workers.dev` address (`workers_dev = false`): the only way in is through the app's address and its sign-in. Cron runs inside Cloudflare and needs no sign-in.
 
 ## Checks
 

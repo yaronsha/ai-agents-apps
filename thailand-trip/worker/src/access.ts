@@ -2,7 +2,7 @@ import type { Env } from "./env";
 
 // Cloudflare Access (Zero Trust) puts the sign-in in front of the app: only emails on the
 // allow list in the Zero Trust dashboard get past it, and each request then carries a JWT
-// signed by Access. The worker checks that JWT, so calling workers.dev directly gets nowhere.
+// signed by Access. The worker checks that JWT too, as a second lock behind the sign-in.
 
 interface Jwk extends JsonWebKey {
   kid: string;
@@ -10,9 +10,12 @@ interface Jwk extends JsonWebKey {
 
 let certs: { team: string; keys: Jwk[]; at: number } | null = null;
 const CERTS_TTL_MS = 60 * 60_000;
+/** An unknown kid refetches at most this often, so junk tokens can't make every call a subrequest. */
+const CERTS_REFRESH_MS = 60_000;
 
 async function signingKeys(team: string, refresh: boolean): Promise<Jwk[]> {
-  if (!refresh && certs?.team === team && Date.now() - certs.at < CERTS_TTL_MS) return certs.keys;
+  const age = certs?.team === team ? Date.now() - certs.at : Infinity;
+  if (age < (refresh ? CERTS_REFRESH_MS : CERTS_TTL_MS)) return certs!.keys;
   const res = await fetch(`https://${team}/cdn-cgi/access/certs`);
   if (!res.ok) throw new Error(`Access certs ${res.status}`);
   certs = { team, keys: ((await res.json()) as { keys: Jwk[] }).keys, at: Date.now() };
@@ -33,7 +36,7 @@ export async function accessEmail(req: Request, env: Env): Promise<string | null
   if (parts.length !== 3) return null;
   try {
     const header = JSON.parse(new TextDecoder().decode(b64url(parts[0]))) as { alg: string; kid: string };
-    const claims = JSON.parse(new TextDecoder().decode(b64url(parts[1]))) as { aud: string | string[]; iss: string; exp: number; nbf?: number; email?: string };
+    const claims = JSON.parse(new TextDecoder().decode(b64url(parts[1]))) as { aud: string | string[]; iss: string; exp?: number; nbf?: number; email?: string };
     if (header.alg !== "RS256") return null;
     // Access rotates its keys; an unknown kid means our cached copy is old.
     let jwk = (await signingKeys(team, false)).find((k) => k.kid === header.kid);
@@ -44,7 +47,7 @@ export async function accessEmail(req: Request, env: Env): Promise<string | null
     if (!(await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, b64url(parts[2]), signed))) return null;
     const now = Date.now() / 1000;
     const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-    if (!aud.includes(env.ACCESS_AUD) || claims.iss !== `https://${team}` || claims.exp < now || (claims.nbf ?? 0) > now + 60) return null;
+    if (!aud.includes(env.ACCESS_AUD) || claims.iss !== `https://${team}` || typeof claims.exp !== "number" || claims.exp < now || (claims.nbf ?? 0) > now + 60) return null;
     return claims.email ?? "service";
   } catch {
     return null;

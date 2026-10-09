@@ -57,6 +57,22 @@ describe("cloudflare access", () => {
     expect((await get(env, await jwt({ ...good(), aud: ["another-app"] }))).status).toBe(401);
     expect((await get(env, await jwt({ ...good(), iss: "https://evil.cloudflareaccess.com" }))).status).toBe(401);
     expect((await get(env, "not.a.jwt")).status).toBe(401);
+    const { exp: _, ...noExp } = good();
+    expect((await get(env, await jwt(noExp))).status).toBe(401);
+  });
+
+  it("refetches the signing keys for an unknown kid at most once a minute", async () => {
+    let calls = 0;
+    const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
+    vi.stubGlobal("fetch", async () => {
+      calls++;
+      return Response.json({ keys: [{ ...jwk, kid: "k1" }] });
+    });
+    const env = await accessEnv();
+    expect((await get(env, await jwt(good()))).status).toBe(200);
+    const before = calls;
+    for (let i = 0; i < 5; i++) expect((await get(env, await jwt(good(), keys.privateKey, `junk-${i}`))).status).toBe(401);
+    expect(calls - before).toBeLessThanOrEqual(1);
   });
 
   it("stops accepting the old access code once Access is on", async () => {

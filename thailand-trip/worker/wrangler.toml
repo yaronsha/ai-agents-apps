@@ -1,6 +1,9 @@
 name = "thailand-trip"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
+# No public workers.dev address: the app reaches the worker only through the Pages Function's
+# service binding, behind the Cloudflare Access sign-in, so removing someone there locks them out.
+workers_dev = false
 
 # Every 15 minutes. The engine itself decides which sources are worth calling on each run.
 [triggers]
