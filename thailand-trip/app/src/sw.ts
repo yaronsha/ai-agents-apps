@@ -28,8 +28,9 @@ self.addEventListener("push", (event) => {
       tag: data.tag,
       dir: "rtl",
       lang: "he",
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
+      // A chedi, like Doi Suthep's. The badge is white on transparent: Android draws only its outline.
+      icon: "/notification-icon.png",
+      badge: "/badge.png",
       data: { url: data.url ?? "/" },
     }),
   );
