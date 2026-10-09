@@ -76,6 +76,8 @@ export async function makeEnv(kv: FakeKV): Promise<Env> {
     VAPID_CONTACT: "mailto:test@example.com",
     CLAUDE_TRIAGE_MODEL: "claude-haiku-4-5",
     CLAUDE_REPLAN_MODEL: "claude-sonnet-5-5",
+    OPENAI_TRIAGE_MODEL: "gpt-5.4-mini",
+    OPENAI_REPLAN_MODEL: "gpt-5.5",
   };
 }
 

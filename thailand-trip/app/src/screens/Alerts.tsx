@@ -121,7 +121,7 @@ export function Alerts({ date, live, refresh }: { date: string; live: Live; refr
           onChange={(e) => setProblem(e.target.value)}
         />
         <button className="primary" onClick={ask} disabled={busy}>
-          {busy ? "Claude חושב..." : "בקש תוכנית מעודכנת"}
+          {busy ? "חושב..." : "בקש תוכנית מעודכנת"}
         </button>
         {err && <p className="error">{err}</p>}
         {plan && <div className="plan">{plan}</div>}

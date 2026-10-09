@@ -18,7 +18,7 @@ export function tripOutline(trip: Trip, from: string, days = 4): string {
     .join("\n");
 }
 
-const Triage = z.object({
+export const Triage = z.object({
   items: z.array(
     z.object({
       index: z.number().int(),
@@ -31,23 +31,19 @@ const Triage = z.object({
   ),
 });
 
-const TRIAGE_SYSTEM = `You screen news for two Israeli tourists on a private-driver trip in northern Thailand.
+export const TRIAGE_SYSTEM = `You screen news for two Israeli tourists on a private-driver trip in northern Thailand.
 Given their next few days and a list of headlines, decide which headlines could change their plans: closed roads, landslides, floods, protests, closed parks or temples, cancelled festivals or flights, border incidents, disease outbreaks, severe smoke.
 Mark a headline relevant only when it plausibly affects a place or road on their route in the coming days. Most headlines are not relevant.
 "urgent" means they should act today or tomorrow; "warning" means worth planning around; "info" means good to know.
 Write titleHe and bodyHe in natural Hebrew. Return one entry per headline index.`;
 
-export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
-  if (!articles.length) return [];
+export function triagePrompt(trip: Trip, today: string, articles: Article[]): string {
   const list = articles.map((a, i) => `${i}. [${a.domain}, ${a.seendate}] ${a.title}`).join("\n");
-  const response = await client(env).messages.parse({
-    model: env.CLAUDE_TRIAGE_MODEL,
-    max_tokens: 4000,
-    system: TRIAGE_SYSTEM,
-    messages: [{ role: "user", content: `Today is ${today}.\n\nItinerary:\n${tripOutline(trip, today)}\n\nHeadlines:\n${list}` }],
-    output_config: { format: zodOutputFormat(Triage) },
-  });
-  const parsed = response.parsed_output;
+  return `Today is ${today}.\n\nItinerary:\n${tripOutline(trip, today)}\n\nHeadlines:\n${list}`;
+}
+
+/** The relevant headlines from a triage answer, as news items. */
+export function toNewsItems(parsed: z.infer<typeof Triage> | null, articles: Article[], today: string): NewsItem[] {
   if (!parsed) return [];
   return parsed.items
     .filter((x) => x.relevant && articles[x.index])
@@ -60,16 +56,35 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
     }));
 }
 
-const REPLAN_SYSTEM = `אתה עוזר תכנון לזוג ישראלים בטיול בצפון תאילנד עם נהג פרטי וואן.
+export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
+  if (!articles.length) return [];
+  const response = await client(env).messages.parse({
+    model: env.CLAUDE_TRIAGE_MODEL,
+    max_tokens: 4000,
+    system: TRIAGE_SYSTEM,
+    messages: [{ role: "user", content: triagePrompt(trip, today, articles) }],
+    output_config: { format: zodOutputFormat(Triage) },
+  });
+  return toNewsItems(response.parsed_output, articles, today);
+}
+
+export const REPLAN_SYSTEM = `אתה עוזר תכנון לזוג ישראלים בטיול בצפון תאילנד עם נהג פרטי וואן.
 כשמשהו משתבש, הצע תוכנית מעודכנת ליום הזה: שעות יציאה, סדר עצירות, מה לבטל ומה להוסיף במקום.
 העדף שינויים קטנים וריאליים: מרחקי נסיעה אמיתיים, שעות פתיחה סבירות, וזמן מנוחה.
 כתוב בעברית פשוטה, עד 12 שורות, ובסוף שורה אחת על מה כדאי לבדוק או לתאם עם הנהג.`;
 
-export async function replan(env: Env, trip: Trip, date: string, alerts: TripAlert[], problem: string): Promise<string> {
+export function replanPrompt(trip: Trip, date: string, alerts: TripAlert[], problem: string): string {
   const day = trip.days.find((d) => d.date === date);
   if (!day) throw new Error(`no trip day ${date}`);
   const stops = day.stops.map((s) => `${hhmm(s.start)}-${hhmm(s.end)} ${s.nameHe} (${s.nameEn})`).join("\n");
   const active = alerts.filter((a) => a.date === date).map((a) => `- ${a.titleHe}: ${a.bodyHe}`).join("\n") || "אין";
+  return `היום: ${date}, ${day.titleHe}\n\nהתוכנית:\n${stops}\n\nהתראות פעילות:\n${active}\n\nתוכניות ב' שהכנו מראש:\n${day.planB.join("\n")}\n\nמה קרה: ${problem || "תתאים את היום להתראות הפעילות."}`;
+}
+
+export const REPLAN_REFUSED = "לא הצלחתי להציע תוכנית הפעם. נסו לנסח את הבעיה אחרת.";
+
+export async function replan(env: Env, trip: Trip, date: string, alerts: TripAlert[], problem: string): Promise<string> {
+  const content = replanPrompt(trip, date, alerts, problem);
   const response = await client(env).beta.messages.create({
     model: env.CLAUDE_REPLAN_MODEL,
     max_tokens: 16000,
@@ -77,13 +92,8 @@ export async function replan(env: Env, trip: Trip, date: string, alerts: TripAle
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
     system: REPLAN_SYSTEM,
-    messages: [
-      {
-        role: "user",
-        content: `היום: ${date}, ${day.titleHe}\n\nהתוכנית:\n${stops}\n\nהתראות פעילות:\n${active}\n\nתוכניות ב' שהכנו מראש:\n${day.planB.join("\n")}\n\nמה קרה: ${problem || "תתאים את היום להתראות הפעילות."}`,
-      },
-    ],
+    messages: [{ role: "user", content }],
   });
-  if (response.stop_reason === "refusal") return "לא הצלחתי להציע תוכנית הפעם. נסו לנסח את הבעיה אחרת.";
+  if (response.stop_reason === "refusal") return REPLAN_REFUSED;
   return response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
 }
