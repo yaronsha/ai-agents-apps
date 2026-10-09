@@ -1,6 +1,12 @@
 import type { TripPrivate, TripState } from "@trip/shared";
 
-const KEYS = { api: "trip.apiUrl", token: "trip.token", state: "trip.lastState", private: "trip.private" };
+const KEYS = {
+  api: "trip.apiUrl",
+  token: "trip.token",
+  state: "trip.lastState",
+  private: "trip.private",
+  pushPromptDismissed: "trip.pushPromptDismissedAt",
+};
 
 /** The cron saves state at least hourly; older than this means something stopped. */
 const STALE_MS = 90 * 60_000;
@@ -26,6 +32,8 @@ export const settings = {
   setApiUrl: (v: string) => write(KEYS.api, v.trim() || null),
   token: () => read(KEYS.token) || "",
   setToken: (v: string) => write(KEYS.token, v.trim() || null),
+  pushPromptDismissedAt: () => Number(read(KEYS.pushPromptDismissed)) || null,
+  dismissPushPrompt: () => write(KEYS.pushPromptDismissed, String(Date.now())),
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
