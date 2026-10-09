@@ -41,7 +41,7 @@ const near = <T extends { lat: number; lng: number }>(list: T[], p: { lat: numbe
 /**
  * A "calm" baseline takes the recorded week's temperatures, clouds and air as they are but removes
  * its rain and storms, so the only bad weather in a scenario is what the scenario adds. The
- * recordings come from whatever season `sim:live` ran in; October storms should not leak into a
+ * recordings come from whatever season `check:free --record` ran in; October storms should not leak into a
  * November scenario's checks.
  */
 const CALM: Record<string, (v: number) => number> = {

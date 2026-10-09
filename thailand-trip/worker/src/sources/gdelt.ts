@@ -13,9 +13,10 @@ export interface Article {
 const PLACES = '("Chiang Mai" OR "Chiang Rai" OR "Mae Hong Son")';
 const TROUBLE = "(protest OR closed OR flood OR landslide OR accident OR cancelled OR evacuation OR wildfire OR border)";
 
-export async function fetchArticles(): Promise<Article[]> {
+/** Headlines from the past `timespan` (GDELT syntax: 24h, 3d, ...), newest first. */
+export async function fetchArticles(timespan = "24h"): Promise<Article[]> {
   const q = encodeURIComponent(`${PLACES} ${TROUBLE}`);
-  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=ArtList&format=json&timespan=24h&maxrecords=50&sort=DateDesc`;
+  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=ArtList&format=json&timespan=${timespan}&maxrecords=50&sort=DateDesc`;
   const res = await getJson<{ articles?: Article[] }>(url);
   return res.articles ?? [];
 }

@@ -1,7 +1,6 @@
 // Writes starter fixtures in each API's exact response format, for when no real recording exists
-// yet (`npm run sim:live` replaces the free sources with real ones, and the paid ones when keys
-// are set). Values follow a typical late-November week in northern Thailand: dry, cool mornings,
-// cold summits, some haze.
+// yet (`npm run check:free -- --record` replaces the free sources with real ones). Values follow a
+// typical late-November week in northern Thailand: dry, cool mornings, cold summits, some haze.
 import { writeFileSync } from "node:fs";
 import { simTrip } from "./world";
 
