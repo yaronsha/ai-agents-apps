@@ -60,6 +60,10 @@ export async function checkInBrowser(app: App, workerUrl: URL, r: Result, report
     deviceScaleFactor: 2,
     permissions: ["notifications"],
   });
+  // Offline: the app may talk only to its own server and the simulated worker. Anything else (map
+  // tiles, fonts) is blocked, so a run never depends on, or spends anything at, a real service.
+  const local = new Set([new URL(app.url).host, workerUrl.host]);
+  await context.route("**/*", (route) => (local.has(new URL(route.request().url()).host) ? route.continue() : route.abort("blockedbyclient")));
   await context.addInitScript(
     ([api, token]) => {
       localStorage.setItem("trip.devApiUrl", api);

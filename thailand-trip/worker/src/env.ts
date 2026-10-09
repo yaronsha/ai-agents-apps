@@ -19,4 +19,8 @@ export interface Env {
   OPENAI_API_KEY?: string;
   GOOGLE_MAPS_KEY?: string;
   RAPIDAPI_KEY?: string;
+  /** News shadow mode (worker/src/shadow.ts): "on" (default) logs candidate news sources hourly; "off" stops it. */
+  SHADOW_NEWS?: string;
+  /** "on" also triages each shadow source's past-day headlines once a day (about 2 AI calls). Default "off". */
+  SHADOW_AI?: string;
 }

@@ -101,12 +101,27 @@ Cloudflare Access (Zero Trust, free up to 50 users) puts a sign-in page in front
 
 To add someone, add their email to the policy or list; it works at once. To remove someone, delete the email and revoke their session in **Access → Users**. The worker's `workers.dev` address stays reachable, but without a valid Access token it serves nothing private. Cron runs inside Cloudflare and needs no sign-in.
 
+## Checks
+
+- **Offline, on GitHub:** `.github/workflows/thailand-trip-ci.yml` runs `npm run typecheck`, `npm test` and `npm run sim -- --browser` on every pull request and push to `main`. None of it calls a real source or a paid API.
+- **Live, only by hand on your machine:** copy `.env.example` to `.env` and fill in the keys, then `npm run check:free` (free sources: format, plausible values, and a second independent source for each) and `npm run check:paid` (Routes, AeroDataBox, OpenAI or Claude; prints the calls and their cost and asks first). Details in [sim/README.md](sim/README.md#offline-in-ci-live-only-by-hand).
+
 ## How alerts work
 
 - Weather alerts go out the evening before and 2 hours before the stop. Quakes, advisory changes, urgent news and flight changes go out at once.
 - Quiet hours are 22:00–06:00 Thailand time; non-urgent pushes wait until morning. A briefing about tomorrow goes out at 20:00.
 - Each push is sent once. A push more than 2 hours late is dropped.
 - Thresholds are in `shared/src/rules.ts` (`RULES`).
+
+## News shadow mode
+
+GDELT's index lags more than a day, so its 24-hour news query often comes back empty. Before switching to Google News, the worker runs both side by side for a few weeks without acting on either: once an hour it fetches Google News (past day), GDELT 24 h and GDELT 3 d, and logs for each whether it answered, how many headlines, how old the newest one is, how many mention a place on the route, and the first 10 titles. No alerts, no pushes; news alerts still come from GDELT as before. One KV write an hour (`shadow:news:<date>`, kept 45 days); the code is in `worker/src/shadow.ts`.
+
+- `SHADOW_NEWS` in `wrangler.toml`: `"on"` (default) or `"off"`.
+- `SHADOW_AI`: `"off"` (default). `"on"` sends each source's past-day headlines to the news triage once a day, from 08:00 Thailand time, and logs how many it judged relevant. That is at most 2 AI calls a day, counted in the same daily cap as the real triage.
+- Cost: $0 with `SHADOW_AI` off.
+- Read it with `npm run shadow:report` (uses `WORKER_URL` and `APP_TOKEN` from `.env`, or asks for the code). It prints success rate, lag, headline and route-mention counts per source with a verdict, and writes `sim/reports/shadow-news.md`. The raw log is `GET /api/shadow?days=21` with the access code.
+- After choosing a source, set `SHADOW_NEWS = "off"` (or remove the shadow code).
 
 ## Notes
 

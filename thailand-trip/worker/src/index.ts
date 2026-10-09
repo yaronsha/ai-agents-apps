@@ -1,6 +1,7 @@
 import { trip, tripPrivateData } from "@trip/shared/private";
 import type { Env } from "./env";
 import { runCheck } from "./engine";
+import { runShadow, shadowLog } from "./shadow";
 import { Store } from "./store";
 import { sendToAll, type PushSubscriptionJSON } from "./push";
 import { aiProvider, replan } from "./ai";
@@ -42,6 +43,10 @@ export default {
     }
     if (req.method === "GET" && url.pathname === "/api/trip-private") {
       return json(tripPrivateData);
+    }
+    if (req.method === "GET" && url.pathname === "/api/shadow") {
+      const days = Math.min(45, Math.max(1, Number(url.searchParams.get("days")) || 21));
+      return json(await shadowLog(env, new Date(), days));
     }
     if (req.method !== "POST") return json({ error: "not found" }, 404);
 
@@ -93,6 +98,13 @@ export default {
   // The cron's own time rather than the clock: the same in production, and lets the simulator
   // (sim/) play a whole trip day through the real handler in seconds.
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
-    await runCheck(env, new Date(event.scheduledTime));
+    const now = new Date(event.scheduledTime);
+    const state = await runCheck(env, now);
+    // News shadow mode only logs; whatever goes wrong there must not fail the real check.
+    try {
+      await runShadow(env, now, { gdeltCalled: "news" in state.sources });
+    } catch (err) {
+      console.error("shadow", err);
+    }
   },
 } satisfies ExportedHandler<Env>;

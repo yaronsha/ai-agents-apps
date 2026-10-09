@@ -4,13 +4,15 @@ import type { Env } from "../src/env";
 export class FakeKV {
   data = new Map<string, string>();
   writes = 0;
+  options = new Map<string, unknown>();
   async get(key: string, type?: "json") {
     const v = this.data.get(key);
     if (v === undefined) return null;
     return type === "json" ? JSON.parse(v) : v;
   }
-  async put(key: string, value: string) {
+  async put(key: string, value: string, options?: unknown) {
     this.writes++;
+    if (options) this.options.set(key, options);
     this.data.set(key, value);
   }
 }
