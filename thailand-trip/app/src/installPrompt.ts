@@ -57,16 +57,7 @@ export function useInstallPrompt() {
   const [dismissed, setDismissed] = useState(dismissedAt);
   const show = showInstallCard({ available, dismissedAt: dismissed, now: Date.now() });
 
-  const install = async () => {
-    const e = deferred;
-    if (!e) return;
-    // Chrome allows prompt() once per event; a new event comes if the user says no.
-    deferred = null;
-    notify();
-    await e.prompt();
-  };
-
-  const dismiss = () => {
+  const snooze = () => {
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {
@@ -75,5 +66,20 @@ export function useInstallPrompt() {
     setDismissed(Date.now());
   };
 
-  return { show, install, dismiss };
+  const install = async () => {
+    const e = deferred;
+    if (!e) return;
+    // Chrome allows prompt() once per event; the next one comes on a later page load.
+    deferred = null;
+    notify();
+    try {
+      await e.prompt();
+      // Cancelling Chrome's dialog counts as "not now", or the card would return every launch.
+      if ((await e.userChoice).outcome === "dismissed") snooze();
+    } catch {
+      /* Chrome refused to show the dialog; the card comes back with the next event */
+    }
+  };
+
+  return { show, install, dismiss: snooze };
 }
