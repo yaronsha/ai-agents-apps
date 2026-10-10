@@ -41,6 +41,18 @@ describe("engine", () => {
     expect(log.pushes).toBe(first);
   });
 
+  it("keeps each source's last check when a later run skips it", async () => {
+    const kv = new FakeKV();
+    const env = await makeEnv(kv);
+    vi.stubGlobal("fetch", stubFetch({ urls: [], pushes: 0 }));
+
+    await runCheck(env, thLocal("2026-11-26T12:00"));
+    const state = await runCheck(env, thLocal("2026-11-26T12:15"));
+    expect(state.sources.advisory).toMatchObject({ ok: true, at: thLocal("2026-11-26T12:00").toISOString() });
+    expect(state.sources.weather.at).toBe(thLocal("2026-11-26T12:00").toISOString());
+    expect(state.sources.quakes.at).toBe(thLocal("2026-11-26T12:15").toISOString());
+  });
+
   it("sends the 20:00 briefing once", async () => {
     const kv = new FakeKV();
     const env = await makeEnv(kv);

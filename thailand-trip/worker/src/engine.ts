@@ -70,7 +70,9 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   const today = thDate(now);
   const { hour, minute } = thParts(now);
   const hourly = minute < 15 || opts.dryRun;
-  const sources: TripState["sources"] = {};
+  // Each source keeps its last check from earlier runs, since most sources are not checked every run.
+  const previous = await store.state();
+  const sources: TripState["sources"] = { ...previous?.sources };
   const note = (name: string, ok: boolean, msg?: string) => (sources[name] = { ok, at: now.toISOString(), note: msg });
   const tripDay = trip.days.some((d) => d.date === today);
   const newsWindow = today >= addDays(trip.startDate, -7) && today <= trip.endDate;
@@ -264,8 +266,9 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   await store.putIfChanged("road:alerts", roadAlerts, roadBefore);
 
   // The state changes every run (timestamps); save it when its content changed, or hourly.
-  const previous = await store.state();
-  const strip = (s: TripState | null) => s && { ...s, generatedAt: "", sources: {} };
+  // A source that starts or stops failing counts as a change; a fresh check time alone does not.
+  const strip = (s: TripState | null) =>
+    s && { ...s, generatedAt: "", sources: Object.entries(s.sources).map(([k, v]) => [k, v.ok, v.note]) };
   if (hourly || JSON.stringify(strip(previous)) !== JSON.stringify(strip(state))) {
     await env.TRIP_KV.put("state", JSON.stringify(state));
   }

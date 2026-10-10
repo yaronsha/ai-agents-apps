@@ -939,3 +939,45 @@ button.sheet-chips {
 .card.push-prompt h2 {
   font-size: 15px;
 }
+
+/* Settings: what the app checks */
+.card ul.sources {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.sources li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.sources .name {
+  flex: 1;
+  min-width: 0;
+}
+.sources .name .note {
+  display: block;
+  margin-top: 0;
+  overflow-wrap: anywhere;
+}
+.sources .when {
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.sources .dot {
+  flex: none;
+  align-self: flex-start;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.6em;
+  border-radius: 50%;
+  background: var(--line);
+}
+.sources .dot.ok {
+  background: var(--ok);
+}
+.sources .dot.bad {
+  background: var(--bad);
+}
