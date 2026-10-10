@@ -1,0 +1,18 @@
+# Monthly update PRs, grouped so each ecosystem opens at most one PR per run.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /thailand-trip
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      npm:
+        update-types: [minor, patch]
