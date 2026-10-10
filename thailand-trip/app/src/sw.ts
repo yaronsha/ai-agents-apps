@@ -16,13 +16,17 @@ cleanupOutdatedCaches();
 
 // Map tiles you have looked at stay available offline (mountain roads have little signal).
 registerRoute(
-  ({ url }) => url.hostname.endsWith("basemaps.cartocdn.com"),
-  new CacheFirst({ cacheName: "map-tiles", plugins: [new ExpirationPlugin({ maxEntries: 3000, maxAgeSeconds: 60 * 24 * 3600, purgeOnQuotaError: true })] }),
+  ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith("/tiles/"),
+  new CacheFirst({ cacheName: "map-tiles-v2", plugins: [
+    // The Thai fallback tiles (no CARTO key on the server yet) are marked no-store; keep them out.
+    { cacheWillUpdate: async ({ response }) => (response.ok && !/no-store/.test(response.headers.get("Cache-Control") ?? "") ? response : null) },
+    new ExpirationPlugin({ maxEntries: 3000, maxAgeSeconds: 60 * 24 * 3600, purgeOnQuotaError: true }),
+  ] }),
 );
 
-// The old OpenStreetMap tile cache is no longer used.
+// Old tile caches: OpenStreetMap, then CARTO tiles fetched without a key (stamped "API KEY REQUIRED").
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.delete("osm-tiles"));
+  event.waitUntil(Promise.all(["osm-tiles", "map-tiles"].map((name) => caches.delete(name))));
 });
 
 self.addEventListener("push", (event) => {

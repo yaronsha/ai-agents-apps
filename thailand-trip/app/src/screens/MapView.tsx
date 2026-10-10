@@ -25,12 +25,10 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
     if (!el.current || map.current) return;
     map.current = L.map(el.current, { zoomControl: false }).setView([19.3, 99.2], 8);
     L.control.zoom({ position: "topleft" }).addTo(map.current);
-    // CARTO Voyager draws OpenStreetMap with English place names (the standard OSM tiles are in Thai).
-    // crossOrigin lets the service worker cache the tiles for offline use; an opaque reply is not cached.
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd",
+    // English place names: /tiles is our own Pages Function, which fetches CARTO Voyager with the key
+    // kept on the server (functions/tiles). Same address as the app, so the service worker can cache it.
+    L.tileLayer("/tiles/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
-      crossOrigin: true,
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map.current);
