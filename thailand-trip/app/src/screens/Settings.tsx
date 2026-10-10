@@ -1,29 +1,42 @@
 import { useEffect, useState } from "react";
+import type { Trip } from "@trip/shared";
 import type { Live } from "../App";
 import { enablePush, errorText, previewAt, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
-import { ago } from "../format";
+import { ago, shortDay } from "../format";
+import { useTrip } from "../tripContext";
 
-const SOURCE_HE: Record<string, string> = {
-  weather: "מזג אוויר ואיכות אוויר",
-  quakes: "רעידות אדמה",
-  advisory: "אזהרת מסע",
-  news: "חדשות",
-  routes: "זמני נסיעה",
-  flights: "טיסות",
-};
+const dayBefore = (date: string, days: number) => new Date(Date.parse(`${date}T12:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10);
+
+/** Every source the server checks, in display order, with when it is checked for one not checked yet. */
+const SOURCES = (trip: Trip): { key: string; he: string; when: string }[] => [
+  { key: "weather", he: "מזג אוויר ואיכות אוויר", when: "פעם בשעה" },
+  { key: "advisory", he: "אזהרות מסע של בריטניה", when: "פעם בשעה" },
+  { key: "news", he: "חדשות", when: `מ-${shortDay(dayBefore(trip.startDate, 7))}` },
+  { key: "quakes", he: "רעידות אדמה", when: `מ-${shortDay(trip.days[0].date)}` },
+  { key: "routes", he: "זמני נסיעה", when: "לפני כל נסיעה" },
+  { key: "flights", he: "טיסות", when: "יום לפני כל טיסה" },
+];
 
 export function Settings({ live, refresh }: { live: Live; refresh: () => void }) {
   const [token, setToken] = useState(settings.token());
   const [auth, setAuth] = useState<"access" | "token" | null>(null);
+  const [configured, setConfigured] = useState<Partial<Record<string, boolean>>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [push, setPush] = useState(false);
   const [at, setAt] = useState("2026-11-26T12:00");
   const support = pushSupport();
+  const trip = useTrip();
 
   useEffect(() => {
     pushEnabled().then(setPush);
     // Older servers don't say; treat them as access-code servers.
-    serverConfig().then((c) => setAuth(c.auth ?? "token"), () => setAuth(null));
+    serverConfig().then(
+      (c) => {
+        setAuth(c.auth ?? "token");
+        setConfigured(c.configured ?? {});
+      },
+      () => setAuth(null),
+    );
   }, []);
 
   const run = async (fn: () => Promise<string>) => {
@@ -89,14 +102,26 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
 
       {live.state && (
         <section className="card">
-          <h2>מקורות מידע</h2>
-          <p className="muted">עדכון אחרון {ago(live.state.generatedAt)}</p>
-          {Object.entries(live.state.sources).map(([k, v]) => (
-            <p key={k}>
-              {v.ok ? "✓" : "✗"} {SOURCE_HE[k] ?? k}
-              {v.note ? ` · ${v.note}` : ""}
-            </p>
-          ))}
+          <h2>מה האפליקציה בודקת</h2>
+          <ul className="sources">
+            {SOURCES(trip).map(({ key, he, when }) => {
+              const s = live.state!.sources[key];
+              return (
+                <li key={key}>
+                  <span className={`dot ${s ? (s.ok ? "ok" : "bad") : "wait"}`} />
+                  <span className="name">
+                    {he}
+                    {s?.note && (
+                      <span className="note">
+                        <bdi>{s.note}</bdi>
+                      </span>
+                    )}
+                  </span>
+                  <span className="when">{s ? `${s.ok ? "" : "נכשל "}${ago(s.at)}` : configured[key] === false ? "לא מוגדר בשרת" : when}</span>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
       {msg && <p className="toast">{msg}</p>}
