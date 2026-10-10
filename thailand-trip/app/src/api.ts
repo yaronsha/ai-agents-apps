@@ -150,6 +150,8 @@ export interface ServerConfig {
   vapidPublicKey: string;
   /** "access": Cloudflare sign-in; "token": the shared access code (before Access is set up). */
   auth?: "access" | "token";
+  /** Paid sources and whether the server has their key; missing on older servers. */
+  configured?: Partial<Record<string, boolean>>;
 }
 
 export const serverConfig = () => call<ServerConfig>("/api/config");

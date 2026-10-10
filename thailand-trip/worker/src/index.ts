@@ -34,7 +34,9 @@ export default {
     const store = new Store(env.TRIP_KV);
 
     if (req.method === "GET" && url.pathname === "/api/config") {
-      return json({ vapidPublicKey: env.VAPID_PUBLIC_KEY, ai: aiProvider(env), auth: accessEnabled(env) ? "access" : "token" });
+      // Which paid sources have a key, so the app can say a source is off instead of promising a check.
+      const configured = { news: Boolean(aiProvider(env)), routes: Boolean(env.GOOGLE_MAPS_KEY), flights: Boolean(env.RAPIDAPI_KEY) };
+      return json({ vapidPublicKey: env.VAPID_PUBLIC_KEY, ai: aiProvider(env), auth: accessEnabled(env) ? "access" : "token", configured });
     }
 
     // Everything else (state included: alerts can name hotels) needs sign-in or the access code.

@@ -71,8 +71,9 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   const { hour, minute } = thParts(now);
   const hourly = minute < 15 || opts.dryRun;
   // Each source keeps its last check from earlier runs, since most sources are not checked every run.
+  // A preview starts empty, so it shows only what it checked at the previewed moment.
   const previous = await store.state();
-  const sources: TripState["sources"] = { ...previous?.sources };
+  const sources: TripState["sources"] = opts.dryRun ? {} : { ...previous?.sources };
   const note = (name: string, ok: boolean, msg?: string) => (sources[name] = { ok, at: now.toISOString(), note: msg });
   const tripDay = trip.days.some((d) => d.date === today);
   const newsWindow = today >= addDays(trip.startDate, -7) && today <= trip.endDate;

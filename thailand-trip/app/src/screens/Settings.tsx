@@ -20,6 +20,7 @@ const SOURCES = (trip: Trip): { key: string; he: string; when: string }[] => [
 export function Settings({ live, refresh }: { live: Live; refresh: () => void }) {
   const [token, setToken] = useState(settings.token());
   const [auth, setAuth] = useState<"access" | "token" | null>(null);
+  const [configured, setConfigured] = useState<Partial<Record<string, boolean>>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [push, setPush] = useState(false);
   const [at, setAt] = useState("2026-11-26T12:00");
@@ -29,7 +30,13 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
   useEffect(() => {
     pushEnabled().then(setPush);
     // Older servers don't say; treat them as access-code servers.
-    serverConfig().then((c) => setAuth(c.auth ?? "token"), () => setAuth(null));
+    serverConfig().then(
+      (c) => {
+        setAuth(c.auth ?? "token");
+        setConfigured(c.configured ?? {});
+      },
+      () => setAuth(null),
+    );
   }, []);
 
   const run = async (fn: () => Promise<string>) => {
@@ -110,7 +117,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
                       </span>
                     )}
                   </span>
-                  <span className="when">{s ? `${s.ok ? "" : "נכשל "}${ago(s.at)}` : when}</span>
+                  <span className="when">{s ? `${s.ok ? "" : "נכשל "}${ago(s.at)}` : configured[key] === false ? "לא מוגדר בשרת" : when}</span>
                 </li>
               );
             })}

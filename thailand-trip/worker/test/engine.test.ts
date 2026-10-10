@@ -102,6 +102,13 @@ describe("http api", () => {
     expect((await worker.fetch(new Request("https://w/api/trip-private"), env)).status).toBe(401);
   });
 
+  it("says which paid sources have a key, without the keys", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), GOOGLE_MAPS_KEY: "k" };
+    const body = await (await worker.fetch(new Request("https://w/api/config"), env)).text();
+    expect(JSON.parse(body).configured).toMatchObject({ routes: true, flights: false });
+    expect(body).not.toContain('"k"');
+  });
+
   it("serves hotels and flights only with the access code", async () => {
     const env = await makeEnv(new FakeKV());
     const res = await worker.fetch(new Request("https://w/api/trip-private", { headers: { "X-Trip-Token": "secret" } }), env);
