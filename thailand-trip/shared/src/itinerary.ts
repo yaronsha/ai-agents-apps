@@ -1,4 +1,4 @@
-// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-03).
+// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-05).
 // Coordinates were checked on 2026-10-07 against map listings (AllTrails, Tripadvisor, Waze, Wikipedia,
 // Atlas Obscura, plus codes). `npm run verify:places` re-checks them against OpenStreetMap.
 import type { Day, Trip, TripPrivate } from "./types";
@@ -6,17 +6,17 @@ import type { Day, Trip, TripPrivate } from "./types";
 const days: Day[] = [
   {
     date: "2026-11-22",
-    titleHe: "נחיתה, כפר האומנים ושקיעה בדוי סוטפ",
+    titleHe: "נחיתה, מנוחה, קניון MAYA ושקיעה בדוי סוטפ",
     lodgingId: "cm1",
     stops: [
       { id: "cnx-arrive", nameHe: "נחיתה בשדה התעופה צ'אנג מאי", nameEn: "Chiang Mai Airport", lat: 18.7668, lng: 98.9626, start: "2026-11-22T06:05", end: "2026-11-22T07:00", outdoor: false },
-      { id: "baan-kang-wat", nameHe: "כפר האומנים באן קאנג וואט", nameEn: "Baan Kang Wat", lat: 18.7766, lng: 98.9452, start: "2026-11-22T15:00", end: "2026-11-22T16:45", outdoor: true },
-      { id: "doi-suthep", nameHe: "מקדש דוי סוטפ בשקיעה", nameEn: "Wat Phra That Doi Suthep", lat: 18.805, lng: 98.9217, start: "2026-11-22T17:30", end: "2026-11-22T19:15", outdoor: true },
+      { id: "maya-mall", nameHe: "קניון MAYA: מקלות הליכה מתקפלים", nameEn: "MAYA Lifestyle Shopping Center", lat: 18.8024, lng: 98.9672, start: "2026-11-22T14:45", end: "2026-11-22T15:30", outdoor: false },
+      { id: "doi-suthep", nameHe: "מקדש דוי סוטפ בשקיעה", nameEn: "Wat Phra That Doi Suthep", lat: 18.805, lng: 98.9217, start: "2026-11-22T17:00", end: "2026-11-22T19:30", outdoor: true, noteHe: "עלייה ברכבל, ירידה ברגל ב-306 מדרגות הנאגה." },
     ],
-    drives: [{ id: "d22-suthep", fromId: "baan-kang-wat", toId: "doi-suthep", departAt: "2026-11-22T16:45" }],
-    reminders: [{ id: "r22-suthep", at: "2026-11-22T16:15", textHe: "בעוד חצי שעה יוצאים לדוי סוטפ כדי להספיק את השקיעה." }],
+    drives: [{ id: "d22-suthep", fromId: "lodging:cm1", toId: "doi-suthep", departAt: "2026-11-22T16:15" }],
+    reminders: [{ id: "r22-suthep", at: "2026-11-22T15:45", textHe: "בעוד חצי שעה יוצאים לדוי סוטפ כדי להספיק את השקיעה." }],
     planB: [
-      "גשם: לוותר על כפר האומנים ולעבור למוזיאון MAIIAM או לשוק Warorot המקורה.",
+      "גשם: לעלות ולרדת ברכבל ולוותר על הירידה במדרגות הנאגה, שחלקלקות ברטיבות.",
       "מעונן או גשום בשקיעה: לבקר בדוי סוטפ מחר בבוקר ולוותר על השקיעה.",
     ],
   },
@@ -25,14 +25,16 @@ const days: Day[] = [
     titleHe: "דוי אינתנון: פגודות המלך והמלכה וטרק המפלים",
     lodgingId: "cm1",
     stops: [
-      { id: "twin-pagodas", nameHe: "פגודות המלך והמלכה", nameEn: "Naphamethinidon & Naphaphonphumisiri", lat: 18.5529, lng: 98.4798, start: "2026-11-23T09:00", end: "2026-11-23T10:30", outdoor: true, highland: true, noteHe: "קר בבוקר, לפעמים פחות מ-15 מעלות." },
+      { id: "twin-pagodas", nameHe: "פגודות המלך והמלכה", nameEn: "Naphamethinidon & Naphaphonphumisiri", lat: 18.5529, lng: 98.4798, start: "2026-11-23T09:00", end: "2026-11-23T10:15", outdoor: true, highland: true, noteHe: "קר בבוקר, לפעמים פחות מ-15 מעלות." },
+      { id: "ang-ka", nameHe: "שביל אנג קה ביער הערפל", nameEn: "Ang Ka Nature Trail", lat: 18.5888, lng: 98.4866, start: "2026-11-23T10:15", end: "2026-11-23T10:45", outdoor: true, highland: true },
       { id: "pha-dok-siew", nameHe: "טרק Pha Dok Siew עם מדריך קארן", nameEn: "Pha Dok Siew Trail", lat: 18.5383, lng: 98.5248, start: "2026-11-23T11:00", end: "2026-11-23T13:00", outdoor: true, highland: true },
-      { id: "mae-klang-luang", nameHe: "צהריים בכפר Mae Klang Luang", nameEn: "Mae Klang Luang village", lat: 18.5275, lng: 98.5337, start: "2026-11-23T13:00", end: "2026-11-23T14:30", outdoor: false },
+      { id: "mae-klang-luang", nameHe: "צהריים בכפר Mae Klang Luang", nameEn: "Mae Klang Luang village", lat: 18.5275, lng: 98.5337, start: "2026-11-23T13:00", end: "2026-11-23T14:00", outdoor: false },
+      { id: "wachirathan", nameHe: "מפל וצ'יראטאן", nameEn: "Wachirathan Waterfall", lat: 18.5408, lng: 98.5994, start: "2026-11-23T14:15", end: "2026-11-23T14:30", outdoor: true },
       { id: "old-city-night", nameHe: "סיור לילי בעיר העתיקה", nameEn: "Old City temples by night", lat: 18.7869, lng: 98.9866, start: "2026-11-23T19:30", end: "2026-11-23T21:30", outdoor: true },
     ],
     drives: [
       { id: "d23-inthanon", fromId: "lodging:cm1", toId: "twin-pagodas", departAt: "2026-11-23T07:00" },
-      { id: "d23-back", fromId: "mae-klang-luang", toId: "lodging:cm1", departAt: "2026-11-23T14:30" },
+      { id: "d23-back", fromId: "wachirathan", toId: "lodging:cm1", departAt: "2026-11-23T14:30" },
     ],
     reminders: [{ id: "r23-jacket", at: "2026-11-23T06:15", textHe: "יוצאים ב-07:00 לדוי אינתנון. קר בפסגה, לקחת סווטשרט." }],
     planB: [
@@ -79,13 +81,12 @@ const days: Day[] = [
     stops: [
       { id: "doi-kiew-lom", nameHe: "תצפית דוי קיו לו", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4458, lng: 98.3192, start: "2026-11-26T10:30", end: "2026-11-26T10:50", outdoor: true },
       { id: "tham-lod", nameHe: "מערת תאם לוד", nameEn: "Tham Lod Cave", lat: 19.5664, lng: 98.2789, start: "2026-11-26T11:30", end: "2026-11-26T14:00", outdoor: false },
-      { id: "yun-lai", nameHe: "תצפית Yun Lai", nameEn: "Yun Lai Viewpoint", lat: 19.369, lng: 98.3954, start: "2026-11-26T15:00", end: "2026-11-26T15:30", outdoor: true },
       { id: "pai-canyon", nameHe: "שקיעה בקניון פאי", nameEn: "Pai Canyon", lat: 19.3076, lng: 98.4558, start: "2026-11-26T16:30", end: "2026-11-26T18:15", outdoor: true },
       { id: "pai-walking-street", nameHe: "שוק הלילה של פאי", nameEn: "Pai Walking Street", lat: 19.3589, lng: 98.4406, start: "2026-11-26T20:00", end: "2026-11-26T22:00", outdoor: true },
     ],
     drives: [
       { id: "d26-thamlod", fromId: "lodging:pai", toId: "doi-kiew-lom", departAt: "2026-11-26T09:30" },
-      { id: "d26-back", fromId: "tham-lod", toId: "yun-lai", departAt: "2026-11-26T14:00" },
+      { id: "d26-back", fromId: "tham-lod", toId: "pai-canyon", departAt: "2026-11-26T14:00" },
     ],
     reminders: [],
     planB: [
@@ -95,21 +96,23 @@ const days: Day[] = [
   },
   {
     date: "2026-11-27",
-    titleHe: "גשר הבמבוק, מפלים ומעבר לצ'אנג דאו",
+    titleHe: "תצפית יון לאי, הכפר הסיני ומעבר לצ'אנג דאו",
     lodgingId: "cd",
     stops: [
-      { id: "boon-ko-ku-so", nameHe: "גשר הבמבוק בון קו קו סו", nameEn: "Boon Ko Ku So Bamboo Bridge", lat: 19.3229, lng: 98.3944, start: "2026-11-27T09:20", end: "2026-11-27T10:15", outdoor: true },
-      { id: "pam-bok", nameHe: "מפל פאם בוק", nameEn: "Pam Bok Waterfall", lat: 19.3208, lng: 98.4051, start: "2026-11-27T10:30", end: "2026-11-27T11:00", outdoor: true },
-      { id: "doi-kiew-lom-27", nameHe: "תצפית דוי קיו לו (שוב)", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4458, lng: 98.3192, start: "2026-11-27T13:00", end: "2026-11-27T13:20", outdoor: true, noteHe: "מופיעה כך בקובץ, אבל היא לא על הדרך לצ'אנג דאו. כדאי לבדוק." },
-      { id: "mok-fa", nameHe: "מפל מוק פה", nameEn: "Mok Fa Waterfall", lat: 19.1088, lng: 98.7718, start: "2026-11-27T14:15", end: "2026-11-27T15:00", outdoor: true },
+      { id: "yun-lai", nameHe: "תצפית יון לאי והכפר הסיני סנטיצ'ון", nameEn: "Yun Lai Viewpoint", lat: 19.369, lng: 98.3954, start: "2026-11-27T09:15", end: "2026-11-27T10:30", outdoor: true },
+      { id: "doi-kiew-lom-27", nameHe: "תצפית דוי קיו לו (שוב)", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4458, lng: 98.3192, start: "2026-11-27T12:00", end: "2026-11-27T12:20", outdoor: true, noteHe: "מופיעה כך בקובץ, אבל היא לא על הדרך לצ'אנג דאו. כדאי לבדוק." },
+      { id: "mok-fa", nameHe: "מפל מוק פה", nameEn: "Mok Fa Waterfall", lat: 19.1088, lng: 98.7718, start: "2026-11-27T15:00", end: "2026-11-27T15:45", outdoor: true },
     ],
     drives: [
-      { id: "d27-mokfa", fromId: "pam-bok", toId: "mok-fa", departAt: "2026-11-27T11:00" },
-      { id: "d27-chiangdao", fromId: "mok-fa", toId: "lodging:cd", departAt: "2026-11-27T15:00" },
+      { id: "d27-yunlai", fromId: "lodging:pai", toId: "yun-lai", departAt: "2026-11-27T09:00" },
+      { id: "d27-kiewlom", fromId: "yun-lai", toId: "doi-kiew-lom-27", departAt: "2026-11-27T10:30" },
+      { id: "d27-mokfa", fromId: "doi-kiew-lom-27", toId: "mok-fa", departAt: "2026-11-27T12:20" },
+      { id: "d27-chiangdao", fromId: "mok-fa", toId: "lodging:cd", departAt: "2026-11-27T15:45" },
     ],
     reminders: [],
     planB: [
-      "גשם: לוותר על מפל פאם בוק (קניון צר, סכנת שיטפון פתאומי) ולצאת מוקדם יותר לצ'אנג דאו.",
+      "גשם או ערפל: לוותר על תצפית דוי קיו לו ולצאת מפאי ישר לצ'אנג דאו.",
+      "גשם חזק: השביל למפל מוק פה חלקלק, להסתפק בתצפית מתחילת השביל.",
     ],
   },
   {
@@ -126,28 +129,28 @@ const days: Day[] = [
   },
   {
     date: "2026-11-29",
-    titleHe: "מפל קון קורן, המקדש הלבן והכחול",
+    titleHe: "מפל קון קורן, המקדש הלבן ושוק יום ראשון",
     lodgingId: "cr",
     stops: [
       { id: "khun-korn", nameHe: "טרק מפל קון קורן", nameEn: "Khun Korn Waterfall", lat: 19.876, lng: 99.6264, start: "2026-11-29T09:30", end: "2026-11-29T12:30", outdoor: true },
       { id: "white-temple", nameHe: "המקדש הלבן", nameEn: "Wat Rong Khun", lat: 19.8243, lng: 99.7633, start: "2026-11-29T15:50", end: "2026-11-29T16:50", outdoor: true },
-      { id: "blue-temple", nameHe: "המקדש הכחול", nameEn: "Wat Rong Suea Ten", lat: 19.9218, lng: 99.8421, start: "2026-11-29T17:10", end: "2026-11-29T17:55", outdoor: true },
       { id: "cr-walking-street", nameHe: "שוק יום ראשון בצ'יאנג ראי", nameEn: "Chiang Rai Sunday Walking Street", lat: 19.9015, lng: 99.819, start: "2026-11-29T19:30", end: "2026-11-29T22:00", outdoor: true },
     ],
     drives: [
       { id: "d29-khunkorn", fromId: "lodging:dc", toId: "khun-korn", departAt: "2026-11-29T08:30" },
       { id: "d29-chiangrai", fromId: "khun-korn", toId: "lodging:cr", departAt: "2026-11-29T12:30" },
     ],
-    reminders: [{ id: "r29-phuchifa", at: "2026-11-29T21:00", textHe: "מחר השכמה ב-03:30 לפו צ'י פה. להכין פנס ובגד חם." }],
+    reminders: [{ id: "r29-phuchifa", at: "2026-11-29T21:00", textHe: "מחר השכמה ב-03:00 לפו צ'י פה. להכין פנס ובגד חם." }],
     planB: ["גשם בטרק קון קורן: השביל חלקלק, להסתפק בחלק הראשון או לדלג ולהגיע מוקדם לצ'יאנג ראי."],
   },
   {
     date: "2026-11-30",
-    titleHe: "זריחה מעל ים העננים בפו צ'י פה",
+    titleHe: "זריחה מעל ים העננים בפו צ'י פה והמקדש הכחול",
     lodgingId: "cr",
     stops: [
       { id: "phu-chi-fa", nameHe: "זריחה בצוק פו צ'י פה", nameEn: "Phu Chi Fa", lat: 19.8556, lng: 100.4458, start: "2026-11-30T06:00", end: "2026-11-30T08:30", outdoor: true, highland: true },
-      { id: "kok-river-lunch", nameHe: "צהריים על נהר הקוק", nameEn: "Kok River lunch", lat: 19.9175, lng: 99.8295, start: "2026-11-30T15:00", end: "2026-11-30T16:30", outdoor: false },
+      { id: "kok-river-lunch", nameHe: "צהריים ב-Chivit Thamma Da על נהר הקוק", nameEn: "Chivit Thamma Da", lat: 19.9175, lng: 99.8295, start: "2026-11-30T15:30", end: "2026-11-30T16:50", outdoor: false, noteHe: "דגי נהר טריים, ואחר כך סיור ברובע האמנים. מיקום משוער, לבדוק במפה." },
+      { id: "blue-temple", nameHe: "המקדש הכחול", nameEn: "Wat Rong Suea Ten", lat: 19.9218, lng: 99.8421, start: "2026-11-30T17:30", end: "2026-11-30T18:15", outdoor: true },
       { id: "cr-night-bazaar", nameHe: "שוק הלילה של צ'יאנג ראי", nameEn: "Chiang Rai Night Bazaar", lat: 19.9049, lng: 99.8349, start: "2026-11-30T18:30", end: "2026-11-30T21:00", outdoor: true },
     ],
     drives: [{ id: "d30-phuchifa", fromId: "lodging:cr", toId: "phu-chi-fa", departAt: "2026-11-30T03:30" }],
@@ -161,7 +164,7 @@ const days: Day[] = [
     titleHe: "סדנת בישול Akha Kitchen",
     lodgingId: "cr",
     stops: [
-      { id: "akha-kitchen", nameHe: "סדנת בישול Akha Kitchen", nameEn: "Akha Kitchen", lat: 19.91, lng: 99.84, start: "2026-12-01T09:00", end: "2026-12-01T14:00", outdoor: false, noteHe: "מיקום משוער, לעדכן לפי נקודת המפגש." },
+      { id: "akha-kitchen", nameHe: "סדנת בישול Akha Kitchen", nameEn: "Akha Kitchen", lat: 19.91, lng: 99.84, start: "2026-12-01T09:00", end: "2026-12-01T14:00", outdoor: false, noteHe: "מיקום משוער, לעדכן לפי נקודת המפגש. אחרי הסדנה: אפשרות למרחצאות החמים Pong Phra Bat." },
     ],
     drives: [],
     reminders: [],

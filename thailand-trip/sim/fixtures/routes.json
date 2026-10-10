@@ -2,8 +2,8 @@
  "d22-suthep": {
   "routes": [
    {
-    "duration": "509s",
-    "staticDuration": "480s"
+    "duration": "558s",
+    "staticDuration": "526s"
    }
   ]
  },
@@ -18,8 +18,8 @@
  "d23-back": {
   "routes": [
    {
-    "duration": "6874s",
-    "staticDuration": "6485s"
+    "duration": "6042s",
+    "staticDuration": "5700s"
    }
   ]
  },
@@ -42,16 +42,32 @@
  "d26-back": {
   "routes": [
    {
-    "duration": "3554s",
-    "staticDuration": "3353s"
+    "duration": "4339s",
+    "staticDuration": "4093s"
+   }
+  ]
+ },
+ "d27-yunlai": {
+  "routes": [
+   {
+    "duration": "625s",
+    "staticDuration": "590s"
+   }
+  ]
+ },
+ "d27-kiewlom": {
+  "routes": [
+   {
+    "duration": "1484s",
+    "staticDuration": "1400s"
    }
   ]
  },
  "d27-mokfa": {
   "routes": [
    {
-    "duration": "6412s",
-    "staticDuration": "6049s"
+    "duration": "7680s",
+    "staticDuration": "7245s"
    }
   ]
  },
