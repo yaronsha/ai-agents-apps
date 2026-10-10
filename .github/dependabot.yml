@@ -1,10 +1,15 @@
-# Monthly update PRs, grouped so each ecosystem opens at most one PR per run.
+# Monthly update PRs, grouped: one PR for GitHub Actions, and for npm one PR for
+# minor/patch plus one for majors. The 7-day cooldown skips releases newer than a
+# week, the window in which hijacked versions are usually caught and pulled.
+# Security updates ignore the cooldown.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ["*"]
@@ -12,7 +17,11 @@ updates:
     directory: /thailand-trip
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 2
     groups:
       npm:
         update-types: [minor, patch]
+      npm-major:
+        update-types: [major]
