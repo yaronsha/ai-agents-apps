@@ -919,7 +919,7 @@ button.sheet-chips {
   border-color: var(--line);
 }
 @media (prefers-color-scheme: dark) {
-  /* OSM has no dark style; dim and invert the tiles so the map does not glare at night. */
+  /* The map tiles have no dark style here; dim and invert the tiles so the map does not glare at night. */
   .leaflet-tile-pane {
     filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
   }

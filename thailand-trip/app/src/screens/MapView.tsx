@@ -25,9 +25,14 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
     if (!el.current || map.current) return;
     map.current = L.map(el.current, { zoomControl: false }).setView([19.3, 99.2], 8);
     L.control.zoom({ position: "topleft" }).addTo(map.current);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    // CARTO Voyager draws OpenStreetMap with English place names (the standard OSM tiles are in Thai).
+    // crossOrigin lets the service worker cache the tiles for offline use; an opaque reply is not cached.
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd",
+      maxZoom: 19,
+      crossOrigin: true,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map.current);
     layers.current = L.layerGroup().addTo(map.current);
     return () => {
