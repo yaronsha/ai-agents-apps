@@ -146,20 +146,12 @@ if [ -n "$version" ] && [ "$os" != unknown ] && [ "$arch" != unknown ]; then
   fi
   if [ "$fetched" = 1 ]; then
     check_download
-    # Fail closed: a freshly downloaded binary runs only after verifying
-    # against its .sha256 sidecar. A sidecar that cannot be fetched, or a
-    # machine with no sha256 tool, refuses the download instead of exec'ing
-    # an unverified binary. (A binary already on PATH or in the cache that
-    # passes engine-probe is unaffected.)
-    sidecar_ok=0
-    if command -v curl >/dev/null 2>&1; then
-      curl -fsSL --retry 2 -o "$tmp.sha256" "$url.sha256" 2>/dev/null && sidecar_ok=1
-    elif command -v wget >/dev/null 2>&1; then
-      wget -q -O "$tmp.sha256" "$url.sha256" 2>/dev/null && sidecar_ok=1
-    fi
-    check_download
+    # Local patch (see ../SOURCE.md): verify against the hash pinned in
+    # engine.sha256 next to this launcher, never a sidecar from the same
+    # release. A platform with no pinned line refuses the download.
+    pinned="$dir/engine.sha256"
     expected=""
-    [ "$sidecar_ok" = 1 ] && expected=$(cut -d' ' -f1 < "$tmp.sha256")
+    [ -f "$pinned" ] && expected=$(awk -v a="$asset" '$2 == a { print $1 }' "$pinned")
     actual=""
     if command -v shasum >/dev/null 2>&1; then
       if digest=$(shasum -a 256 "$tmp" 2>/dev/null); then actual=${digest%% *}; fi
@@ -167,10 +159,9 @@ if [ -n "$version" ] && [ "$os" != unknown ] && [ "$arch" != unknown ]; then
       if digest=$(sha256sum "$tmp" 2>/dev/null); then actual=${digest%% *}; fi
     fi
     check_download
-    rm -f "$tmp.sha256"
     if [ -z "$expected" ] || [ -z "$actual" ]; then
       rm -f "$tmp"
-      echo "impeccable: cannot verify $url against $url.sha256 (sidecar unavailable or hashing failed); refusing the unverified download" >&2
+      echo "impeccable: cannot verify $url (no hash pinned for $asset in $pinned, or hashing failed); refusing the unverified download" >&2
       exit 127
     fi
     if [ "$actual" != "$expected" ]; then
