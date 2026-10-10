@@ -149,7 +149,7 @@ const days: Day[] = [
     lodgingId: "cr",
     stops: [
       { id: "phu-chi-fa", nameHe: "זריחה בצוק פו צ'י פה", nameEn: "Phu Chi Fa", lat: 19.8556, lng: 100.4458, start: "2026-11-30T06:00", end: "2026-11-30T08:30", outdoor: true, highland: true },
-      { id: "kok-river-lunch", nameHe: "צהריים ב-Chivit Thamma Da על נהר הקוק", nameEn: "Chivit Thamma Da", lat: 19.9175, lng: 99.8295, start: "2026-11-30T15:30", end: "2026-11-30T16:50", outdoor: false, noteHe: "דגי נהר טריים, ואחר כך סיור ברובע האמנים." },
+      { id: "kok-river-lunch", nameHe: "צהריים ב-Chivit Thamma Da על נהר הקוק", nameEn: "Chivit Thamma Da", lat: 19.9175, lng: 99.8295, start: "2026-11-30T15:30", end: "2026-11-30T16:50", outdoor: false, noteHe: "דגי נהר טריים, ואחר כך סיור ברובע האמנים. מיקום משוער, לבדוק במפה." },
       { id: "blue-temple", nameHe: "המקדש הכחול", nameEn: "Wat Rong Suea Ten", lat: 19.9218, lng: 99.8421, start: "2026-11-30T17:30", end: "2026-11-30T18:15", outdoor: true },
       { id: "cr-night-bazaar", nameHe: "שוק הלילה של צ'יאנג ראי", nameEn: "Chiang Rai Night Bazaar", lat: 19.9049, lng: 99.8349, start: "2026-11-30T18:30", end: "2026-11-30T21:00", outdoor: true },
     ],

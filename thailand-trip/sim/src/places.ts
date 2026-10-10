@@ -17,6 +17,7 @@ const QUERY: Record<string, string | null> = {
   "lantern-festival": "CAD Cultural Center Mae On",
   "pai-loy-krathong": null,
   "khao-soi": null,
+  "kok-river-lunch": null,
   "akha-kitchen": null,
   "doi-chang-coffee": "Doi Chang Coffee Farm",
 };
