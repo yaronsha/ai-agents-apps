@@ -14,7 +14,7 @@ export function upstreamTileUrl(pathname: string, key: string | undefined): stri
   const m = TILE.exec(pathname);
   if (!m) return null;
   const [, z, x, y, retina = ""] = m;
-  if (Number(z) > 20) return null;
+  if (Number(z) > 20 || Number(x) >= 2 ** Number(z) || Number(y) >= 2 ** Number(z)) return null;
   if (!key) return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
   const sub = "abcd"[(Number(x) + Number(y)) % 4];
   return `https://${sub}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}${retina}.png?key=${encodeURIComponent(key)}`;
@@ -25,15 +25,18 @@ export const onRequest = async ({ request, env }: { request: Request; env: Env }
   if (!upstream) return new Response("Not found", { status: 404 });
   const res = await fetch(upstream, {
     headers: { "User-Agent": "thailand-trip-app (https://thailand-trip-app.pages.dev)", Referer: "https://thailand-trip-app.pages.dev/" },
-    cf: { cacheEverything: true, cacheTtl: 30 * 24 * 3600 },
+    // Short edge cache: if CARTO ever answers a bad or expired key with a stamped tile (status 200),
+    // it is gone from the edge within days. The phone keeps its own copy for offline use anyway.
+    cf: { cacheEverything: true, cacheTtl: 3 * 24 * 3600 },
   } as RequestInit);
   if (!res.ok) return new Response("Tile unavailable", { status: 502 });
+  const carto = upstream.includes("cartocdn.com");
   return new Response(res.body, {
     headers: {
       "Content-Type": res.headers.get("Content-Type") ?? "image/png",
-      // Fallback tiles stay out of the browser and service worker caches, so English tiles replace
-      // them as soon as the key is set.
-      "Cache-Control": env.CARTO_KEY?.trim() ? "private, max-age=604800" : "no-store",
+      // The service worker keeps fallback tiles apart, so English tiles replace them once the key is set.
+      "X-Tile-Source": carto ? "carto" : "osm",
+      "Cache-Control": carto ? "private, max-age=604800" : "no-store",
     },
   });
 };

@@ -13,7 +13,7 @@ describe("upstreamTileUrl", () => {
   });
 
   it("refuses anything that is not a tile", () => {
-    for (const p of ["/tiles/../api/trip", "/tiles/8/1/2.png?x", "/tiles/30/1/2.png", "/tiles/a/b/c.png", "/tiles/"])
+    for (const p of ["/tiles/../api/trip", "/tiles/8/1/2.png?x", "/tiles/30/1/2.png", "/tiles/0/1/0.png", "/tiles/8/256/3.png", "/tiles/a/b/c.png", "/tiles/"])
       expect(upstreamTileUrl(p, "k")).toBeNull();
   });
 });
