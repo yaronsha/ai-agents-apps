@@ -17,7 +17,7 @@ cleanupOutdatedCaches();
 // Map tiles you have looked at stay available offline (mountain roads have little signal).
 registerRoute(
   ({ url }) => url.hostname.endsWith("basemaps.cartocdn.com"),
-  new CacheFirst({ cacheName: "map-tiles", plugins: [new ExpirationPlugin({ maxEntries: 3000, maxAgeSeconds: 60 * 24 * 3600 })] }),
+  new CacheFirst({ cacheName: "map-tiles", plugins: [new ExpirationPlugin({ maxEntries: 3000, maxAgeSeconds: 60 * 24 * 3600, purgeOnQuotaError: true })] }),
 );
 
 // The old OpenStreetMap tile cache is no longer used.
