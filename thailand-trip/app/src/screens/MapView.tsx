@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { dayOf, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections } from "@trip/shared";
+import { dayOf, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections, type Stop } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../App";
 import { dayLabel, severityText, shortDay } from "../format";
 import { GROUPS, worstOf } from "../categories";
 import { Icon } from "../icons";
+import { StopSheet } from "./Sheets";
 
 const dayColor = (i: number) => `hsl(${(i * 360) / publicTrip.days.length + 170}, 62%, 38%)`;
 
@@ -20,6 +21,7 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
   const tools = useRef<HTMLDivElement>(null);
   const focus = useRef<L.LatLngBounds | null>(null);
   const trip = useTrip();
+  const [place, setPlace] = useState<{ stop: Stop; date: string } | null>(null);
 
   useEffect(() => {
     if (!el.current || map.current) return;
@@ -64,7 +66,13 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
         });
         L.marker([s.lat, s.lng], { icon, zIndexOffset: selected ? 1000 : 0 })
           .bindPopup(
-            `<b>${s.nameHe}</b><br>${shortDay(day.date)} · ${hhmm(s.start)}${s.noteHe ? `<br><small>${s.noteHe}</small>` : ""}<br><a href="${googleMapsDirections(s)}" target="_blank">ניווט</a>`,
+            `<b>${s.nameHe}</b><br>${shortDay(day.date)} · ${hhmm(s.start)}${s.noteHe ? `<br><small>${s.noteHe}</small>` : ""}<br><a href="${googleMapsDirections(s)}" target="_blank">ניווט</a><br><button class="popup-more">עוד על המקום</button>`,
+          )
+          .on("popupopen", (e) =>
+            e.popup.getElement()?.querySelector(".popup-more")?.addEventListener("click", () => {
+              m.closePopup();
+              setPlace({ stop: s, date: day.date });
+            }),
           )
           .on("click", () => day.date !== date && setDate(day.date))
           .addTo(g);
@@ -170,6 +178,7 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
           })}
         </button>
       </section>
+      {place && <StopSheet stop={place.stop} date={place.date} onClose={() => setPlace(null)} />}
     </div>
   );
 }

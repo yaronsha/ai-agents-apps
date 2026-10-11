@@ -16,6 +16,8 @@ const paths = {
   van: <><path d="M3 16V8a2 2 0 0 1 2-2h9l4 4h1a2 2 0 0 1 2 2v4h-2" /><path d="M3 16h2M9 16h6" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" /></>,
   phone: <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />,
   nav: <path d="M3 11 21 3l-8 18-2-8z" />,
+  chevron: <path d="m15 6-6 6 6 6" />,
+  close: <path d="M6 6l12 12M18 6 6 18" />,
 } as const;
 
 export type IconName = keyof typeof paths;
