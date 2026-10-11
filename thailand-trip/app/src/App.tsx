@@ -76,6 +76,13 @@ export function App() {
     window.location.hash = t;
     setTab(t);
   };
+  /** The alerts screen, scrolled to the "ask for a new plan" box. */
+  const openReplan = () => {
+    go("alerts");
+    requestAnimationFrame(() => {
+      document.getElementById("replan-problem")?.scrollIntoView({ block: "center" });
+    });
+  };
   const first = publicTrip.days[0].date;
   const last = publicTrip.days[publicTrip.days.length - 1].date;
   const activeCount = live.state?.alerts.filter((a) => a.category !== "reminder" && a.date >= thDate(new Date())).length ?? 0;
@@ -94,7 +101,9 @@ export function App() {
       </header>
       {DAY_TABS.includes(tab) && <DayPicker date={date} setDate={setDate} status={live.state?.dayStatus} />}
       <main className={`screen ${tab === "map" ? "screen-map" : ""}`}>
-        {tab === "today" && <Today date={date} live={live} refresh={refresh} openAlerts={() => go("alerts")} />}
+        {tab === "today" && (
+          <Today date={date} live={live} refresh={refresh} openAlerts={() => go("alerts")} openMap={() => go("map")} openReplan={openReplan} />
+        )}
         {tab === "map" && <MapView date={date} setDate={setDate} live={live} openAlerts={() => go("alerts")} />}
         {tab === "alerts" && <Alerts date={date} live={live} refresh={refresh} />}
         {tab === "sos" && <Emergency date={date} />}

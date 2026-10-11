@@ -1,4 +1,5 @@
-import { dayOf, googleMapsDirections, hhmm, placeOf, type Drive, type Stop, type StopForecast } from "@trip/shared";
+import { useState } from "react";
+import { dayOf, googleMapsDirections, hhmm, placeInfo, placeOf, type Drive, type Lodging, type Stop, type StopForecast } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../App";
 import { ago, dayLabel, statusText } from "../format";
@@ -6,6 +7,7 @@ import { Icon } from "../icons";
 import { useInstallPrompt } from "../installPrompt";
 import { InstallPrompt } from "./InstallPrompt";
 import { PushPrompt } from "./PushPrompt";
+import { LodgingSheet, PlanBSheet, StopSheet } from "./Sheets";
 
 function Forecast({ f }: { f?: StopForecast }) {
   if (!f || f.tempMax === null) return null;
@@ -19,12 +21,17 @@ function Forecast({ f }: { f?: StopForecast }) {
   );
 }
 
-function StopRow({ stop, f }: { stop: Stop; f?: StopForecast }) {
+function StopRow({ stop, f, open }: { stop: Stop; f?: StopForecast; open: () => void }) {
+  const info = placeInfo(stop.id);
   return (
     <li className="tl-row">
       <time className="time">{hhmm(stop.start)}</time>
       <div className="tl-body">
-        <div className="stop-name">{stop.nameHe}</div>
+        <button className="stop-name" onClick={open}>
+          {stop.nameHe}
+          <Icon name="chevron" size={16} />
+        </button>
+        {info && <div className="stop-teaser">{info.teaserHe}</div>}
         <div className="stop-meta">
           <Forecast f={f} />
           <a className="nav-link" href={googleMapsDirections(stop)} target="_blank" rel="noreferrer">
@@ -32,7 +39,6 @@ function StopRow({ stop, f }: { stop: Stop; f?: StopForecast }) {
             ניווט
           </a>
         </div>
-        {stop.noteHe && <div className="note">{stop.noteHe}</div>}
       </div>
     </li>
   );
@@ -50,20 +56,62 @@ function DriveRow({ drive, to }: { drive: Drive; to?: string }) {
   );
 }
 
-export function Today({ date, live, refresh, openAlerts }: { date: string; live: Live; refresh: () => void; openAlerts: () => void }) {
+/** Where we sleep, as the last row of the day. */
+function LodgingRow({ lodging, open }: { lodging: Lodging; open: () => void }) {
+  return (
+    <li className="tl-row drive stay">
+      <span className="time">לילה</span>
+      <div className="tl-body">
+        <Icon name="bed" size={16} />
+        <button className="stop-name" onClick={open}>
+          <span>
+            <span className="sr-only">לינה: </span>
+            {lodging.name}
+          </span>
+          <Icon name="chevron" size={16} />
+        </button>
+      </div>
+    </li>
+  );
+}
+
+type Open = { kind: "stop"; stop: Stop } | { kind: "lodging"; lodging: Lodging } | { kind: "planB" } | null;
+
+export function Today({
+  date,
+  live,
+  refresh,
+  openAlerts,
+  openMap,
+  openReplan,
+}: {
+  date: string;
+  live: Live;
+  refresh: () => void;
+  openAlerts: () => void;
+  openMap: () => void;
+  openReplan: () => void;
+}) {
   const trip = useTrip();
   const installCard = useInstallPrompt();
+  const [open, setOpen] = useState<Open>(null);
   const day = dayOf(trip, date)!;
   const status = live.state?.dayStatus[date];
-  const lodging = day.lodgingId ? placeOf(trip, `lodging:${day.lodgingId}`) : undefined;
+  const lodging = day.lodgingId ? trip.lodgings.find((l) => l.id === day.lodgingId) : undefined;
   const dayAlerts = live.state?.alerts.filter((a) => a.date === date && a.category !== "reminder") ?? [];
   const dayNumber = trip.days.findIndex((d) => d.date === date) + 1;
+  // On a day with something to watch, Plan B moves up under the status bar; otherwise it is a quiet link.
+  const troubled = status === "yellow" || status === "red";
+  const close = () => setOpen(null);
 
   // Stops and drives in the order they happen (local time strings sort as text); a drive
   // that leaves when a stop starts goes first.
   const rows = [
     ...day.drives.map((d) => ({ at: d.departAt, el: <DriveRow key={d.id} drive={d} to={placeOf(trip, d.toId)?.nameHe} /> })),
-    ...day.stops.map((s) => ({ at: s.start, el: <StopRow key={s.id} stop={s} f={live.state?.forecasts[s.id]} /> })),
+    ...day.stops.map((s) => ({
+      at: s.start,
+      el: <StopRow key={s.id} stop={s} f={live.state?.forecasts[s.id]} open={() => setOpen({ kind: "stop", stop: s })} />,
+    })),
   ].sort((a, b) => a.at.localeCompare(b.at));
 
   return (
@@ -82,6 +130,12 @@ export function Today({ date, live, refresh, openAlerts }: { date: string; live:
         </span>
         <span>{dayAlerts.length ? `${dayAlerts.length} התראות ›` : live.state ? `עודכן ${ago(live.state.generatedAt)}` : ""}</span>
       </button>
+      {troubled && day.planB.length > 0 && (
+        <button className={`planb-cta ${status}`} onClick={() => setOpen({ kind: "planB" })}>
+          <span>תוכנית ב' מוכנה להיום</span>
+          <Icon name="chevron" size={18} />
+        </button>
+      )}
       {(live.offline || live.stale) && (
         <button className="offline" onClick={refresh}>
           {live.offline ? `מוצג מידע שמור. ${live.error ?? ""}` : "המידע מהשרת לא התעדכן לאחרונה."} עודכן {live.state ? ago(live.state.generatedAt) : "אף פעם"} · לחצו לרענון
@@ -91,40 +145,20 @@ export function Today({ date, live, refresh, openAlerts }: { date: string; live:
       {installCard.show ? <InstallPrompt {...installCard} /> : <PushPrompt />}
 
       <h2 className="section-title">התוכנית</h2>
-      <ol className="timeline">{rows.map((r) => r.el)}</ol>
+      <ol className="timeline">
+        {rows.map((r) => r.el)}
+        {lodging && <LodgingRow lodging={lodging} open={() => setOpen({ kind: "lodging", lodging })} />}
+      </ol>
 
-      {day.reminders.length > 0 && (
-        <section className="card">
-          <h2>תזכורות</h2>
-          {day.reminders.map((r) => (
-            <p key={r.id}>
-              <span className="time-inline">{hhmm(r.at)}</span> {r.textHe}
-            </p>
-          ))}
-        </section>
+      {!troubled && day.planB.length > 0 && (
+        <button className="link planb-link" onClick={() => setOpen({ kind: "planB" })}>
+          תוכנית ב' ליום הזה
+        </button>
       )}
 
-      {lodging && (
-        <section className="card lodging">
-          <Icon name="bed" />
-          <div>
-            <h2>לינה הלילה</h2>
-            <p>{lodging.nameHe}</p>
-          </div>
-          <a className="btn" href={googleMapsDirections(lodging)} target="_blank" rel="noreferrer">
-            ניווט
-          </a>
-        </section>
-      )}
-
-      <details className="card">
-        <summary>תוכנית ב' ליום הזה</summary>
-        <ul>
-          {day.planB.map((p) => (
-            <li key={p}>{p}</li>
-          ))}
-        </ul>
-      </details>
+      {open?.kind === "stop" && <StopSheet stop={open.stop} date={date} onClose={close} onMap={openMap} />}
+      {open?.kind === "lodging" && <LodgingSheet lodging={open.lodging} onClose={close} onMap={openMap} />}
+      {open?.kind === "planB" && <PlanBSheet date={date} planB={day.planB} onClose={close} onReplan={openReplan} />}
     </>
   );
 }
