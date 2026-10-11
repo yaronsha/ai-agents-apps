@@ -15,6 +15,7 @@ import {
   placeOf,
   quakeAlerts,
   reminderAlerts,
+  RULES,
   routeAlert,
   summarizeStop,
   thDate,
@@ -290,6 +291,12 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
     note("push", !unsent, pushError ?? (unsent ? `${why}, ננסה שוב בריצה הבאה` : undefined));
   } else {
     for (const m of messages) sent.add(m.key);
+    // Pushes that failed are retried only for RULES.staleHours; after that nothing is pending,
+    // so a red row would point at a retry that will never happen.
+    const last = sources.push;
+    if (last && !last.ok && now.getTime() - Date.parse(last.at) > RULES.staleHours * 3_600_000) {
+      note("push", true, "התראות שלא נשלחו קודם כבר לא רלוונטיות");
+    }
   }
   if (liveSubs.length !== subs.length) await store.saveSubs(liveSubs);
 

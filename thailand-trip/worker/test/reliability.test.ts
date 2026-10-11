@@ -55,6 +55,18 @@ describe("cron reliability", () => {
     expect(second.sources.push).toMatchObject({ ok: true });
   });
 
+  it("clears the failed push row once the failed pushes are too old to retry", async () => {
+    const kv = new FakeKV();
+    const env = await makeEnv(kv);
+    await kv.put("subs", JSON.stringify([await makeSubscription()]));
+    vi.stubGlobal("fetch", withPushStatus({ urls: [], pushes: 0 }, () => 503));
+
+    expect((await runCheck(env, thLocal("2026-11-26T12:00"))).sources.push.ok).toBe(false);
+    // Hours later the quake push is past RULES.staleHours, so no run tries it any more.
+    const later = await runCheck(env, thLocal("2026-11-26T23:30"));
+    expect(later.sources.push).toMatchObject({ ok: true, at: thLocal("2026-11-26T23:30").toISOString() });
+  });
+
   it("still saves the run when the VAPID key is broken, and shows it as the push source", async () => {
     const kv = new FakeKV();
     const env = { ...(await makeEnv(kv)), VAPID_PRIVATE_JWK: "not json" };
