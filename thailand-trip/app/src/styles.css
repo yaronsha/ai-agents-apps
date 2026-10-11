@@ -351,6 +351,20 @@ h3 {
   letter-spacing: 0.04em;
   color: var(--muted);
 }
+/* A section title with a small action at the end of the row */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 8px;
+}
+.section-head .section-title {
+  margin: 0;
+}
+.section-head .btn {
+  min-height: 44px;
+}
 .timeline {
   list-style: none;
   margin: 0 0 16px;

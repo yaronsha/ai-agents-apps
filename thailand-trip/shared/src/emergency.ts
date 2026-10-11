@@ -1,8 +1,14 @@
 // Checked on 2026-10-07: the Thai numbers against tourist guides, the Foreign Ministry situation room against
 // Israeli embassy pages (embassies.gov.il). A number marked verify: true is not confirmed yet.
+import { distanceKm } from "./trip";
+import type { LatLng } from "./types";
+
 export interface EmergencyNumber {
   labelHe: string;
+  /** What the phone dials, no spaces. */
   phone: string;
+  /** How to show it when `phone` is too long to read at a glance. */
+  display?: string;
   verify?: boolean;
 }
 
@@ -11,7 +17,7 @@ export const emergencyNumbers: EmergencyNumber[] = [
   { labelHe: "אמבולנס", phone: "1669" },
   { labelHe: "משטרה", phone: "191" },
   { labelHe: "כבאות", phone: "199" },
-  { labelHe: "חמ\"ל משרד החוץ (ישראל)", phone: "+97225303155" },
+  { labelHe: "חמ\"ל משרד החוץ (ישראל)", phone: "+97225303155", display: "+972 2 530 3155" },
 ];
 
 export const embassyUrl = "https://embassies.gov.il/thailand/en/contacts";
@@ -52,3 +58,8 @@ export const phrases: Phrase[] = [
   { he: "הכביש פתוח?", th: "ถนนเปิดไหม" },
   { he: "בלי חריף בבקשה", th: "ไม่เผ็ดครับ/ค่ะ" },
 ];
+
+/** Hospitals nearest first, each with its distance from `from` in km. */
+export function hospitalsByDistance(from: LatLng): (Hospital & { km: number })[] {
+  return hospitals.map((h) => ({ ...h, km: distanceKm(from, h) })).sort((a, b) => a.km - b.km);
+}
