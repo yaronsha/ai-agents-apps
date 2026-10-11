@@ -8,7 +8,7 @@ import { Icon } from "../icons";
 // from an Israeli SIM roaming in Thailand.
 const intlPhone = (local: string) => "+66" + local.replace(/-/g, "").replace(/^0/, "");
 
-type Locating = "idle" | "locating" | "failed";
+type Locating = "idle" | "locating" | "failed" | "denied";
 
 /**
  * The phone's position for sorting hospitals. Asks only on a tap, unless location was already allowed,
@@ -19,6 +19,7 @@ function useMyPosition() {
   const [status, setStatus] = useState<Locating>("idle");
 
   const locate = () => {
+    if (status === "locating") return;
     if (!navigator.geolocation) return setStatus("failed");
     setStatus("locating");
     navigator.geolocation.getCurrentPosition(
@@ -26,8 +27,10 @@ function useMyPosition() {
         setPos({ lat: p.coords.latitude, lng: p.coords.longitude });
         setStatus("idle");
       },
-      () => setStatus("failed"),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+      (err) => setStatus(err.code === err.PERMISSION_DENIED ? "denied" : "failed"),
+      // A network fix is enough to rank hospitals kilometres apart, and it comes back fast indoors or in a car,
+      // where waiting for GPS often runs past the timeout.
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
     );
   };
 
@@ -43,7 +46,8 @@ function useMyPosition() {
 
 export function Emergency({ date }: { date: string }) {
   const trip = useTrip();
-  const day = dayOf(trip, date)!;
+  // Never crash this screen on a date outside the trip: fall back to the first day.
+  const day = dayOf(trip, date) ?? trip.days[0];
   const me = useMyPosition();
   // Without the phone's position, fall back to the day's first stop.
   const nearest = hospitalsByDistance(me.pos ?? day.stops[0]);
@@ -84,12 +88,24 @@ export function Emergency({ date }: { date: string }) {
       </section>
 
       <div className="section-head">
-        <h2 className="section-title">{me.pos ? "בתי חולים, מהקרוב למיקום שלי" : "בתי חולים, מהקרוב לתוכנית של היום"}</h2>
-        <button className="btn" onClick={me.locate} disabled={me.status === "locating"}>
+        <h2 className="section-title" role="status">
+          {me.pos ? "בתי חולים, מהקרוב למיקום שלי" : "בתי חולים, מהקרוב לתוכנית של היום"}
+        </h2>
+        <button
+          className="btn"
+          onClick={me.locate}
+          aria-disabled={me.status === "locating"}
+          aria-busy={me.status === "locating"}
+        >
           {me.status === "locating" ? "מאתר..." : me.pos ? "רענון מיקום" : "לפי המיקום שלי"}
         </button>
       </div>
-      {me.status === "failed" && !me.pos && <p className="muted">לא הצלחנו לאתר את המיקום, אז הרשימה לפי התוכנית של היום.</p>}
+      <div role="status">
+        {!me.pos && me.status === "failed" && <p className="muted">לא הצלחנו לאתר את המיקום, אז הרשימה לפי התוכנית של היום.</p>}
+        {!me.pos && me.status === "denied" && (
+          <p className="muted">אין הרשאת מיקום. אפשר לאשר מיקום בהגדרות הדפדפן; עד אז הרשימה לפי התוכנית של היום.</p>
+        )}
+      </div>
       <section className="card list">
         {nearest.map((h) => (
           <div key={h.name} className="list-row">
