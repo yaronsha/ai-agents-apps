@@ -15,6 +15,7 @@ import {
   placeOf,
   quakeAlerts,
   reminderAlerts,
+  RULES,
   routeAlert,
   summarizeStop,
   thDate,
@@ -31,7 +32,7 @@ import {
 import { trip } from "@trip/shared/private";
 import type { Env } from "./env";
 import { Store } from "./store";
-import { sendToAll } from "./push";
+import { sendToAll, vapidKey } from "./push";
 import { fetchAir, fetchForecasts } from "./sources/openmeteo";
 import { fetchQuakes } from "./sources/usgs";
 import { fetchAdvisory } from "./sources/fcdo";
@@ -68,8 +69,26 @@ export interface RunOptions {
   dryRun?: boolean;
 }
 
+/**
+ * Two runs at once (a cron tick fired twice, or POST /api/run during the cron) would both read
+ * "sent" before either saves it and push the same alert twice. Each run leaves its start time
+ * here; a run starting within 10 minutes of another one returns the saved state instead.
+ * The time is the run's own (the cron's scheduled time), so the simulator's fast-forwarded
+ * ticks don't block each other. KV is eventually consistent, so this is a best effort, and it
+ * costs one write a run instead of two because the key expires on its own.
+ */
+export const RUN_LOCK = { key: "run:lock", ms: 10 * MIN } as const;
+
 export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Promise<TripState> {
   const store = new Store(env.TRIP_KV);
+  if (!opts.dryRun) {
+    const other = Number(await env.TRIP_KV.get(RUN_LOCK.key));
+    if (other && Math.abs(now.getTime() - other) < RUN_LOCK.ms) {
+      console.warn("another check started at", new Date(other).toISOString(), "- skipping this one");
+      return (await store.state()) ?? runCheck(env, now, { dryRun: true });
+    }
+    await env.TRIP_KV.put(RUN_LOCK.key, String(now.getTime()), { expirationTtl: RUN_LOCK.ms / 1000 });
+  }
   const today = thDate(now);
   const { hour, minute } = thParts(now);
   const hourly = minute < 15 || opts.dryRun;
@@ -251,13 +270,36 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   const digest = hour === 20 && !sent.has(`digest:${today}`) ? eveningDigest(trip, alerts, summaries, now) : null;
   if (digest) messages.push({ key: `digest:${today}`, msg: { title: digest.title, body: digest.body, url: "/#today", tag: `digest:${today}` } });
 
+  // A push is marked sent once a device got it, or when no device is left to get it. One that
+  // failed for every device (an outage at Apple or Google) is tried again on the next run, until
+  // RULES.staleHours drops it. A bad VAPID key fails them all here instead of throwing, so the
+  // rest of the run is still saved and the failure shows as the "push" source.
   let liveSubs = subs;
-  for (const m of messages) {
-    if (liveSubs.length) {
-      const { gone } = await sendToAll(env, liveSubs, m.msg);
-      liveSubs = liveSubs.filter((s) => !gone.includes(s.endpoint));
+  let unsent = 0;
+  let pushError: string | undefined;
+  if (messages.length && subs.length) {
+    try {
+      const jwk = vapidKey(env);
+      for (const m of messages) {
+        const res = liveSubs.length ? await sendToAll(env, liveSubs, m.msg, jwk) : { sent: 0, gone: [], failed: 0 };
+        liveSubs = liveSubs.filter((s) => !res.gone.includes(s.endpoint));
+        if (res.sent > 0 || res.failed === 0) sent.add(m.key);
+        else unsent++;
+      }
+    } catch (err) {
+      pushError = String(err);
+      unsent = messages.length;
     }
-    sent.add(m.key);
+    const why = unsent === 1 ? "התראה אחת לא נשלחה" : `${unsent} התראות לא נשלחו`;
+    note("push", !unsent, pushError ?? (unsent ? `${why}, ננסה שוב בריצה הבאה` : undefined));
+  } else {
+    for (const m of messages) sent.add(m.key);
+    // Pushes that failed are retried only for RULES.staleHours; after that nothing is pending,
+    // so a red row would point at a retry that will never happen.
+    const last = sources.push;
+    if (last && !last.ok && now.getTime() - Date.parse(last.at) > RULES.staleHours * 3_600_000) {
+      note("push", true, "התראות שלא נשלחו קודם כבר לא רלוונטיות");
+    }
   }
   await store.removeSubs(subs.filter((s) => !liveSubs.includes(s)).map((s) => s.endpoint));
 

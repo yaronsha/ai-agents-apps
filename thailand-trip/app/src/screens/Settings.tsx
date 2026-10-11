@@ -15,6 +15,7 @@ const SOURCES = (trip: Trip): { key: string; he: string; when: string }[] => [
   { key: "quakes", he: "רעידות אדמה", when: `מ-${shortDay(trip.days[0].date)}` },
   { key: "routes", he: "זמני נסיעה", when: "לפני כל נסיעה" },
   { key: "flights", he: "טיסות", when: "יום לפני כל טיסה" },
+  { key: "push", he: "שליחת התראות לטלפון", when: "כשיש התראה" },
 ];
 
 export function Settings({ live, refresh }: { live: Live; refresh: () => void }) {

@@ -5,6 +5,7 @@ import { thDate, thParts } from "@trip/shared";
 import { trip } from "@trip/shared/private";
 import type { Env } from "./env";
 import { Store } from "./store";
+import { withTimeout } from "./sources/http";
 import { fetchArticles, type Article } from "./sources/gdelt";
 import { fetchGoogleNews } from "./sources/googlenews";
 import { aiProvider, triageNews } from "./ai";
@@ -64,15 +65,6 @@ const ROUTE = new RegExp(`(?<!\\w)(${PLACES.map(escape).join("|")})(?!\\w)`, "i"
 function published(seendate: string): number {
   const m = seendate.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
   return Date.parse(m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : seendate);
-}
-
-/** The source functions take no signal, so the timeout races them instead of aborting the request. */
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  const signal = AbortSignal.timeout(ms);
-  return Promise.race([
-    p,
-    new Promise<never>((_, reject) => signal.addEventListener("abort", () => reject(new Error(`timeout after ${ms / 1000} s`)))),
-  ]);
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

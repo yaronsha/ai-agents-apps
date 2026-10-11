@@ -63,6 +63,7 @@ npx wrangler secret put ANTHROPIC_API_KEY    # optional, when AI_PROVIDER = "cla
 npx wrangler secret put OPENAI_API_KEY       # optional, when AI_PROVIDER = "openai"
 npx wrangler secret put GOOGLE_MAPS_KEY      # optional, Routes API enabled
 npx wrangler secret put RAPIDAPI_KEY         # optional, subscribed to AeroDataBox
+npx wrangler secret put HEARTBEAT_URL        # optional, a healthchecks.io ping URL: emails when the cron stops
 npm run deploy
 ```
 

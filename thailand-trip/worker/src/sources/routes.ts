@@ -1,11 +1,12 @@
 // Google Routes API, traffic-aware (billed as Compute Routes Pro). Needs GOOGLE_MAPS_KEY.
 import type { LatLng, RouteReading } from "@trip/shared";
+import { fetchWithTimeout } from "./http";
 
 const waypoint = (p: LatLng) => ({ location: { latLng: { latitude: p.lat, longitude: p.lng } } });
 const seconds = (s: string) => Number(s.replace("s", ""));
 
 export async function fetchDriveTime(key: string, from: LatLng, to: LatLng, now: Date): Promise<RouteReading> {
-  const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+  const res = await fetchWithTimeout("https://routes.googleapis.com/directions/v2:computeRoutes", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

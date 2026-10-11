@@ -56,6 +56,12 @@ export function toNewsItems(parsed: z.infer<typeof Triage> | null, articles: Art
     }));
 }
 
+/**
+ * News triage runs before the roads and flights checks in the same cron run, so a slow model
+ * must not hold them up: the SDK default is 10 minutes and 2 retries.
+ */
+export const TRIAGE_REQUEST = { timeout: 20_000, maxRetries: 1 } as const;
+
 export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
   if (!articles.length) return [];
   const response = await client(env).messages.parse({
@@ -64,7 +70,7 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
     system: TRIAGE_SYSTEM,
     messages: [{ role: "user", content: triagePrompt(trip, today, articles) }],
     output_config: { format: zodOutputFormat(Triage) },
-  });
+  }, TRIAGE_REQUEST);
   return toNewsItems(response.parsed_output, articles, today);
 }
 
