@@ -1,6 +1,7 @@
 import { trip, tripPrivateData } from "@trip/shared/private";
 import type { Env } from "./env";
-import { runCheck } from "./engine";
+import { thDate, thLocal } from "@trip/shared";
+import { DAILY_CAPS, replanBudgetKey, runCheck } from "./engine";
 import { runShadow, shadowLog } from "./shadow";
 import { Store } from "./store";
 import { sendToAll, type PushSubscriptionJSON } from "./push";
@@ -15,6 +16,25 @@ const CORS = {
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json; charset=utf-8", ...CORS } });
+
+/** The request body as a JSON object, or null when it isn't one (the route answers 400, not 500). */
+async function readJson<T>(req: Request): Promise<Partial<T> | null> {
+  try {
+    const body: unknown = await req.json();
+    return body && typeof body === "object" ? (body as Partial<T>) : null;
+  } catch {
+    return null;
+  }
+}
+const badBody = () => json({ error: "גוף הבקשה אינו JSON תקין" }, 400);
+
+/** A preview moment in Thai time, exactly like 2026-11-26T12:00; null for anything else. */
+export function parsePreviewAt(at: string | null): Date | null {
+  if (!at || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(at)) return null;
+  const date = thLocal(at);
+  // Rejects impossible moments such as 2026-02-30T10:00, which Date would roll over to March.
+  return Number.isNaN(date.getTime()) || new Date(date.getTime() + 7 * 3600_000).toISOString().slice(0, 16) !== at ? null : date;
+}
 
 const hasToken = (req: Request, env: Env) => Boolean(env.APP_TOKEN) && req.headers.get("X-Trip-Token") === env.APP_TOKEN;
 
@@ -58,15 +78,18 @@ export default {
 
     switch (url.pathname) {
       case "/api/subscribe": {
-        const sub = (await req.json()) as PushSubscriptionJSON;
-        if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) return json({ error: "bad subscription" }, 400);
-        const subs = (await store.subs()).filter((s) => s.endpoint !== sub.endpoint);
-        await store.saveSubs([...subs, sub]);
-        return json({ ok: true, devices: subs.length + 1 });
+        const sub = await readJson<PushSubscriptionJSON>(req);
+        if (!sub) return badBody();
+        if (typeof sub.endpoint !== "string" || !sub.endpoint.startsWith("https://") || typeof sub.keys?.p256dh !== "string" || typeof sub.keys?.auth !== "string")
+          return json({ error: "bad subscription" }, 400);
+        await store.addSub(sub as PushSubscriptionJSON);
+        return json({ ok: true, devices: (await store.subs()).length });
       }
       case "/api/unsubscribe": {
-        const { endpoint } = (await req.json()) as { endpoint: string };
-        await store.saveSubs((await store.subs()).filter((s) => s.endpoint !== endpoint));
+        const body = await readJson<{ endpoint: string }>(req);
+        if (!body) return badBody();
+        if (typeof body.endpoint !== "string") return json({ error: "bad subscription" }, 400);
+        await store.removeSubs([body.endpoint]);
         return json({ ok: true });
       }
       case "/api/test-push": {
@@ -80,17 +103,26 @@ export default {
       }
       case "/api/run": {
         // ?at=2026-11-26T12:00 previews the engine at another moment, without pushing or saving.
-        const at = url.searchParams.get("at");
-        const now = at ? new Date(`${at}:00+07:00`) : new Date();
-        return json(await runCheck(env, now, { dryRun: Boolean(at) }));
+        // Only previews: a real check spends paid budget and sends pushes, and that is the cron's job.
+        const now = parsePreviewAt(url.searchParams.get("at"));
+        if (!now) return json({ error: "צריך רגע לתצוגה מקדימה בפורמט 2026-11-26T12:00" }, 400);
+        return json(await runCheck(env, now, { dryRun: true }));
       }
       case "/api/replan": {
         if (!aiProvider(env)) return json({ error: env.AI_PROVIDER?.toLowerCase() === "openai" ? "אין מפתח OpenAI בשרת" : "אין מפתח Claude בשרת" }, 400);
-        const { date, problem } = (await req.json()) as { date: string; problem?: string };
+        const body = await readJson<{ date: string; problem: string }>(req);
+        if (!body) return badBody();
+        const { date, problem } = body;
         if (!trip.days.some((d) => d.date === date)) return json({ error: "תאריך לא בטיול" }, 400);
+        if (problem !== undefined && (typeof problem !== "string" || problem.length > 2000)) return json({ error: "תיאור הבעיה ארוך מדי" }, 400);
+        // Every tap is a large model call, so it counts against a daily cap even when the call fails.
+        const budgetKey = replanBudgetKey(thDate(new Date()));
+        const used = await store.json<number>(budgetKey, 0);
+        if (used >= DAILY_CAPS.replan) return json({ error: `הגעתם למכסה היומית של ${DAILY_CAPS.replan} תכנונים מחדש. אפשר שוב מחר` }, 429);
+        await env.TRIP_KV.put(budgetKey, JSON.stringify(used + 1), { expirationTtl: 3 * 86400 });
         const state = await store.state();
         try {
-          return json({ text: await replan(env, trip, date, state?.alerts ?? [], problem ?? "") });
+          return json({ text: await replan(env, trip, date as string, state?.alerts ?? [], problem ?? "") });
         } catch (err) {
           // e.g. out of credits (429) or an outage: say so in the app rather than a bare network error.
           const status = (err as { status?: number }).status;

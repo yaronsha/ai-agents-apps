@@ -15,6 +15,12 @@ export class FakeKV {
     if (options) this.options.set(key, options);
     this.data.set(key, value);
   }
+  async delete(key: string) {
+    this.data.delete(key);
+  }
+  async list({ prefix }: { prefix: string }) {
+    return { keys: [...this.data.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true };
+  }
 }
 
 /** Hourly forecast for one location over the requested dates, with rain on the afternoon of `wetDate`. */

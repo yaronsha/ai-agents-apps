@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { aiProvider, replan, translateAdvisory, triageNews } from "../src/ai";
+import { DAILY_CAPS } from "../src/engine";
 import worker from "../src/index";
 import { FakeKV, makeEnv, trip } from "./fakes";
 
@@ -90,6 +91,26 @@ describe("ai provider", () => {
     expect(await res.json()).toEqual({ text: "לצאת ב־8:00 במקום 9:00." });
     expect(seen[0].body.model).toBe("gpt-5.5");
     expect(String(seen[0].body.input)).toContain("מה קרה: גשם");
+  });
+
+  it("caps re-plans per day and counts failed ones too", async () => {
+    const kv = new FakeKV();
+    const env = { ...(await makeEnv(kv)), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    const seen: Array<{ url: string; body: Record<string, unknown> }> = [];
+    vi.stubGlobal("fetch", stubOpenAI("תוכנית", seen));
+    const ask = () =>
+      worker.fetch(new Request("https://w/api/replan", { method: "POST", headers: { "X-Trip-Token": "secret" }, body: JSON.stringify({ date: day }) }), env);
+    for (let i = 0; i < DAILY_CAPS.replan; i++) expect((await ask()).status).toBe(200);
+    const res = await ask();
+    expect(res.status).toBe(429);
+    expect(((await res.json()) as { error: string }).error).toContain("מכסה היומית");
+    expect(seen).toHaveLength(DAILY_CAPS.replan);
+  });
+
+  it("answers 400, not 500, to a body that isn't JSON", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    const res = await worker.fetch(new Request("https://w/api/replan", { method: "POST", headers: { "X-Trip-Token": "secret" }, body: "{oops" }), env);
+    expect(res.status).toBe(400);
   });
 
   it("says when OpenAI is chosen but has no key", async () => {
