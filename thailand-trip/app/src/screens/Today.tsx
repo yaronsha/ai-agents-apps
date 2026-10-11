@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { dayOf, googleMapsDirections, hhmm, placeInfo, placeOf, type Drive, type Lodging, type Stop, type StopForecast } from "@trip/shared";
+import { dayOf, googleMapsDirections, hhmm, placeInfo, placeOf, thDate, type Drive, type Lodging, type Reminder, type Stop, type StopForecast } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../App";
-import { ago, dayLabel, statusText } from "../format";
+import { ago, dayLabel, shortDay, statusText } from "../format";
 import { Icon } from "../icons";
 import { useInstallPrompt } from "../installPrompt";
 import { InstallPrompt } from "./InstallPrompt";
@@ -39,6 +39,7 @@ function StopRow({ stop, f, open }: { stop: Stop; f?: StopForecast; open: () => 
             ניווט
           </a>
         </div>
+        {stop.noteHe && <div className="note">{stop.noteHe}</div>}
       </div>
     </li>
   );
@@ -73,6 +74,12 @@ function LodgingRow({ lodging, open }: { lodging: Lodging; open: () => void }) {
       </div>
     </li>
   );
+}
+
+/** The day's reminders that fall after the previous stop starts and no later than this one. */
+function remindersBefore(stops: Stop[], reminders: Reminder[], stop: Stop): Reminder[] {
+  const prev = stops.filter((s) => s.start < stop.start).at(-1)?.start ?? "";
+  return reminders.filter((r) => r.at > prev && r.at <= stop.start);
 }
 
 type Open = { kind: "stop"; stop: Stop } | { kind: "lodging"; lodging: Lodging } | { kind: "planB" } | null;
@@ -132,7 +139,7 @@ export function Today({
       </button>
       {troubled && day.planB.length > 0 && (
         <button className={`planb-cta ${status}`} onClick={() => setOpen({ kind: "planB" })}>
-          <span>תוכנית ב' מוכנה להיום</span>
+          <span>תוכנית ב' מוכנה {date === thDate(new Date()) ? "להיום" : `ל-${shortDay(date)}`}</span>
           <Icon name="chevron" size={18} />
         </button>
       )}
@@ -156,7 +163,9 @@ export function Today({
         </button>
       )}
 
-      {open?.kind === "stop" && <StopSheet stop={open.stop} date={date} onClose={close} onMap={openMap} />}
+      {open?.kind === "stop" && (
+        <StopSheet stop={open.stop} date={date} reminders={remindersBefore(day.stops, day.reminders, open.stop)} onClose={close} onMap={openMap} />
+      )}
       {open?.kind === "lodging" && <LodgingSheet lodging={open.lodging} onClose={close} onMap={openMap} />}
       {open?.kind === "planB" && <PlanBSheet date={date} planB={day.planB} onClose={close} onReplan={openReplan} />}
     </>

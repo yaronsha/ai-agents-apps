@@ -488,6 +488,7 @@ h3 {
   color: var(--bad);
 }
 button.link.planb-link {
+  min-height: 44px;
   color: var(--muted);
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -587,6 +588,11 @@ dialog.sheet::backdrop {
 }
 .sheet-plan strong {
   color: var(--accent);
+}
+.sheet-reminder {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
 }
 .sheet-option {
   margin: 10px 0;
@@ -1120,7 +1126,8 @@ button.sheet-chips {
   text-align: right;
 }
 .popup-more {
-  margin-top: 6px;
+  min-height: 44px;
+  margin-top: 2px;
   padding: 8px 0;
   border: 0;
   background: none;

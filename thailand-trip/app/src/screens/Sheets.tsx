@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { googleMapsDirections, hhmm, placeInfo, thDate, type LatLng, type Lodging, type Stop } from "@trip/shared";
+import { googleMapsDirections, hhmm, placeInfo, thDate, type LatLng, type Lodging, type Reminder, type Stop } from "@trip/shared";
 import { shortDay } from "../format";
 import { Icon } from "../icons";
 
@@ -53,7 +53,20 @@ function PlaceActions({ at, onMap }: { at: LatLng; onMap?: () => void }) {
   );
 }
 
-export function StopSheet({ stop, date, onClose, onMap }: { stop: Stop; date: string; onClose: () => void; onMap?: () => void }) {
+export function StopSheet({
+  stop,
+  date,
+  reminders = [],
+  onClose,
+  onMap,
+}: {
+  stop: Stop;
+  date: string;
+  /** Reminders before this stop, also shown here for anyone without push notifications. */
+  reminders?: Reminder[];
+  onClose: () => void;
+  onMap?: () => void;
+}) {
   const info = placeInfo(stop.id);
   return (
     <Sheet label={stop.nameHe} onClose={onClose} actions={<PlaceActions at={stop} onMap={onMap} />}>
@@ -74,6 +87,14 @@ export function StopSheet({ stop, date, onClose, onMap }: { stop: Stop; date: st
         </strong>
         {stop.noteHe && ` ${stop.noteHe}`}
       </p>
+      {reminders.map((r) => (
+        <p className="sheet-reminder" key={r.id}>
+          <strong>
+            תזכורת <bdi dir="ltr">{hhmm(r.at)}</bdi>:
+          </strong>{" "}
+          {r.textHe}
+        </p>
+      ))}
       {info?.tipsHe && (
         <>
           <h3>לפני שהולכים</h3>
