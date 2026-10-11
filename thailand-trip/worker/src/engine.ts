@@ -43,8 +43,11 @@ import { aiProvider, translateAdvisory, triageNews } from "./ai";
 const MIN = 60_000;
 
 /** Daily caps on paid calls, so a bug can never run up a bill. */
-export const DAILY_CAPS = { routes: 100, flights: 60, claude: 60 } as const;
-type Budget = Record<keyof typeof DAILY_CAPS, number>;
+export const DAILY_CAPS = { routes: 100, flights: 60, claude: 60, replan: 20 } as const;
+// Re-plan is counted by its route under its own key (`replanBudgetKey`), so a cron run saving
+// this day's budget can't overwrite a tap made meanwhile.
+type Budget = Record<Exclude<keyof typeof DAILY_CAPS, "replan">, number>;
+export const replanBudgetKey = (date: string) => `budget:replan:${date}`;
 
 interface WeatherCache {
   at: number;
@@ -256,7 +259,7 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
     }
     sent.add(m.key);
   }
-  if (liveSubs.length !== subs.length) await store.saveSubs(liveSubs);
+  await store.removeSubs(subs.filter((s) => !liveSubs.includes(s)).map((s) => s.endpoint));
 
   await store.putIfChanged("sent", [...sent].slice(-400), sentBefore);
   await store.putIfChanged(budgetKey, budget, budgetBefore);

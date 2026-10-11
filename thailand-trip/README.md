@@ -27,7 +27,7 @@ Screens: **היום** (today's timeline with forecast per stop and a green/yello
 | AeroDataBox (RapidAPI) | Delays, gate changes, cancellations | Paid, optional |
 | Claude API or OpenAI API | News triage and "re-plan for me" (pick one with `AI_PROVIDER`) | Paid, optional |
 
-Every paid source is optional; without its key the app simply skips it. Daily caps in `worker/src/engine.ts` (`DAILY_CAPS`: 100 route calls, 60 flight calls, 60 news-triage calls) stop a bug from running up a bill.
+Every paid source is optional; without its key the app simply skips it. Daily caps in `worker/src/engine.ts` (`DAILY_CAPS`: 100 route calls, 60 flight calls, 60 news-triage calls, 20 re-plans) stop a bug from running up a bill.
 
 ## Privacy
 
