@@ -83,7 +83,9 @@ export default {
         if (typeof sub.endpoint !== "string" || !sub.endpoint.startsWith("https://") || typeof sub.keys?.p256dh !== "string" || typeof sub.keys?.auth !== "string")
           return json({ error: "bad subscription" }, 400);
         await store.addSub(sub as PushSubscriptionJSON);
-        return json({ ok: true, devices: (await store.subs()).length });
+        // KV list is eventually consistent, so the key just written may not be listed yet.
+        const devices = new Set([...(await store.subs()).map((s) => s.endpoint), sub.endpoint]).size;
+        return json({ ok: true, devices });
       }
       case "/api/unsubscribe": {
         const body = await readJson<{ endpoint: string }>(req);
@@ -114,7 +116,8 @@ export default {
         if (!body) return badBody();
         const { date, problem } = body;
         if (!trip.days.some((d) => d.date === date)) return json({ error: "תאריך לא בטיול" }, 400);
-        if (problem !== undefined && (typeof problem !== "string" || problem.length > 2000)) return json({ error: "תיאור הבעיה ארוך מדי" }, 400);
+        if (problem != null && typeof problem !== "string") return json({ error: "תיאור הבעיה אינו טקסט" }, 400);
+        if (problem && problem.length > 2000) return json({ error: "תיאור הבעיה ארוך מדי" }, 400);
         // Every tap is a large model call, so it counts against a daily cap even when the call fails.
         const budgetKey = replanBudgetKey(thDate(new Date()));
         const used = await store.json<number>(budgetKey, 0);

@@ -27,7 +27,8 @@ export class Store {
       cursor = page.list_complete ? undefined : page.cursor;
     } while (cursor);
     const keyed = (await Promise.all(keys.map((k) => this.kv.get(k, "json")))) as (PushSubscriptionJSON | null)[];
-    const all = [...legacy, ...keyed.filter((s): s is PushSubscriptionJSON => Boolean(s))];
+    // A fresh per-device registration wins over an older entry for the same device in the old list.
+    const all = [...keyed.filter((s): s is PushSubscriptionJSON => Boolean(s)), ...legacy];
     return all.filter((s, i) => all.findIndex((x) => x.endpoint === s.endpoint) === i);
   }
   async addSub(sub: PushSubscriptionJSON) {
