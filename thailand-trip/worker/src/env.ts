@@ -19,6 +19,12 @@ export interface Env {
   OPENAI_API_KEY?: string;
   GOOGLE_MAPS_KEY?: string;
   RAPIDAPI_KEY?: string;
+  /**
+   * Optional outside heartbeat, e.g. a healthchecks.io ping URL ("https://hc-ping.com/<uuid>").
+   * Pinged after every cron run, with "/fail" when the run threw or pushes could not be sent,
+   * so someone gets an email when the cron stops running or stops reaching the phones.
+   */
+  HEARTBEAT_URL?: string;
   /** News shadow mode (worker/src/shadow.ts): "on" (default) logs candidate news sources hourly; "off" stops it. */
   SHADOW_NEWS?: string;
   /** "on" also triages each shadow source's past-day headlines once a day (about 2 AI calls). Default "off". */

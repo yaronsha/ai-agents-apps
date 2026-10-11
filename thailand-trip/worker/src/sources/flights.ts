@@ -1,5 +1,6 @@
 // AeroDataBox (via RapidAPI) flight status by number. Needs RAPIDAPI_KEY.
 import type { Flight, FlightStatus } from "@trip/shared";
+import { fetchWithTimeout } from "./http";
 
 interface Movement {
   airport?: { iata?: string };
@@ -18,7 +19,7 @@ const ms = (utc?: string) => (utc ? Date.parse(utc.replace(" ", "T").replace(/Z?
 export async function fetchFlightStatus(key: string, flight: Flight): Promise<FlightStatus | null> {
   if (!flight.number || !flight.departLocal) return null;
   const date = flight.departLocal.slice(0, 10);
-  const res = await fetch(`https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.number)}/${date}`, {
+  const res = await fetchWithTimeout(`https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.number)}/${date}`, {
     headers: { "X-RapidAPI-Key": key, "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com" },
   });
   if (res.status === 204 || res.status === 404) return null;

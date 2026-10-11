@@ -37,3 +37,5 @@ SHADOW_AI = "off"
 #   OPENAI_API_KEY      optional: the same when AI_PROVIDER = "openai"
 #   GOOGLE_MAPS_KEY     optional: live drive times (Routes API)
 #   RAPIDAPI_KEY        optional: flight status (AeroDataBox on RapidAPI)
+#   HEARTBEAT_URL       optional: a healthchecks.io ping URL (period 15 min, grace 30 min); it emails when
+#                       the cron stops running or a run fails or can't push, so silence never goes unnoticed

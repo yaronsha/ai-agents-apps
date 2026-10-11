@@ -1,3 +1,4 @@
+import type { TripState } from "@trip/shared";
 import { trip, tripPrivateData } from "@trip/shared/private";
 import type { Env } from "./env";
 import { runCheck } from "./engine";
@@ -6,6 +7,7 @@ import { Store } from "./store";
 import { sendToAll, type PushSubscriptionJSON } from "./push";
 import { aiProvider, replan } from "./ai";
 import { accessEmail, accessEnabled } from "./access";
+import { fetchWithTimeout } from "./sources/http";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -105,7 +107,17 @@ export default {
   // (sim/) play a whole trip day through the real handler in seconds.
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
     const now = new Date(event.scheduledTime);
-    const state = await runCheck(env, now);
+    let state: TripState;
+    try {
+      state = await runCheck(env, now);
+    } catch (err) {
+      await heartbeat(env, false, `check failed: ${String(err)}`);
+      throw err;
+    }
+    // The push row is kept between runs; only a failure in this run counts.
+    const push = state.sources.push;
+    const pushFailed = push?.ok === false && push.at === now.toISOString();
+    await heartbeat(env, !pushFailed, pushFailed ? `push: ${push.note ?? "failed"}` : "ok");
     // News shadow mode only logs; whatever goes wrong there must not fail the real check.
     try {
       await runShadow(env, now, { gdeltCalled: "news" in state.sources });
@@ -114,3 +126,16 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env>;
+
+/**
+ * Tells the outside heartbeat (HEARTBEAT_URL) how the cron run went. When the pings stop or say
+ * "fail", it emails: the app itself only shows "not updated" once someone opens it.
+ */
+async function heartbeat(env: Env, ok: boolean, message: string): Promise<void> {
+  if (!env.HEARTBEAT_URL) return;
+  try {
+    await fetchWithTimeout(`${env.HEARTBEAT_URL.replace(/\/+$/, "")}${ok ? "" : "/fail"}`, { method: "POST", body: message.slice(0, 1000) }, 5_000);
+  } catch (err) {
+    console.warn("heartbeat", err);
+  }
+}

@@ -3,7 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type { NewsItem, Trip, TripAlert } from "@trip/shared";
 import type { Article } from "./sources/gdelt";
 import type { Env } from "./env";
-import { ADVISORY_SYSTEM, REPLAN_REFUSED, REPLAN_SYSTEM, replanPrompt, toNewsItems, Triage, TRIAGE_SYSTEM, triagePrompt } from "./claude";
+import { ADVISORY_SYSTEM, REPLAN_REFUSED, REPLAN_SYSTEM, replanPrompt, toNewsItems, Triage, TRIAGE_REQUEST, TRIAGE_SYSTEM, triagePrompt } from "./claude";
 
 // The same prompts and answer shape as ./claude, sent to OpenAI's Responses API.
 
@@ -21,7 +21,7 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
     instructions: TRIAGE_SYSTEM,
     input: triagePrompt(trip, today, articles),
     text: { format: zodTextFormat(Triage, "triage") },
-  });
+  }, TRIAGE_REQUEST);
   if (response.status === "incomplete") throw new Error(`OpenAI triage incomplete: ${response.incomplete_details?.reason ?? "unknown"}`);
   return toNewsItems(Triage.parse(JSON.parse(response.output_text)), articles, today);
 }
