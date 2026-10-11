@@ -9,7 +9,7 @@ const record = <T>(v: unknown) => (isObject(v) ? (v as Record<string, T>) : {});
  * Anything that is not a state at all gives null.
  */
 export function toTripState(raw: unknown): TripState | null {
-  if (!isObject(raw) || typeof raw.generatedAt !== "string" || !Array.isArray(raw.alerts)) return null;
+  if (!isObject(raw) || typeof raw.generatedAt !== "string" || Number.isNaN(Date.parse(raw.generatedAt)) || !Array.isArray(raw.alerts)) return null;
   return {
     generatedAt: raw.generatedAt,
     alerts: raw.alerts.filter((a): a is TripAlert => isObject(a) && typeof a.date === "string" && typeof a.category === "string"),

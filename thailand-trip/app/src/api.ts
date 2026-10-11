@@ -89,7 +89,9 @@ export async function loadState(): Promise<{ state: TripState | null; offline: b
   try {
     const state = toTripState(await call<unknown>("/api/state"));
     if (!state) throw new Error("תשובה לא תקינה מהשרת");
-    write(KEYS.state, JSON.stringify(state));
+    // Two refreshes can overlap; a slower, older answer must not replace a newer saved copy.
+    const saved = parseTripState(read(KEYS.state));
+    if (!saved || saved.generatedAt <= state.generatedAt) write(KEYS.state, JSON.stringify(state));
     return { state, offline: false, stale: Date.now() - Date.parse(state.generatedAt) > STALE_MS };
   } catch (err) {
     return { state: parseTripState(read(KEYS.state)), offline: true, stale: true, error: errorText(err) };

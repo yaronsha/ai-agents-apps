@@ -14,11 +14,12 @@ describe("parseTripState", () => {
     expect(parseTripState("null")).toBeNull();
     expect(parseTripState(JSON.stringify({ hello: 1 }))).toBeNull();
     expect(parseTripState(null)).toBeNull();
+    expect(parseTripState(JSON.stringify({ generatedAt: "not a date", alerts: [] }))).toBeNull();
   });
 
   it("drops alerts that are not alerts", () => {
     const alert = { id: "a", category: "weather", severity: "info", date: "2026-11-22", titleHe: "", bodyHe: "", pushAt: [], digest: false };
-    const s = toTripState({ generatedAt: "x", alerts: [alert, null, "x", { id: "b" }], sources: [] });
+    const s = toTripState({ generatedAt: "2026-11-22T08:00:00Z", alerts: [alert, null, "x", { id: "b" }], sources: [] });
     expect(s?.alerts).toEqual([alert]);
     expect(s?.sources).toEqual({});
   });
