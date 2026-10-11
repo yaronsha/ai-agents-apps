@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Trip } from "@trip/shared";
-import type { Live } from "../App";
+import type { Live } from "../live";
 import { enablePush, errorText, previewAt, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
 import { ago, shortDay } from "../format";
 import { useTrip } from "../tripContext";
@@ -29,7 +29,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
   const trip = useTrip();
 
   useEffect(() => {
-    pushEnabled().then(setPush);
+    pushEnabled().then(setPush, () => setPush(false));
     // Older servers don't say; treat them as access-code servers.
     serverConfig().then(
       (c) => {
@@ -82,7 +82,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
           <>
             <p>{push ? "המכשיר הזה רשום להתראות." : "המכשיר הזה עוד לא רשום."}</p>
             <div className="row">
-              <button className="primary" onClick={() => run(async () => `נרשם. ${await enablePush()} מכשירים רשומים.`).then(() => pushEnabled().then(setPush))}>
+              <button className="primary" onClick={() => run(async () => `נרשם. ${await enablePush()} מכשירים רשומים.`).then(() => pushEnabled().then(setPush, () => setPush(false)))}>
                 {push ? "רישום מחדש" : "הפעלת התראות"}
               </button>
               <button onClick={() => run(async () => `נשלח ל-${(await testPush()).sent} מכשירים`)}>שליחת התראת בדיקה</button>
@@ -106,7 +106,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
           <h2>מה האפליקציה בודקת</h2>
           <ul className="sources">
             {SOURCES(trip).map(({ key, he, when }) => {
-              const s = live.state!.sources[key];
+              const s = live.state?.sources?.[key];
               return (
                 <li key={key}>
                   <span className={`dot ${s ? (s.ok ? "ok" : "bad") : "wait"}`} />

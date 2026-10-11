@@ -4,6 +4,7 @@ import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
 import { CacheFirst } from "workbox-strategies";
 import { CacheExpiration, ExpirationPlugin } from "workbox-expiration";
+import { readPushPayload } from "./pushPayload";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -44,7 +45,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  const data = (event.data?.json() ?? {}) as { title?: string; body?: string; url?: string; tag?: string };
+  const data = readPushPayload(event.data);
   event.waitUntil(
     self.registration.showNotification(data.title ?? "צפון תאילנד", {
       body: data.body,

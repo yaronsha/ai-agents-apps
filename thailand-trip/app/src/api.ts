@@ -1,4 +1,5 @@
 import type { TripPrivate, TripState } from "@trip/shared";
+import { parseTripState, toTripState } from "./tripState";
 
 const KEYS = {
   api: "trip.devApiUrl",
@@ -86,12 +87,12 @@ export function errorText(err: unknown): string {
 /** Live state from the worker; falls back to the last copy saved on the phone when offline. */
 export async function loadState(): Promise<{ state: TripState | null; offline: boolean; stale: boolean; error?: string }> {
   try {
-    const state = await call<TripState>("/api/state");
+    const state = toTripState(await call<unknown>("/api/state"));
+    if (!state) throw new Error("תשובה לא תקינה מהשרת");
     write(KEYS.state, JSON.stringify(state));
     return { state, offline: false, stale: Date.now() - Date.parse(state.generatedAt) > STALE_MS };
   } catch (err) {
-    const saved = read(KEYS.state);
-    return { state: saved ? (JSON.parse(saved) as TripState) : null, offline: true, stale: true, error: errorText(err) };
+    return { state: parseTripState(read(KEYS.state)), offline: true, stale: true, error: errorText(err) };
   }
 }
 

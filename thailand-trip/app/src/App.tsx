@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import { defaultDate, publicTrip, thDate, withPrivate, type TripState } from "@trip/shared";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { defaultDate, publicTrip, thDate, withPrivate } from "@trip/shared";
 import { cachedPrivate, loadPrivate, loadState } from "./api";
+import type { Live } from "./live";
 import { TripContext } from "./tripContext";
 import { Today } from "./screens/Today";
 import { MapView } from "./screens/MapView";
@@ -38,24 +39,19 @@ const tabFromHash = (): Tab => {
   return (TABS.find((t) => t.id === h)?.id ?? "today") as Tab;
 };
 
-export interface Live {
-  state: TripState | null;
-  offline: boolean;
-  /** The server answered, but its data is old (the cron may have stopped). */
-  stale?: boolean;
-  error?: string;
-  loading: boolean;
-}
-
 export function App() {
   const [tab, setTab] = useState<Tab>(tabFromHash);
   const [date, setDate] = useState(() => defaultDate(publicTrip, new Date()));
   const [trip, setTrip] = useState(() => withPrivate(publicTrip, cachedPrivate()));
   const [live, setLive] = useState<Live>({ state: null, offline: false, loading: true });
 
+  // Coming back to the app and tapping refresh can overlap; only the newest request may write.
+  const lastRefresh = useRef(0);
   const refresh = useCallback(async () => {
+    const id = ++lastRefresh.current;
     setLive((l) => ({ ...l, loading: true }));
     const [r, priv] = await Promise.all([loadState(), loadPrivate()]);
+    if (id !== lastRefresh.current) return;
     setLive({ ...r, loading: false });
     if (priv) setTrip(withPrivate(publicTrip, priv));
   }, []);
