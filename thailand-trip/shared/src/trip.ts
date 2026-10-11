@@ -32,6 +32,11 @@ export function defaultDate(trip: Trip, now: Date): string {
   return today;
 }
 
+/** The day for `date`, or the day the app opens on when `date` is not part of the trip, so a screen never gets undefined. */
+export function dayOrDefault(trip: Trip, date: string, now = new Date()): Day {
+  return dayOf(trip, date) ?? dayOf(trip, defaultDate(trip, now)) ?? trip.days[0];
+}
+
 /** Days from `now` that the engine watches closely (today and tomorrow, Thailand time). */
 export function watchedDates(now: Date): string[] {
   const today = thDate(now);

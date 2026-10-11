@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { dayOf, googleMapsDirections, hhmm, placeInfo, placeOf, thDate, type Drive, type Lodging, type Reminder, type Stop, type StopForecast } from "@trip/shared";
+import { dayOrDefault, googleMapsDirections, hhmm, placeInfo, placeOf, thDate, type Drive, type Lodging, type Reminder, type Stop, type StopForecast } from "@trip/shared";
 import { useTrip } from "../tripContext";
-import type { Live } from "../App";
+import type { Live } from "../live";
 import { ago, dayLabel, shortDay, statusText } from "../format";
 import { Icon } from "../icons";
 import { useInstallPrompt } from "../installPrompt";
@@ -102,7 +102,7 @@ export function Today({
   const trip = useTrip();
   const installCard = useInstallPrompt();
   const [open, setOpen] = useState<Open>(null);
-  const day = dayOf(trip, date)!;
+  const day = dayOrDefault(trip, date);
   const status = live.state?.dayStatus[date];
   const lodging = day.lodgingId ? trip.lodgings.find((l) => l.id === day.lodgingId) : undefined;
   const dayAlerts = live.state?.alerts.filter((a) => a.date === date && a.category !== "reminder") ?? [];

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { dayOf, thDate, type TripAlert } from "@trip/shared";
+import { dayOrDefault, thDate, type TripAlert } from "@trip/shared";
 import { useTrip } from "../tripContext";
-import type { Live } from "../App";
+import type { Live } from "../live";
 import { errorText, replan } from "../api";
 import { dayLabel, severityText, shortDay } from "../format";
 import { CATEGORY_HE, GROUPS, worstOf } from "../categories";
@@ -54,7 +54,7 @@ export function Alerts({ date, live, refresh }: { date: string; live: Live; refr
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const trip = useTrip();
-  const day = dayOf(trip, date)!;
+  const day = dayOrDefault(trip, date);
   const today = thDate(new Date());
   const order = { urgent: 0, warning: 1, info: 2 };
   const upcoming = (live.state?.alerts ?? [])

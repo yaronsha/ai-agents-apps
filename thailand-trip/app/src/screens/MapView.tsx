@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { dayOf, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections, type Stop } from "@trip/shared";
+import { dayOrDefault, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections, type Stop } from "@trip/shared";
 import { useTrip } from "../tripContext";
-import type { Live } from "../App";
+import type { Live } from "../live";
 import { dayLabel, severityText, shortDay } from "../format";
 import { GROUPS, worstOf } from "../categories";
 import { Icon } from "../icons";
@@ -121,7 +121,7 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
     );
   };
 
-  const day = dayOf(trip, date)!;
+  const day = dayOrDefault(trip, date);
   const dayAlerts = live.state?.alerts.filter((a) => a.date === date && a.category !== "reminder") ?? [];
   const lodging = day.lodgingId ? placeOf(trip, `lodging:${day.lodgingId}`) : undefined;
   const temps = day.stops.map((s) => live.state?.forecasts[s.id]).filter((f) => f && f.tempMax !== null);
