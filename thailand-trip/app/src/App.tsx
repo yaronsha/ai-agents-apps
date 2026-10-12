@@ -43,8 +43,9 @@ export function App() {
   const [tab, setTab] = useState<Tab>(tabFromHash);
   const [date, setDate] = useState(() => defaultDate(publicTrip, new Date()));
   // The private file rarely changes; a new trip object would make every screen (and the map) rebuild.
-  const [privJson] = useState(() => ({ current: JSON.stringify(cachedPrivate()) }));
-  const [trip, setTrip] = useState(() => withPrivate(publicTrip, cachedPrivate()));
+  const [initialPriv] = useState(cachedPrivate);
+  const privJson = useRef(JSON.stringify(initialPriv));
+  const [trip, setTrip] = useState(() => withPrivate(publicTrip, initialPriv));
   const [live, setLive] = useState<Live>({ state: null, offline: false, loading: true });
 
   // Coming back to the app and tapping refresh can overlap; only the newest request may write.
@@ -60,7 +61,7 @@ export function App() {
       privJson.current = json;
       setTrip(withPrivate(publicTrip, priv));
     }
-  }, [privJson]);
+  }, []);
 
   useEffect(() => {
     refresh();

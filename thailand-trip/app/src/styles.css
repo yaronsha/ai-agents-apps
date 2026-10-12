@@ -1168,6 +1168,10 @@ button.sheet-chips {
 .leaflet-container a.leaflet-popup-close-button {
   color: var(--muted);
 }
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+  color: var(--ink);
+}
 .popup-more {
   min-height: 44px;
   margin-top: 2px;

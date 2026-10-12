@@ -122,6 +122,15 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
     fitDay();
   }, [date]);
 
+  // Opening straight to the map measures the day card before the state fills it; re-frame once
+  // when the first state arrives, never on later refreshes.
+  const fittedWithState = useRef(false);
+  useEffect(() => {
+    if (!live.state || fittedWithState.current) return;
+    fittedWithState.current = true;
+    fitDay();
+  }, [live.state]);
+
   /** Frames the selected day's route between the map buttons and the day card. */
   function fitDay() {
     const m = map.current;
