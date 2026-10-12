@@ -18,7 +18,7 @@ id = "13fa53eda98a4075bae6c728ddf2ef49"
 VAPID_PUBLIC_KEY = "BK9irya7D4tahwpR8dry7xJzYMth2ya_iaUbSu1MSyF-bADJPWeb-ECntORAb7Ccee5YMmbCrF9LWmZhrl8FKo0"
 VAPID_CONTACT = "https://thailand-trip.yaron-shapira7.workers.dev"
 # Which model runs news triage and "re-plan for me": "claude" or "openai". Each needs its own key below.
-AI_PROVIDER = "claude"
+AI_PROVIDER = "openai"
 CLAUDE_TRIAGE_MODEL = "claude-haiku-4-5"
 CLAUDE_REPLAN_MODEL = "claude-sonnet-5-5"
 OPENAI_TRIAGE_MODEL = "gpt-5.4-mini"
