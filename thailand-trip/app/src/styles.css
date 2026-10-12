@@ -19,7 +19,9 @@
   /* Solid red under white text (SOS button, alert count); stays dark enough in both themes. */
   --alarm: #b02e24;
   /* Bright status badges on the day strip; text-grade --warn/--bad are too dark at this size. */
-  --flag-yellow: #b87400;
+  --flag-yellow: #f2a516;
+  /* The bright yellow alone is too faint on the light page (1.8:1); a dark rim carries the contrast. */
+  --flag-yellow-edge: #8a5a00;
   --flag-red: #e0362c;
   /* Map pins: the white edge sets them off the light tiles; the warning ring matches the day strip. */
   --pin-edge: #ffffff;
@@ -54,6 +56,7 @@
     --bad-soft: #3d1d1a;
     --alarm: #b3352b;
     --flag-yellow: #f5b43a;
+    --flag-yellow-edge: transparent;
     --flag-red: #ff5a4e;
     --pin-edge: #0e1a17;
     --pin-bg: var(--surface-2);
@@ -258,11 +261,11 @@ h3 {
   font-size: 14px;
   line-height: 1.2;
 }
-/* The pill is 32px tall; this stretches the tap area to 44px into the strip's padding. */
+/* The pill is about 31px tall; this stretches the tap area to 44px into the strip's padding. */
 .day::after {
   content: "";
   position: absolute;
-  inset: -6px -4px;
+  inset: -7px -4px;
 }
 .day .wd {
   font-size: 12px;
@@ -293,6 +296,7 @@ h3 {
 }
 .flag.yellow {
   background: var(--flag-yellow);
+  box-shadow: inset 0 0 0 1.5px var(--flag-yellow-edge), 0 0 0 2px var(--bg);
 }
 .flag.red {
   background: var(--flag-red);
@@ -684,15 +688,16 @@ a.btn.primary {
   font-size: 14px;
   margin-top: 2px;
 }
-/* 44px tap area around the short text link, without pushing the row apart. */
+/* A taller tap area (about 42px) for the short text link, without pushing the row apart. It wins
+   over the stop names' own enlarged areas where they meet, but never covers a name's text. */
 .nav-link {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 44px;
-  margin-block: -13px;
-  padding-inline: 6px;
-  margin-inline: -6px;
+  padding: 2px 6px 18px;
+  margin: -2px -6px -18px;
   text-decoration: none;
 }
 .forecast {

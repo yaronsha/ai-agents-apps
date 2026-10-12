@@ -24,6 +24,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
   const [configured, setConfigured] = useState<Partial<Record<string, boolean>>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [push, setPush] = useState(false);
   const support = pushSupport();
   const trip = useTrip();
@@ -41,20 +42,23 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
   }, []);
 
   // A result stays up long enough to read, then gets out of the way of the sources list.
+  // An error stays until the next action, since it is the one message that needs reading.
   useEffect(() => {
-    if (!msg || busy) return;
+    if (!msg || busy || failed) return;
     const t = setTimeout(() => setMsg(null), 4000);
     return () => clearTimeout(t);
-  }, [msg, busy]);
+  }, [msg, busy, failed]);
 
   // One request at a time: a second tap on "test push" would send a second push.
   const run = async (fn: () => Promise<string>) => {
     if (busy) return;
     setBusy(true);
+    setFailed(false);
     setMsg("רגע...");
     try {
       setMsg(await fn());
     } catch (e) {
+      setFailed(true);
       setMsg(errorText(e));
     } finally {
       setBusy(false);
@@ -63,6 +67,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
 
   const save = () => {
     settings.setToken(token);
+    setFailed(false);
     setMsg("נשמר");
     refresh();
   };
