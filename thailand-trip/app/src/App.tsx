@@ -43,6 +43,8 @@ export function App() {
   const [tab, setTab] = useState<Tab>(tabFromHash);
   const [date, setDate] = useState(() => defaultDate(publicTrip, new Date()));
   const [trip, setTrip] = useState(() => withPrivate(publicTrip, cachedPrivate()));
+  // The private file rarely changes; a new trip object would make every screen (and the map) rebuild.
+  const privJson = useRef(JSON.stringify(cachedPrivate()));
   const [live, setLive] = useState<Live>({ state: null, offline: false, loading: true });
 
   // Coming back to the app and tapping refresh can overlap; only the newest request may write.
@@ -53,7 +55,10 @@ export function App() {
     const [r, priv] = await Promise.all([loadState(), loadPrivate()]);
     if (id !== lastRefresh.current) return;
     setLive({ ...r, loading: false });
-    if (priv) setTrip(withPrivate(publicTrip, priv));
+    if (priv && JSON.stringify(priv) !== privJson.current) {
+      privJson.current = JSON.stringify(priv);
+      setTrip(withPrivate(publicTrip, priv));
+    }
   }, []);
 
   useEffect(() => {

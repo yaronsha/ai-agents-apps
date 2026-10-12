@@ -21,6 +21,13 @@
   /* Bright status badges on the day strip; text-grade --warn/--bad are too dark at this size. */
   --flag-yellow: #f2a516;
   --flag-red: #e0362c;
+  /* Map pins: the white edge sets them off the light tiles; the warning ring matches the day strip. */
+  --pin-edge: #ffffff;
+  --pin-warn: var(--flag-yellow);
+  --pin-bg: var(--surface);
+  --pin-line: var(--muted);
+  --pin-ink: var(--ink);
+  --pin-hospital: var(--bad);
   --shadow: 0 6px 24px rgb(21 48 42 / 0.14);
   --f-display: "Secular One", "Assistant", system-ui, sans-serif;
   --f-body: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -48,6 +55,8 @@
     --alarm: #b3352b;
     --flag-yellow: #f5b43a;
     --flag-red: #ff5a4e;
+    --pin-edge: #0e1a17;
+    --pin-bg: var(--surface-2);
     --shadow: 0 6px 24px rgb(0 0 0 / 0.45);
     color-scheme: dark;
   }
@@ -732,6 +741,10 @@ details.card summary {
   border-radius: 50%;
   background: currentColor;
 }
+.pill svg.sev {
+  flex: none;
+  margin-inline-start: -2px;
+}
 .pill.ok {
   background: var(--ok-soft);
   color: var(--ok);
@@ -1106,7 +1119,7 @@ button.sheet-chips {
   height: 100%;
   border-radius: 50%;
   background: var(--c);
-  border: 2px solid #fff;
+  border: 2px solid var(--pin-edge);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -1115,7 +1128,7 @@ button.sheet-chips {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
 }
 .pin.warn {
-  outline: 3px solid #f59e0b;
+  outline: 3px solid var(--pin-warn);
 }
 .pin-hotel,
 .pin-hospital {
@@ -1124,20 +1137,36 @@ button.sheet-chips {
   border-radius: 6px;
   display: grid;
   place-items: center;
-  background: #fff;
-  border: 1px solid #94a3b8;
+  background: var(--pin-bg);
+  border: 1px solid var(--pin-line);
   font-size: 13px;
-  color: #334155;
+  color: var(--pin-ink);
 }
 .pin-hospital {
-  color: #b91c1c;
+  color: var(--pin-hospital);
 }
 .leaflet-container {
   font-family: var(--f-body);
 }
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.leaflet-popup-content-wrapper {
+  border: 1px solid var(--line);
+}
 .leaflet-popup-content {
   direction: rtl;
   text-align: right;
+}
+.leaflet-popup-content a {
+  color: var(--accent);
+  font-weight: 700;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--muted);
 }
 .popup-more {
   min-height: 44px;
@@ -1153,6 +1182,10 @@ button.sheet-chips {
   background: var(--surface);
   color: var(--ink);
   border-color: var(--line);
+}
+.leaflet-bar a.leaflet-disabled {
+  background: var(--surface-2);
+  color: var(--muted);
 }
 @media (prefers-color-scheme: dark) {
   /* The map tiles have no dark style here; dim and invert the tiles so the map does not glare at night. */
