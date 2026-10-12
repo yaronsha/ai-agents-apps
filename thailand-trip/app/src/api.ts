@@ -126,8 +126,6 @@ export const replan = (date: string, problem: string) =>
 
 export const testPush = () => call<{ sent: number }>("/api/test-push", { method: "POST" });
 
-export const previewAt = (at: string) => call<TripState>(`/api/run?at=${encodeURIComponent(at)}`, { method: "POST" });
-
 function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));

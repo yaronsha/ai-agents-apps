@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Trip } from "@trip/shared";
 import type { Live } from "../live";
-import { enablePush, errorText, previewAt, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
+import { enablePush, errorText, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
 import { ago, shortDay } from "../format";
 import { useTrip } from "../tripContext";
 
@@ -25,7 +25,6 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [push, setPush] = useState(false);
-  const [at, setAt] = useState("2026-11-26T12:00");
   const support = pushSupport();
   const trip = useTrip();
 
@@ -103,15 +102,6 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
           </>
         )}
         <p className="muted">שקט מ-22:00 עד 06:00, חוץ מדברים דחופים. תדריך על מחר בכל ערב ב-20:00.</p>
-      </section>
-
-      <section className="card form">
-        <h2>תצוגה מקדימה</h2>
-        <p className="muted">איך המנוע רואה רגע אחר בטיול, בלי לשלוח פוש. תחזית אמיתית קיימת רק עד 16 יום קדימה.</p>
-        <input dir="ltr" value={at} onChange={(e) => setAt(e.target.value)} />
-        <button disabled={busy} onClick={() => run(async () => `${(await previewAt(at)).alerts.filter((a) => a.category !== "reminder").length} התראות ברגע הזה`)}>
-          הרצה
-        </button>
       </section>
 
       {live.state && (

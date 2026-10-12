@@ -13,7 +13,7 @@ A trip companion PWA for a northern Thailand road trip. It watches weather, air 
 | `app/` | The PWA (React + Vite + Leaflet). Hebrew, RTL, works offline with the last known state. |
 | `sim/` | Trip simulator: plays scenario days (storm, landslide, cancelled flight, quake, news) through the real worker on a fast clock and checks the alerts, pushes and screens. See [sim/README.md](sim/README.md). |
 
-Screens: **היום** (today's timeline with forecast per stop and a green/yellow/red status), **מפה** (the day's route, hotels, hospitals, "where am I"), **בלת"מים** (active alerts, prepared Plan B, and "re-plan for me" with Claude or OpenAI), **חירום** (emergency numbers, nearest hospitals, Thai phrases), **הגדרות** (server, push, preview the engine at any moment of the trip).
+Screens: **היום** (today's timeline with forecast per stop and a green/yellow/red status), **מפה** (the day's route, hotels, hospitals, "where am I"), **בלת"מים** (active alerts, prepared Plan B, and "re-plan for me" with Claude or OpenAI), **חירום** (emergency numbers, nearest hospitals, Thai phrases), **הגדרות** (server, push, what the app checks).
 
 ## Data sources
 
