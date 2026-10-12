@@ -23,6 +23,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
   const [auth, setAuth] = useState<"access" | "token" | null>(null);
   const [configured, setConfigured] = useState<Partial<Record<string, boolean>>>({});
   const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [push, setPush] = useState(false);
   const [at, setAt] = useState("2026-11-26T12:00");
   const support = pushSupport();
@@ -40,12 +41,24 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
     );
   }, []);
 
+  // A result stays up long enough to read, then gets out of the way of the sources list.
+  useEffect(() => {
+    if (!msg || busy) return;
+    const t = setTimeout(() => setMsg(null), 4000);
+    return () => clearTimeout(t);
+  }, [msg, busy]);
+
+  // One request at a time: a second tap on "test push" would send a second push.
   const run = async (fn: () => Promise<string>) => {
-    setMsg("...");
+    if (busy) return;
+    setBusy(true);
+    setMsg("רגע...");
     try {
       setMsg(await fn());
     } catch (e) {
       setMsg(errorText(e));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -82,10 +95,10 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
           <>
             <p>{push ? "המכשיר הזה רשום להתראות." : "המכשיר הזה עוד לא רשום."}</p>
             <div className="row">
-              <button className="primary" onClick={() => run(async () => `נרשם. ${await enablePush()} מכשירים רשומים.`).then(() => pushEnabled().then(setPush, () => setPush(false)))}>
+              <button className="primary" disabled={busy} onClick={() => run(async () => `נרשם. ${await enablePush()} מכשירים רשומים.`).then(() => pushEnabled().then(setPush, () => setPush(false)))}>
                 {push ? "רישום מחדש" : "הפעלת התראות"}
               </button>
-              <button onClick={() => run(async () => `נשלח ל-${(await testPush()).sent} מכשירים`)}>שליחת התראת בדיקה</button>
+              <button disabled={busy} onClick={() => run(async () => `נשלח ל-${(await testPush()).sent} מכשירים`)}>שליחת התראת בדיקה</button>
             </div>
           </>
         )}
@@ -96,7 +109,7 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
         <h2>תצוגה מקדימה</h2>
         <p className="muted">איך המנוע רואה רגע אחר בטיול, בלי לשלוח פוש. תחזית אמיתית קיימת רק עד 16 יום קדימה.</p>
         <input dir="ltr" value={at} onChange={(e) => setAt(e.target.value)} />
-        <button onClick={() => run(async () => `${(await previewAt(at)).alerts.filter((a) => a.category !== "reminder").length} התראות ברגע הזה`)}>
+        <button disabled={busy} onClick={() => run(async () => `${(await previewAt(at)).alerts.filter((a) => a.category !== "reminder").length} התראות ברגע הזה`)}>
           הרצה
         </button>
       </section>
