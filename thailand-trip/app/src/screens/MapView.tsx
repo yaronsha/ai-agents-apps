@@ -8,6 +8,9 @@ import { GROUPS, worstOf } from "../categories";
 import { Icon } from "../icons";
 import { StopSheet } from "./Sheets";
 
+/** Popup HTML is built from strings; names and notes go in escaped so no data can inject markup. */
+const esc = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
 const dayColor = (i: number) => `hsl(${(i * 360) / publicTrip.days.length + 170}, 62%, 38%)`;
 
 export function MapView({ date, setDate, live, openAlerts }: { date: string; setDate: (d: string) => void; live: Live; openAlerts: () => void }) {
@@ -41,12 +44,25 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
     };
   }, []);
 
+  // Stops with a live warning get a ring. Kept as a string key so a refresh that brings the same
+  // alerts back changes nothing on the map.
+  const alertedKey = (live.state?.alerts ?? [])
+    .filter((a) => a.stopId && a.severity !== "info")
+    .map((a) => a.stopId)
+    .sort()
+    .join(" ");
+  const alerted = useRef(new Set<string>());
+  alerted.current = new Set(alertedKey ? alertedKey.split(" ") : []);
+  const pins = useRef(new Map<string, L.Marker>());
+
+  // Markers and routes: rebuilt only when the day, the trip or the hospital layer changes, never on a
+  // state refresh, so coming back to the app keeps the user's pan and zoom.
   useEffect(() => {
     const m = map.current;
     const g = layers.current;
     if (!m || !g) return;
     g.clearLayers();
-    const alerted = new Set(live.state?.alerts.filter((a) => a.stopId && a.severity !== "info").map((a) => a.stopId));
+    pins.current.clear();
     focus.current = null;
 
     trip.days.forEach((day, i) => {
@@ -60,13 +76,13 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
       day.stops.forEach((s, n) => {
         const icon = L.divIcon({
           className: "",
-          html: `<div class="pin ${selected ? "sel" : ""} ${alerted.has(s.id) ? "warn" : ""}" style="--c:${color}">${selected ? n + 1 : ""}</div>`,
+          html: `<div class="pin ${selected ? "sel" : ""} ${alerted.current.has(s.id) ? "warn" : ""}" style="--c:${color}">${selected ? n + 1 : ""}</div>`,
           iconSize: selected ? [26, 26] : [12, 12],
           iconAnchor: selected ? [13, 13] : [6, 6],
         });
-        L.marker([s.lat, s.lng], { icon, zIndexOffset: selected ? 1000 : 0 })
+        const marker = L.marker([s.lat, s.lng], { icon, title: `${s.nameHe}, ${shortDay(day.date)}`, zIndexOffset: selected ? 1000 : 0 })
           .bindPopup(
-            `<b>${s.nameHe}</b><br>${shortDay(day.date)} · ${hhmm(s.start)}${s.noteHe ? `<br><small>${s.noteHe}</small>` : ""}<br><a href="${googleMapsDirections(s)}" target="_blank">ניווט</a><br><button class="popup-more">עוד על המקום</button>`,
+            `<b>${esc(s.nameHe)}</b><br>${shortDay(day.date)} · ${hhmm(s.start)}${s.noteHe ? `<br><small>${esc(s.noteHe)}</small>` : ""}<br><a href="${esc(googleMapsDirections(s))}" target="_blank" rel="noopener">ניווט</a><br><button class="popup-more">עוד על המקום</button>`,
           )
           .on("popupopen", (e) =>
             e.popup.getElement()?.querySelector(".popup-more")?.addEventListener("click", () => {
@@ -76,25 +92,44 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
           )
           .on("click", () => day.date !== date && setDate(day.date))
           .addTo(g);
+        pins.current.set(s.id, marker);
       });
       if (selected && path.length) focus.current = L.latLngBounds(path);
     });
 
     trip.lodgings.forEach((l) =>
-      L.marker([l.lat, l.lng], { icon: L.divIcon({ className: "", html: '<div class="pin-hotel">⌂</div>', iconSize: [20, 20], iconAnchor: [10, 10] }) })
-        .bindPopup(`<b>${l.name}</b><br>${shortDay(l.checkIn)}–${shortDay(l.checkOut)}`)
+      L.marker([l.lat, l.lng], { icon: L.divIcon({ className: "", html: '<div class="pin-hotel">⌂</div>', iconSize: [20, 20], iconAnchor: [10, 10] }), title: l.name })
+        .bindPopup(`<b>${esc(l.name)}</b><br>${shortDay(l.checkIn)}–${shortDay(l.checkOut)}`)
         .addTo(g),
     );
 
     if (showHospitals) {
       hospitals.forEach((h) =>
-        L.marker([h.lat, h.lng], { icon: L.divIcon({ className: "", html: '<div class="pin-hospital">✚</div>', iconSize: [20, 20], iconAnchor: [10, 10] }) })
-          .bindPopup(`<b>${h.name}</b><br>${h.area}<br><a href="${googleMapsDirections(h)}" target="_blank">ניווט</a>`)
+        L.marker([h.lat, h.lng], { icon: L.divIcon({ className: "", html: '<div class="pin-hospital">✚</div>', iconSize: [20, 20], iconAnchor: [10, 10] }), title: h.name })
+          .bindPopup(`<b>${esc(h.name)}</b><br>${esc(h.area)}<br><a href="${esc(googleMapsDirections(h))}" target="_blank" rel="noopener">ניווט</a>`)
           .addTo(g),
       );
     }
+  }, [date, showHospitals, setDate, trip]);
+
+  // A state refresh only moves the warning rings.
+  useEffect(() => {
+    for (const [id, marker] of pins.current) marker.getElement()?.querySelector(".pin")?.classList.toggle("warn", alerted.current.has(id));
+  }, [alertedKey]);
+
+  // Re-frame only when the day changes (and on first open); the button does it on demand.
+  useEffect(() => {
     fitDay();
-  }, [date, showHospitals, live.state, setDate, trip]);
+  }, [date]);
+
+  // Opening straight to the map measures the day card before the state fills it; re-frame once
+  // when the first state arrives, never on later refreshes.
+  const fittedWithState = useRef(false);
+  useEffect(() => {
+    if (!live.state || fittedWithState.current) return;
+    fittedWithState.current = true;
+    fitDay();
+  }, [live.state]);
 
   /** Frames the selected day's route between the map buttons and the day card. */
   function fitDay() {
@@ -171,7 +206,17 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
             const sev = !live.state ? "none" : w?.severity ?? "ok";
             return (
               <span key={g.id} className={`pill ${sev}`} title={w ? `${severityText[w.severity]}: ${w.titleHe}` : undefined}>
-                <i />
+                {w && w.severity !== "info" ? (
+                  <>
+                    <svg className="sev" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 2 23 21H1z" fill="currentColor" />
+                      <path d="M12 9v5M12 17.5v.5" stroke="var(--surface)" strokeWidth="2.6" strokeLinecap="round" />
+                    </svg>
+                    <span className="sr-only">{severityText[w.severity]}: </span>
+                  </>
+                ) : (
+                  <i />
+                )}
                 {g.labelHe}
               </span>
             );
