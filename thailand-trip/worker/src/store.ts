@@ -47,6 +47,38 @@ export class Store {
   }
 }
 
+/**
+ * A day's paid-call counters, kept under `budget:<date>`. Every caller that spends from the same
+ * day's caps loads it, spends, and saves once; a counter missing from the stored record counts as 0.
+ */
+export class DailyBudget<K extends string> {
+  private constructor(
+    private store: Store,
+    private key: string,
+    private caps: Record<K, number>,
+    private before: Partial<Record<K, number>>,
+    readonly used: Partial<Record<K, number>>,
+  ) {}
+
+  static async load<K extends string>(store: Store, date: string, caps: Record<K, number>): Promise<DailyBudget<K>> {
+    const key = `budget:${date}`;
+    const before = await store.json<Partial<Record<K, number>>>(key, {});
+    return new DailyBudget(store, key, caps, before, { ...before });
+  }
+
+  /** Counts one call, or returns false when today's cap for `kind` is already used up. */
+  spend(kind: K): boolean {
+    const n = this.used[kind] ?? 0;
+    if (n >= this.caps[kind]) return false;
+    this.used[kind] = n + 1;
+    return true;
+  }
+
+  save(): Promise<void> {
+    return this.store.putIfChanged(this.key, this.used, this.before);
+  }
+}
+
 async function subKey(endpoint: string): Promise<string> {
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpoint)));
   return "sub:" + Array.from(hash.slice(0, 16), (b) => b.toString(16).padStart(2, "0")).join("");

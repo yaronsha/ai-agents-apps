@@ -35,6 +35,9 @@ export interface PushResult {
   failed: number;
 }
 
+/** Sent as the VAPID contact until the VAPID_CONTACT secret is set: the app's own address. */
+const DEFAULT_CONTACT = "https://thailand-trip-app.pages.dev";
+
 /** Sends to every subscription and says which got it, which are gone and how many failed for now. */
 export async function sendToAll(env: Env, subs: PushSubscriptionJSON[], msg: PushMessage, privateJWK = vapidKey(env)): Promise<PushResult> {
   let sent = 0;
@@ -46,7 +49,7 @@ export async function sendToAll(env: Env, subs: PushSubscriptionJSON[], msg: Pus
         const { endpoint, headers, body } = await buildPushHTTPRequest({
           privateJWK,
           subscription,
-          message: { payload: msg, adminContact: env.VAPID_CONTACT, options: { ttl: 6 * 3600, urgency: "high" } },
+          message: { payload: msg, adminContact: env.VAPID_CONTACT || DEFAULT_CONTACT, options: { ttl: 6 * 3600, urgency: "high" } },
         });
         const res = await fetchWithTimeout(endpoint, { method: "POST", headers, body });
         if (res.status === 404 || res.status === 410) gone.push(subscription.endpoint);
