@@ -10,7 +10,7 @@ All commands run from `thailand-trip/`.
 
 - `npm install` once (it creates `shared/src/trip-private.json` from the example file).
 - `npm run check` before every push: type-check, tests, lint and the simulator. CI runs the same
-  on every pull request, and a deploy waits for it.
+  on every pull request and, once the issue #50 workflow update is applied, a deploy waits for it.
 - `npm run dev` for the app, `npm run dev:worker` for the worker.
 
 ## Privacy: the repository is public

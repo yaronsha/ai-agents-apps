@@ -7,8 +7,11 @@ import { describe, expect, it } from "vitest";
 
 const root = join(__dirname, "../..");
 
-/** Module specifiers that resolve to the private data: the package export, private.ts or the JSON. */
-const PRIVATE = /(^|\/)(private|trip-private(\.json)?)$|^@trip\/shared\/private$/;
+/**
+ * Module specifiers that resolve to the private data: the package export, private.ts or the JSON,
+ * with or without an extension (Bundler resolution maps "./private.js" to private.ts).
+ */
+const PRIVATE = /(^|\/)(private|trip-private)(\.(json|[cm]?[jt]sx?))?$|^@trip\/shared\/private$/;
 
 function sources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -37,6 +40,8 @@ describe("privacy guard", () => {
   it("recognises every way of naming the private data", () => {
     const code = `import { trip } from "@trip/shared/private";
       export * from "../../shared/src/private";
+      import { tripPrivateData } from "../../shared/src/private.js";
+      import { trip as t } from "../shared/src/private.ts";
       import data from "./trip-private.json";
       const lazy = import('@trip/shared/private');
       import { publicTrip } from "@trip/shared";
@@ -44,6 +49,8 @@ describe("privacy guard", () => {
     expect(specifiers(code).filter((s) => PRIVATE.test(s))).toEqual([
       "@trip/shared/private",
       "../../shared/src/private",
+      "../../shared/src/private.js",
+      "../shared/src/private.ts",
       "./trip-private.json",
       "@trip/shared/private",
     ]);

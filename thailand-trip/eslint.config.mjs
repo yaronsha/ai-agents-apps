@@ -5,7 +5,7 @@ import tseslint from "typescript-eslint";
 
 const privateData = {
   paths: [{ name: "@trip/shared/private", message: "Hotels and flights stay server-side; the app gets them from GET /api/trip-private." }],
-  patterns: [{ regex: "(^|/)(private|trip-private(\\.json)?)$", message: "Hotels and flights stay server-side; the app gets them from GET /api/trip-private." }],
+  patterns: [{ regex: "(^|/)(private|trip-private)(\\.(json|[cm]?[jt]sx?))?$", message: "Hotels and flights stay server-side; the app gets them from GET /api/trip-private." }],
 };
 
 export default tseslint.config(
