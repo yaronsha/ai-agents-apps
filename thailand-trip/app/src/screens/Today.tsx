@@ -76,10 +76,32 @@ function LodgingRow({ lodging, open }: { lodging: Lodging; open: () => void }) {
   );
 }
 
+/** An evening reminder: after the day's last stop, so no stop sheet carries it. */
+function ReminderRow({ reminder }: { reminder: Reminder }) {
+  return (
+    <li className="tl-row drive reminder">
+      <time className="time">{hhmm(reminder.at)}</time>
+      <div className="tl-body">
+        <Icon name="alerts" size={16} />
+        <span>
+          <span className="sr-only">תזכורת: </span>
+          {reminder.textHe}
+        </span>
+      </div>
+    </li>
+  );
+}
+
 /** The day's reminders that fall after the previous stop starts and no later than this one. */
-function remindersBefore(stops: Stop[], reminders: Reminder[], stop: Stop): Reminder[] {
+export function remindersBefore(stops: Stop[], reminders: Reminder[], stop: Stop): Reminder[] {
   const prev = stops.filter((s) => s.start < stop.start).at(-1)?.start ?? "";
   return reminders.filter((r) => r.at > prev && r.at <= stop.start);
+}
+
+/** Reminders after the day's last stop starts: no stop sheet shows them. */
+export function eveningReminders(stops: Stop[], reminders: Reminder[]): Reminder[] {
+  const last = stops.reduce((m, s) => (s.start > m ? s.start : m), "");
+  return reminders.filter((r) => r.at > last);
 }
 
 type Open = { kind: "stop"; stop: Stop } | { kind: "lodging"; lodging: Lodging } | { kind: "planB" } | null;
@@ -110,6 +132,7 @@ export function Today({
   // On a day with something to watch, Plan B moves up under the status bar; otherwise it is a quiet link.
   const troubled = status === "yellow" || status === "red";
   const close = () => setOpen(null);
+  const evening = eveningReminders(day.stops, day.reminders);
 
   // Stops and drives in the order they happen (local time strings sort as text); a drive
   // that leaves when a stop starts goes first.
@@ -119,6 +142,7 @@ export function Today({
       at: s.start,
       el: <StopRow key={s.id} stop={s} f={live.state?.forecasts[s.id]} open={() => setOpen({ kind: "stop", stop: s })} />,
     })),
+    ...evening.map((r) => ({ at: r.at, el: <ReminderRow key={r.id} reminder={r} /> })),
   ].sort((a, b) => a.at.localeCompare(b.at));
 
   return (
@@ -166,7 +190,7 @@ export function Today({
       {open?.kind === "stop" && (
         <StopSheet stop={open.stop} date={date} reminders={remindersBefore(day.stops, day.reminders, open.stop)} onClose={close} onMap={openMap} />
       )}
-      {open?.kind === "lodging" && <LodgingSheet lodging={open.lodging} onClose={close} onMap={openMap} />}
+      {open?.kind === "lodging" && <LodgingSheet lodging={open.lodging} reminders={evening} onClose={close} onMap={openMap} />}
       {open?.kind === "planB" && <PlanBSheet date={date} planB={day.planB} onClose={close} onReplan={openReplan} />}
     </>
   );

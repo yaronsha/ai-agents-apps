@@ -53,6 +53,17 @@ function PlaceActions({ at, onMap }: { at: LatLng; onMap?: () => void }) {
   );
 }
 
+function Reminders({ reminders }: { reminders: Reminder[] }) {
+  return reminders.map((r) => (
+    <p className="sheet-reminder" key={r.id}>
+      <strong>
+        תזכורת <bdi dir="ltr">{hhmm(r.at)}</bdi>:
+      </strong>{" "}
+      {r.textHe}
+    </p>
+  ));
+}
+
 export function StopSheet({
   stop,
   date,
@@ -87,14 +98,7 @@ export function StopSheet({
         </strong>
         {stop.noteHe && ` ${stop.noteHe}`}
       </p>
-      {reminders.map((r) => (
-        <p className="sheet-reminder" key={r.id}>
-          <strong>
-            תזכורת <bdi dir="ltr">{hhmm(r.at)}</bdi>:
-          </strong>{" "}
-          {r.textHe}
-        </p>
-      ))}
+      <Reminders reminders={reminders} />
       {info?.tipsHe && (
         <>
           <h3>לפני שהולכים</h3>
@@ -109,7 +113,18 @@ export function StopSheet({
   );
 }
 
-export function LodgingSheet({ lodging, onClose, onMap }: { lodging: Lodging; onClose: () => void; onMap?: () => void }) {
+export function LodgingSheet({
+  lodging,
+  reminders = [],
+  onClose,
+  onMap,
+}: {
+  lodging: Lodging;
+  /** The evening's reminders (after the last stop), also shown here for anyone without push notifications. */
+  reminders?: Reminder[];
+  onClose: () => void;
+  onMap?: () => void;
+}) {
   return (
     <Sheet label={lodging.name} onClose={onClose} actions={<PlaceActions at={lodging} onMap={onMap} />}>
       <h2>{lodging.name}</h2>
@@ -119,6 +134,7 @@ export function LodgingSheet({ lodging, onClose, onMap }: { lodging: Lodging; on
           מגיעים <bdi>{shortDay(lodging.checkIn)}</bdi>, עוזבים <bdi>{shortDay(lodging.checkOut)}</bdi>.
         </strong>
       </p>
+      <Reminders reminders={reminders} />
     </Sheet>
   );
 }

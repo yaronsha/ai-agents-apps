@@ -463,6 +463,17 @@ h3 {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* An evening reminder reads like a drive row, but its text is what to do, so it keeps the ink colour. */
+.tl-row.reminder .tl-body {
+  align-items: flex-start;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.tl-row.reminder .icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
 .tl-row.stay::after {
   border-color: var(--ink);
   background: var(--ink);
