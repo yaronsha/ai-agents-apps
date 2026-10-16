@@ -11,6 +11,7 @@ export const CATEGORY_HE: Record<AlertCategory, string> = {
   flight: "טיסה",
   news: "חדשות",
   advisory: "אזהרת מסע",
+  place: "אתרים",
   reminder: "תזכורת",
 };
 
@@ -18,7 +19,7 @@ export const CATEGORY_HE: Record<AlertCategory, string> = {
 export const GROUPS: Array<{ id: string; labelHe: string; icon: IconName; okHe: string; categories: AlertCategory[] }> = [
   { id: "weather", labelHe: "מזג אוויר", icon: "weather", okHe: "אין גשם או קור חריגים", categories: ["weather", "cold", "clouds"] },
   { id: "air", labelHe: "איכות אוויר", icon: "air", okHe: "אין זיהום חריג", categories: ["air"] },
-  { id: "road", labelHe: "דרכים וטיסות", icon: "road", okHe: "אין עיכובים ידועים", categories: ["road", "flight"] },
+  { id: "road", labelHe: "דרכים ואתרים", icon: "road", okHe: "אין עיכובים או סגירות ידועים", categories: ["road", "flight", "place"] },
   { id: "safety", labelHe: "ביטחון", icon: "safety", okHe: "שקט באזור", categories: ["quake", "news", "advisory"] },
 ];
 

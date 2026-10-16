@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { aiProvider, replan, translateAdvisory, triageNews } from "../src/ai";
+import { aiProvider, checkPlaces, replan, translateAdvisory, triageNews } from "../src/ai";
+import { placeTargets } from "../src/places";
 import { DAILY_CAPS } from "../src/engine";
 import worker from "../src/index";
 import { FakeKV, makeEnv, trip } from "./fakes";
@@ -55,6 +56,16 @@ describe("ai provider", () => {
     expect(seen[0].url).toBe("https://api.openai.com/v1/responses");
     expect(seen[0].body.model).toBe("gpt-5.4-mini");
     expect(seen[0].body.reasoning).toEqual({ effort: "low" });
+  });
+
+  it("checks places with OpenAI's web search when configured", async () => {
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    const seen: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const item = { stopId: "mok-fa", date: "2026-11-25", severity: "warning", titleHe: "שעות חדשות", bodyHe: "לפי הפארק.", url: "https://park.example/news" };
+    vi.stubGlobal("fetch", stubOpenAI(JSON.stringify({ items: [item, { ...item, stopId: "not-on-the-plan" }] }), seen));
+    const items = await checkPlaces(env, "2026-11-24", placeTargets(trip, ["2026-11-25"]));
+    expect(items).toEqual([item]);
+    expect(seen[0].body.tools).toEqual([{ type: "web_search" }]);
   });
 
   it("reports a triage answer cut off by the token cap clearly", async () => {

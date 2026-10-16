@@ -25,9 +25,10 @@ Screens: **היום** (today's timeline with forecast per stop and a green/yello
 | GDELT | News about the route, screened by Claude or OpenAI | Free (the model is paid) |
 | Google Routes API | Traffic-aware drive time in the 3 h before each drive | Paid, optional |
 | AeroDataBox (RapidAPI) | Delays, gate changes, cancellations | Paid, optional |
-| Claude API or OpenAI API | News triage and "re-plan for me" (pick one with `AI_PROVIDER`) | Paid, optional |
+| Claude API or OpenAI API | News triage, the place check and "re-plan for me" (pick one with `AI_PROVIDER`) | Paid, optional |
+| Web search (Claude or OpenAI tool) | Place check: closures, hours and fee changes at the stops | About $0.01 a search, optional |
 
-Every paid source is optional; without its key the app simply skips it. Daily caps in `worker/src/engine.ts` (`DAILY_CAPS`: 100 route calls, 60 flight calls, 60 news-triage calls, 20 re-plans) stop a bug from running up a bill.
+Every paid source is optional; without its key the app simply skips it. Daily caps in `worker/src/engine.ts` (`DAILY_CAPS`: 100 route calls, 60 flight calls, 60 news-triage calls, 8 place-check calls, 20 re-plans) stop a bug from running up a bill.
 
 ## Privacy
 
@@ -114,6 +115,7 @@ To add someone, add their email to the policy or list; it works at once. To remo
 - Quiet hours are 22:00–06:00 Thailand time; non-urgent pushes wait until morning. A briefing about tomorrow goes out at 20:00.
 - Each push is sent once. A push more than 2 hours late is dropped.
 - Thresholds are in `shared/src/rules.ts` (`RULES`).
+- Places: `shared/src/place-facts.ts` holds what can be known ahead about each stop (hours, closed days, fees, how to pay), gathered from travel guides and news. The place card shows it, and a stop planned on a closed day or outside opening hours gets an info alert in the evening briefing. The place check (`worker/src/places.ts`) searches the web for changes: once a week (Monday 06:00) for every stop before the trip, and at 06:00 and 14:00 for today's and tomorrow's stops during it, at most 5 stops and 10 searches per AI call. A finding counts only if its link came from the search; urgent ones (closed or cancelled today or tomorrow) are pushed at once.
 
 ## News shadow mode
 

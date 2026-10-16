@@ -1,7 +1,8 @@
-import type { NewsItem, Trip, TripAlert } from "@trip/shared";
+import type { NewsItem, PlaceNotice, Trip, TripAlert } from "@trip/shared";
 import type { Article } from "./sources/gdelt";
 import type { Env } from "./env";
 import * as claude from "./claude";
+import type { PlaceTarget } from "./claude";
 import * as openai from "./openai";
 
 export type AiProvider = "claude" | "openai";
@@ -24,4 +25,8 @@ export function translateAdvisory(env: Env, text: string): Promise<string> {
 
 export function replan(env: Env, trip: Trip, date: string, alerts: TripAlert[], problem: string): Promise<string> {
   return impl(env).replan(env, trip, date, alerts, problem);
+}
+
+export function checkPlaces(env: Env, today: string, targets: PlaceTarget[]): Promise<PlaceNotice[]> {
+  return impl(env).checkPlaces(env, today, targets);
 }

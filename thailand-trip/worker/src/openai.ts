@@ -1,9 +1,25 @@
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
-import type { NewsItem, Trip, TripAlert } from "@trip/shared";
+import type { NewsItem, PlaceNotice, Trip, TripAlert } from "@trip/shared";
 import type { Article } from "./sources/gdelt";
 import type { Env } from "./env";
-import { ADVISORY_SYSTEM, REPLAN_REFUSED, REPLAN_SYSTEM, replanPrompt, toNewsItems, Triage, TRIAGE_REQUEST, TRIAGE_SYSTEM, triagePrompt } from "./claude";
+import {
+  ADVISORY_SYSTEM,
+  PlaceCheck,
+  PLACES_REQUEST,
+  PLACES_SYSTEM,
+  placesPrompt,
+  REPLAN_REFUSED,
+  REPLAN_SYSTEM,
+  replanPrompt,
+  toNewsItems,
+  toPlaceNotices,
+  Triage,
+  TRIAGE_REQUEST,
+  TRIAGE_SYSTEM,
+  triagePrompt,
+  type PlaceTarget,
+} from "./claude";
 
 // The same prompts and answer shape as ./claude, sent to OpenAI's Responses API.
 
@@ -45,4 +61,23 @@ export async function replan(env: Env, trip: Trip, date: string, alerts: TripAle
     input,
   });
   return response.output_text.trim() || REPLAN_REFUSED;
+}
+
+/** The same place check with OpenAI's web search tool. Its links come back in the structured answer. */
+export async function checkPlaces(env: Env, today: string, targets: PlaceTarget[]): Promise<PlaceNotice[]> {
+  if (!targets.length) return [];
+  const response = await client(env).responses.create(
+    {
+      model: env.OPENAI_TRIAGE_MODEL,
+      max_output_tokens: 16000,
+      reasoning: { effort: "low" },
+      tools: [{ type: "web_search" }],
+      instructions: PLACES_SYSTEM,
+      input: placesPrompt(today, targets),
+      text: { format: zodTextFormat(PlaceCheck, "places") },
+    },
+    PLACES_REQUEST,
+  );
+  if (response.status === "incomplete") throw new Error(`OpenAI place check incomplete: ${response.incomplete_details?.reason ?? "unknown"}`);
+  return toPlaceNotices(PlaceCheck.parse(JSON.parse(response.output_text)), targets);
 }

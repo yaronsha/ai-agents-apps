@@ -12,6 +12,8 @@ import {
   flightAlerts,
   localAt,
   newsAlerts,
+  placeAlerts,
+  placeNoticeAlerts,
   placeOf,
   quakeAlerts,
   reminderAlerts,
@@ -25,6 +27,7 @@ import {
   type HourlyAir,
   type HourlyForecast,
   type NewsItem,
+  type PlaceNotice,
   type StopForecast,
   type TripAlert,
   type TripState,
@@ -39,12 +42,13 @@ import { fetchAdvisory } from "./sources/fcdo";
 import { fetchArticles } from "./sources/gdelt";
 import { fetchDriveTime } from "./sources/routes";
 import { fetchFlightStatus } from "./sources/flights";
-import { aiProvider, translateAdvisory, triageNews } from "./ai";
+import { aiProvider, checkPlaces, translateAdvisory, triageNews } from "./ai";
+import { placeCheckDates, placeTargets, PLACES_PER_CALL } from "./places";
 
 const MIN = 60_000;
 
 /** Daily caps on paid calls, so a bug can never run up a bill. */
-export const DAILY_CAPS = { routes: 100, flights: 60, claude: 60, replan: 20 } as const;
+export const DAILY_CAPS = { routes: 100, flights: 60, claude: 60, places: 8, replan: 20 } as const;
 // Re-plan is counted by its route under its own key (`replanBudgetKey`), so a cron run saving
 // this day's budget can't overwrite a tap made meanwhile.
 type Budget = Record<Exclude<keyof typeof DAILY_CAPS, "replan">, number>;
@@ -101,7 +105,8 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   const newsWindow = today >= addDays(trip.startDate, -7) && today <= trip.endDate;
 
   const budgetKey = `budget:${today}`;
-  const budgetBefore = await store.json<Budget>(budgetKey, { routes: 0, flights: 0, claude: 0 });
+  // Spread over zeros, so a counter added later still starts at zero on a day that has a saved budget.
+  const budgetBefore: Budget = { routes: 0, flights: 0, claude: 0, places: 0, ...(await store.json<Partial<Budget>>(budgetKey, {})) };
   const budget = { ...budgetBefore };
   const spend = (k: keyof Budget) => (budget[k] < DAILY_CAPS[k] ? (budget[k]++, true) : false);
 
@@ -251,6 +256,33 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   flights.alerts = flights.alerts.filter((a) => a.date >= addDays(today, -1));
   alerts.push(...flights.alerts, ...reminderAlerts(trip));
 
+  // Places on the plan: what the bundled facts already say, plus what the web check found. The check
+  // runs last because web searches are slow. Each stop it looks at gets fresh findings, so a place
+  // that reopened loses its old alert.
+  alerts.push(...placeAlerts(trip));
+  const placesBefore = await store.json<PlaceNotice[]>("places:items", []);
+  let placeItems = placesBefore.filter((n) => n.date >= today);
+  const placeDates = opts.dryRun || !aiProvider(env) ? [] : placeCheckDates(trip, now);
+  if (placeDates.length) {
+    const targets = placeTargets(trip, placeDates);
+    let checked = 0;
+    let failed: string | undefined;
+    for (let i = 0; i < targets.length; i += PLACES_PER_CALL) {
+      const batch = targets.slice(i, i + PLACES_PER_CALL);
+      if (!spend("places")) break;
+      try {
+        const found = await checkPlaces(env, today, batch);
+        const done = (n: PlaceNotice) => batch.some((t) => t.stopId === n.stopId && t.date === n.date);
+        placeItems = [...placeItems.filter((n) => !done(n)), ...found];
+        checked += batch.length;
+      } catch (err) {
+        failed = String(err);
+      }
+    }
+    note("places", !failed, failed ?? `${checked} עצירות נבדקו`);
+  }
+  alerts.push(...placeNoticeAlerts(placeItems, now));
+
   const state: TripState = {
     generatedAt: now.toISOString(),
     alerts,
@@ -310,6 +342,7 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   await store.putIfChanged("news:seen", seen, seenBefore);
   await store.putIfChanged("flights", flights, flightsBefore);
   await store.putIfChanged("road:alerts", roadAlerts, roadBefore);
+  await store.putIfChanged("places:items", placeItems, placesBefore);
 
   // The state changes every run (timestamps); save it when its content changed, or hourly.
   // A source that starts or stops failing counts as a change; a fresh check time alone does not.

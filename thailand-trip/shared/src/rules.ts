@@ -1,8 +1,9 @@
 // Turns raw readings into alerts, and decides when each alert becomes a push.
 // Pure functions: the worker feeds them data, the tests feed them fixtures.
-import type { Day, DayStatus, Drive, Flight, Stop, StopForecast, Trip, TripAlert } from "./types";
+import type { Day, DayStatus, Drive, Flight, Severity, Stop, StopForecast, Trip, TripAlert } from "./types";
 import { addDays, addHours, deferPastQuiet, hhmm, localAt, thDate, thLocal } from "./time";
 import { distanceKm, placeOf } from "./trip";
+import { placeFacts } from "./place-facts";
 
 export const RULES = {
   rainProbPct: 70,
@@ -296,6 +297,73 @@ export function newsAlerts(items: NewsItem[], now: Date): TripAlert[] {
       category: "news" as const,
       severity: urgent ? ("urgent" as const) : n.severity === "info" ? ("info" as const) : ("warning" as const),
       date: n.date,
+      titleHe: n.titleHe,
+      bodyHe: n.bodyHe,
+      url: n.url,
+      pushAt: urgent ? [now.toISOString()] : [],
+      digest: !urgent,
+    };
+  });
+}
+
+const WEEKDAY_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+
+/**
+ * What the bundled place facts already say about the plan: a stop on a day its place (or part of it)
+ * is closed, and a visit planned outside its opening hours. Known weeks ahead, so they are info alerts
+ * in the evening briefing, not pushes. The facts come from travel guides, and the text says so.
+ */
+export function placeAlerts(trip: Trip): TripAlert[] {
+  const out: TripAlert[] = [];
+  for (const day of trip.days) {
+    const weekday = new Date(`${day.date}T12:00:00Z`).getUTCDay();
+    for (const stop of day.stops) {
+      const facts = placeFacts(stop.id);
+      if (!facts) continue;
+      const name = facts.nameHe ?? stop.nameHe;
+      const alert = (kind: string, titleHe: string, bodyHe: string) =>
+        out.push({ id: `place:${stop.id}:${kind}`, category: "place", severity: "info", date: day.date, stopId: stop.id, titleHe, bodyHe, pushAt: [], digest: true });
+      if (facts.closedOn?.includes(weekday)) {
+        alert("closed", `${name}: יום ${WEEKDAY_HE[weekday]}`, facts.closedNoteHe ?? `לפי מדריכי טיולים המקום סגור בימי ${WEEKDAY_HE[weekday]}.`);
+      }
+      const h = facts.hours;
+      if (!h) continue;
+      const start = hhmm(stop.start);
+      const end = hhmm(stop.end);
+      const shown = facts.hoursHe ?? `${h.open}-${h.close}`;
+      if (start < h.open) {
+        alert("early", `${name} נפתח רק ב-${h.open}`, `בתוכנית מגיעים ב-${start}. שעות הפתיחה לפי מדריכי טיולים: ${shown}.`);
+      } else if (start >= (h.lastEntry ?? h.close)) {
+        const last = h.lastEntry ? `הכניסה האחרונה ב-${h.lastEntry}` : `המקום נסגר ב-${h.close}`;
+        alert("late", `מגיעים ל${name} אחרי השעה`, `בתוכנית מגיעים ב-${start}, ולפי מדריכי טיולים ${last}.`);
+      } else if (end > h.close) {
+        alert("closing", `${name} נסגר לפני סוף הביקור`, `הביקור מתוכנן עד ${end}. שעות הפתיחה לפי מדריכי טיולים: ${shown}.`);
+      }
+    }
+  }
+  return out;
+}
+
+/** A change found on the web about a stop on the plan (worker/src/places.ts). */
+export interface PlaceNotice {
+  stopId: string;
+  date: string;
+  severity: Severity;
+  titleHe: string;
+  bodyHe: string;
+  url: string;
+}
+
+export function placeNoticeAlerts(items: PlaceNotice[], now: Date): TripAlert[] {
+  const today = thDate(now);
+  return items.map((n) => {
+    const urgent = n.severity === "urgent" && (n.date === today || n.date === addDays(today, 1));
+    return {
+      id: `site:${n.stopId}:${n.url}`,
+      category: "place" as const,
+      severity: urgent ? ("urgent" as const) : n.severity === "info" ? ("info" as const) : ("warning" as const),
+      date: n.date,
+      stopId: n.stopId,
       titleHe: n.titleHe,
       bodyHe: n.bodyHe,
       url: n.url,
