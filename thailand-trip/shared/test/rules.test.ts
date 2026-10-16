@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   advisoryAlert,
   cloudSeaChance,
+  coldAlerts,
   dayOf,
   dayStatuses,
   deferPastQuiet,
@@ -84,12 +85,25 @@ describe("weather", () => {
 });
 
 describe("sea of clouds", () => {
-  const stop = dayOf(trip, "2026-11-30")!.stops.find((s) => s.id === "phu-chi-fa")!;
+  // No sunrise summit is on the plan right now, so the heuristic is checked on a made-up one.
+  const stop = { ...dayOf(trip, "2026-11-30")!.stops[0], id: "summit", start: "2026-11-30T06:00", highland: true };
   it("is likely with low cloud under a clear sky", () => {
     expect(cloudSeaChance(stop, hourly("2026-11-30", { lowCloud: 80, highCloud: 10 }))).toBe("high");
   });
   it("is unlikely with no low cloud", () => {
     expect(cloudSeaChance(stop, hourly("2026-11-30", { lowCloud: 5, highCloud: 10 }))).toBe("low");
+  });
+});
+
+describe("cold", () => {
+  const day = dayOf(trip, "2026-11-28")!;
+  const coffee = day.stops.find((s) => s.id === "doi-chang-coffee")!;
+  it("warns about a cold highland stop", () => {
+    const [alert] = coldAlerts(day, { [coffee.id]: summarizeStop(coffee, hourly("2026-11-28", { temp: 9 })) });
+    expect(alert.id).toBe("cold:doi-chang-coffee");
+  });
+  it("stays quiet when the highland stop is warm", () => {
+    expect(coldAlerts(day, { [coffee.id]: summarizeStop(coffee, hourly("2026-11-28", { temp: 20 })) })).toEqual([]);
   });
 });
 

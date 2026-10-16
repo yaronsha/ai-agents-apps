@@ -26,8 +26,16 @@
  "d25-pai": {
   "routes": [
    {
-    "duration": "9788s",
-    "staticDuration": "9234s"
+    "duration": "5093s",
+    "staticDuration": "4805s"
+   }
+  ]
+ },
+ "d25-bridge": {
+  "routes": [
+   {
+    "duration": "4890s",
+    "staticDuration": "4613s"
    }
   ]
  },
@@ -55,27 +63,27 @@
    }
   ]
  },
- "d27-kiewlom": {
+ "d27-rakchang": {
   "routes": [
    {
-    "duration": "1484s",
-    "staticDuration": "1400s"
+    "duration": "2658s",
+    "staticDuration": "2508s"
    }
   ]
  },
- "d27-mokfa": {
+ "d27-banden": {
   "routes": [
    {
-    "duration": "7680s",
-    "staticDuration": "7245s"
+    "duration": "5346s",
+    "staticDuration": "5043s"
    }
   ]
  },
  "d27-chiangdao": {
   "routes": [
    {
-    "duration": "4438s",
-    "staticDuration": "4187s"
+    "duration": "2071s",
+    "staticDuration": "1954s"
    }
   ]
  },
@@ -95,19 +103,43 @@
    }
   ]
  },
- "d29-chiangrai": {
+ "d29-white": {
   "routes": [
    {
-    "duration": "2702s",
-    "staticDuration": "2549s"
+    "duration": "1963s",
+    "staticDuration": "1852s"
    }
   ]
  },
- "d30-phuchifa": {
+ "d29-chiangrai": {
   "routes": [
    {
-    "duration": "8102s",
-    "staticDuration": "7643s"
+    "duration": "1580s",
+    "staticDuration": "1491s"
+   }
+  ]
+ },
+ "d30-pier": {
+  "routes": [
+   {
+    "duration": "332s",
+    "staticDuration": "313s"
+   }
+  ]
+ },
+ "d30-lunch": {
+  "routes": [
+   {
+    "duration": "2648s",
+    "staticDuration": "2498s"
+   }
+  ]
+ },
+ "d30-blue": {
+  "routes": [
+   {
+    "duration": "169s",
+    "staticDuration": "159s"
    }
   ]
  },

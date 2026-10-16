@@ -1,4 +1,4 @@
-// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-05).
+// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-16).
 // Coordinates were checked on 2026-10-07 against map listings (AllTrails, Tripadvisor, Waze, Wikipedia,
 // Atlas Obscura, plus codes). `npm run verify:places` re-checks them against OpenStreetMap.
 import type { Day, Trip, TripPrivate } from "./types";
@@ -60,17 +60,22 @@ const days: Day[] = [
   },
   {
     date: "2026-11-25",
-    titleHe: "דרך ההרים לפאי, מעיינות חמים ולוי קראטונג",
+    titleHe: "דרך ההרים לפאי, מפל מוק פה ולוי קראטונג",
     lodgingId: "pai",
     stops: [
-      { id: "pai-memorial-bridge", nameHe: "גשר הזיכרון של פאי", nameEn: "Pai Memorial Bridge", lat: 19.2977, lng: 98.465, start: "2026-11-25T11:45", end: "2026-11-25T12:15", outdoor: true },
-      { id: "tha-pai-hot-springs", nameHe: "המעיינות החמים טא פאי", nameEn: "Tha Pai Hot Springs", lat: 19.3053, lng: 98.4744, start: "2026-11-25T12:30", end: "2026-11-25T14:30", outdoor: true },
+      { id: "thingamajiggy", nameHe: "קפה Thingamajiggy Coffee Roaster", nameEn: "Thingamajiggy Coffee Roaster", lat: 18.95, lng: 98.95, start: "2026-11-25T09:00", end: "2026-11-25T09:30", outdoor: false, noteHe: "בית קפה בין שדות האורז של מאה רים. מיקום משוער, לבדוק במפה." },
+      { id: "mok-fa", nameHe: "מפל מוק פה", nameEn: "Mok Fa Waterfall", lat: 19.1088, lng: 98.7718, start: "2026-11-25T09:30", end: "2026-11-25T11:00", outdoor: true },
+      { id: "pai-memorial-bridge", nameHe: "גשר הזיכרון של פאי", nameEn: "Pai Memorial Bridge", lat: 19.2977, lng: 98.465, start: "2026-11-25T13:15", end: "2026-11-25T13:30", outdoor: true },
       { id: "pai-loy-krathong", nameHe: "לוי קראטונג על נהר פאי", nameEn: "Loy Krathong, Pai river", lat: 19.3596, lng: 98.4455, start: "2026-11-25T17:00", end: "2026-11-25T21:00", outdoor: true, noteHe: "הלילה המרכזי הוא 24.11; ב-25.11 החגיגות כנראה קטנות יותר." },
     ],
-    drives: [{ id: "d25-pai", fromId: "lodging:cm1", toId: "pai-memorial-bridge", departAt: "2026-11-25T08:30" }],
+    drives: [
+      { id: "d25-pai", fromId: "lodging:cm1", toId: "mok-fa", departAt: "2026-11-25T08:30" },
+      { id: "d25-bridge", fromId: "mok-fa", toId: "pai-memorial-bridge", departAt: "2026-11-25T11:00" },
+    ],
     reminders: [{ id: "r25-van", at: "2026-11-25T08:00", textHe: "הנהג מגיע ב-08:30. כביש 1095 מפותל מאוד, כדאי כדור נגד בחילה." }],
     planB: [
       "כביש 1095 חסום או מוצף: לעכב את היציאה ולהתייעץ עם הנהג על מצב הכביש.",
+      "גשם חזק: השביל למפל מוק פה חלקלק, להסתפק בתצפית מתחילת השביל.",
       "גשם בערב: לחגוג בשוק הלילה (Walking Street) ולשוט קראטונג כשהגשם נחלש.",
     ],
   },
@@ -100,19 +105,19 @@ const days: Day[] = [
     lodgingId: "cd",
     stops: [
       { id: "yun-lai", nameHe: "תצפית יון לאי והכפר הסיני סנטיצ'ון", nameEn: "Yun Lai Viewpoint", lat: 19.369, lng: 98.3954, start: "2026-11-27T09:15", end: "2026-11-27T10:30", outdoor: true },
-      { id: "doi-kiew-lom-27", nameHe: "תצפית דוי קיו לו (שוב)", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4458, lng: 98.3192, start: "2026-11-27T12:00", end: "2026-11-27T12:20", outdoor: true, noteHe: "מופיעה כך בקובץ, אבל היא לא על הדרך לצ'אנג דאו. כדאי לבדוק." },
-      { id: "mok-fa", nameHe: "מפל מוק פה", nameEn: "Mok Fa Waterfall", lat: 19.1088, lng: 98.7718, start: "2026-11-27T15:00", end: "2026-11-27T15:45", outdoor: true },
+      { id: "rak-chang", nameHe: "תצפית Rak Chang", nameEn: "Rak Chang Viewpoint", lat: 19.25, lng: 98.55, start: "2026-11-27T11:30", end: "2026-11-27T11:50", outdoor: true, noteHe: "על כביש 1095, כשעה מפאי. מיקום משוער, לבדוק במפה." },
+      { id: "wat-ban-den", nameHe: "מקדש ואט באן דן", nameEn: "Wat Ban Den", lat: 19.2195, lng: 98.9486, start: "2026-11-27T14:00", end: "2026-11-27T15:30", outdoor: true, noteHe: "לחלופין פארק דנטוואדה. מיקום משוער, לבדוק במפה." },
     ],
     drives: [
       { id: "d27-yunlai", fromId: "lodging:pai", toId: "yun-lai", departAt: "2026-11-27T09:00" },
-      { id: "d27-kiewlom", fromId: "yun-lai", toId: "doi-kiew-lom-27", departAt: "2026-11-27T10:30" },
-      { id: "d27-mokfa", fromId: "doi-kiew-lom-27", toId: "mok-fa", departAt: "2026-11-27T12:20" },
-      { id: "d27-chiangdao", fromId: "mok-fa", toId: "lodging:cd", departAt: "2026-11-27T15:45" },
+      { id: "d27-rakchang", fromId: "yun-lai", toId: "rak-chang", departAt: "2026-11-27T10:30" },
+      { id: "d27-banden", fromId: "rak-chang", toId: "wat-ban-den", departAt: "2026-11-27T11:50" },
+      { id: "d27-chiangdao", fromId: "wat-ban-den", toId: "lodging:cd", departAt: "2026-11-27T15:45" },
     ],
     reminders: [],
     planB: [
-      "גשם או ערפל: לוותר על תצפית דוי קיו לו ולצאת מפאי ישר לצ'אנג דאו.",
-      "גשם חזק: השביל למפל מוק פה חלקלק, להסתפק בתצפית מתחילת השביל.",
+      "גשם או ערפל: לוותר על תצפית Rak Chang ולנסוע ישר לואט באן דן.",
+      "גשם חזק בצהריים: לבקר בואט באן דן רק באולמות המקורים, או לנסוע ישר לצ'אנג דאו.",
     ],
   },
   {
@@ -133,30 +138,38 @@ const days: Day[] = [
     lodgingId: "cr",
     stops: [
       { id: "khun-korn", nameHe: "טרק מפל קון קורן", nameEn: "Khun Korn Waterfall", lat: 19.876, lng: 99.6264, start: "2026-11-29T09:30", end: "2026-11-29T12:30", outdoor: true },
-      { id: "white-temple", nameHe: "המקדש הלבן", nameEn: "Wat Rong Khun", lat: 19.8243, lng: 99.7633, start: "2026-11-29T15:50", end: "2026-11-29T16:50", outdoor: true },
+      { id: "white-temple", nameHe: "המקדש הלבן", nameEn: "Wat Rong Khun", lat: 19.8243, lng: 99.7633, start: "2026-11-29T14:30", end: "2026-11-29T15:30", outdoor: true, noteHe: "לפני כן ארוחת צהריים באחת המסעדות ליד המקדש, 13:00-14:30." },
       { id: "cr-walking-street", nameHe: "שוק יום ראשון בצ'יאנג ראי", nameEn: "Chiang Rai Sunday Walking Street", lat: 19.9015, lng: 99.819, start: "2026-11-29T19:30", end: "2026-11-29T22:00", outdoor: true },
     ],
     drives: [
       { id: "d29-khunkorn", fromId: "lodging:dc", toId: "khun-korn", departAt: "2026-11-29T08:30" },
-      { id: "d29-chiangrai", fromId: "khun-korn", toId: "lodging:cr", departAt: "2026-11-29T12:30" },
+      { id: "d29-white", fromId: "khun-korn", toId: "white-temple", departAt: "2026-11-29T12:30" },
+      { id: "d29-chiangrai", fromId: "white-temple", toId: "lodging:cr", departAt: "2026-11-29T15:30" },
     ],
-    reminders: [{ id: "r29-phuchifa", at: "2026-11-29T21:00", textHe: "מחר השכמה ב-03:00 לפו צ'י פה. להכין פנס ובגד חם." }],
+    reminders: [{ id: "r29-boat", at: "2026-11-29T21:00", textHe: "מחר יוצאים ב-10:00 לשייט בנהר הקוק. לקחת בננות ובוטנים לקופים ומגבת קטנה לטבילת הרגליים." }],
     planB: ["גשם בטרק קון קורן: השביל חלקלק, להסתפק בחלק הראשון או לדלג ולהגיע מוקדם לצ'יאנג ראי."],
   },
   {
     date: "2026-11-30",
-    titleHe: "זריחה מעל ים העננים בפו צ'י פה והמקדש הכחול",
+    titleHe: "שייט בנהר הקוק, כפרי השבטים והמקדש הכחול",
     lodgingId: "cr",
     stops: [
-      { id: "phu-chi-fa", nameHe: "זריחה בצוק פו צ'י פה", nameEn: "Phu Chi Fa", lat: 19.8556, lng: 100.4458, start: "2026-11-30T06:00", end: "2026-11-30T08:30", outdoor: true, highland: true },
-      { id: "kok-river-lunch", nameHe: "צהריים ב-Chivit Thamma Da על נהר הקוק", nameEn: "Chivit Thamma Da", lat: 19.9175, lng: 99.8295, start: "2026-11-30T15:30", end: "2026-11-30T16:50", outdoor: false, noteHe: "דגי נהר טריים, ואחר כך סיור ברובע האמנים. מיקום משוער, לבדוק במפה." },
-      { id: "blue-temple", nameHe: "המקדש הכחול", nameEn: "Wat Rong Suea Ten", lat: 19.9218, lng: 99.8421, start: "2026-11-30T17:30", end: "2026-11-30T18:15", outdoor: true },
-      { id: "cr-night-bazaar", nameHe: "שוק הלילה של צ'יאנג ראי", nameEn: "Chiang Rai Night Bazaar", lat: 19.9049, lng: 99.8349, start: "2026-11-30T18:30", end: "2026-11-30T21:00", outdoor: true },
+      { id: "kok-boat", nameHe: "שייט פרטי בנהר הקוק וקופים במצוק", nameEn: "C.R. Pier", lat: 19.9216, lng: 99.8183, start: "2026-11-30T10:15", end: "2026-11-30T11:00", outdoor: true, noteHe: "סירה פרטית ל-3 שעות מהקופה ברציף. לבקש מהנהג להסביר למשיט: קופים במצוק, כפר הקארן, כפר הלאהו, וירידה במעיינות Pha Soet. מיקום הרציף משוער." },
+      { id: "ruammit", nameHe: "כפר הקארן Ruammit וכפר הלאהו", nameEn: "Ban Ruam Mit", lat: 19.938, lng: 99.66, start: "2026-11-30T11:00", end: "2026-11-30T12:30", outdoor: true, noteHe: "מיקום משוער." },
+      { id: "pha-soet", nameHe: "טבילת רגליים ובישול ביצים ב-Pha Soet", nameEn: "Pha Soet Hot Spring", lat: 19.94, lng: 99.632, start: "2026-11-30T12:30", end: "2026-11-30T13:15", outdoor: true, noteHe: "הנהג מחכה כאן עם הוואן ב-13:15. מיקום משוער." },
+      { id: "kok-river-lunch", nameHe: "צהריים ב-Chivit Thamma Da על נהר הקוק", nameEn: "Chivit Thamma Da", lat: 19.9175, lng: 99.8295, start: "2026-11-30T13:30", end: "2026-11-30T15:00", outdoor: false, noteHe: "לבקש מהנהג להזמין מקום מראש ל-13:35. מיקום משוער, לבדוק במפה." },
+      { id: "blue-temple", nameHe: "המקדש הכחול", nameEn: "Wat Rong Suea Ten", lat: 19.9218, lng: 99.8421, start: "2026-11-30T17:00", end: "2026-11-30T18:15", outdoor: true },
+      { id: "cr-night-bazaar", nameHe: "שוק הלילה של צ'יאנג ראי והוט פוט", nameEn: "Chiang Rai Night Bazaar", lat: 19.9049, lng: 99.8349, start: "2026-11-30T18:30", end: "2026-11-30T21:00", outdoor: true },
     ],
-    drives: [{ id: "d30-phuchifa", fromId: "lodging:cr", toId: "phu-chi-fa", departAt: "2026-11-30T03:30" }],
+    drives: [
+      { id: "d30-pier", fromId: "lodging:cr", toId: "kok-boat", departAt: "2026-11-30T10:00" },
+      { id: "d30-lunch", fromId: "pha-soet", toId: "kok-river-lunch", departAt: "2026-11-30T13:15" },
+      { id: "d30-blue", fromId: "lodging:cr", toId: "blue-temple", departAt: "2026-11-30T16:45" },
+    ],
     reminders: [],
     planB: [
-      "סיכוי נמוך לים עננים או גשם: לדלג על ההשכמה ולישון. אפשר לבקר במקדש Wat Huay Pla Kang במקום.",
+      "גשם חזק או נהר גבוה: לוותר על השייט ולנסוע בוואן לכפר Ruammit ולמעיינות Pha Soet בכביש שלאורך הנהר.",
+      "גשם בערב: המקדש הכחול מקורה ברובו. בשוק הלילה לשבת ברחבת האוכל המקורה.",
     ],
   },
   {
@@ -164,7 +177,7 @@ const days: Day[] = [
     titleHe: "סדנת בישול Akha Kitchen",
     lodgingId: "cr",
     stops: [
-      { id: "akha-kitchen", nameHe: "סדנת בישול Akha Kitchen", nameEn: "Akha Kitchen", lat: 19.91, lng: 99.84, start: "2026-12-01T09:00", end: "2026-12-01T14:00", outdoor: false, noteHe: "מיקום משוער, לעדכן לפי נקודת המפגש. אחרי הסדנה: אפשרות למרחצאות החמים Pong Phra Bat." },
+      { id: "akha-kitchen", nameHe: "סדנת בישול Akha Kitchen", nameEn: "Akha Kitchen", lat: 19.91, lng: 99.84, start: "2026-12-01T09:00", end: "2026-12-01T14:00", outdoor: false, noteHe: "מתחילים בסיור בשוק מקומי עם השפית ג'ארוואן. מיקום משוער, לעדכן לפי נקודת המפגש. אחרי הסדנה: אפשרות למרכז שבטי ההרים (Hilltribe Museum) או לבית הקפה Lalitta Café." },
     ],
     drives: [],
     reminders: [],
@@ -175,7 +188,7 @@ const days: Day[] = [
     titleHe: "חזרה לצ'אנג מאי וקניות אחרונות",
     lodgingId: "cm2",
     stops: [
-      { id: "cm-night-bazaar", nameHe: "בזאר צ'אנג מאי, מסאז' וארוחת סיום", nameEn: "Chiang Mai Night Bazaar", lat: 18.7854, lng: 99.0007, start: "2026-12-02T13:00", end: "2026-12-02T21:00", outdoor: true },
+      { id: "cm-night-bazaar", nameHe: "בזאר צ'אנג מאי, מסאז' וארוחת סיום", nameEn: "Chiang Mai Night Bazaar", lat: 18.7854, lng: 99.0007, start: "2026-12-02T13:00", end: "2026-12-02T21:00", outdoor: true, noteHe: "לארוחת הסיום: Paak Dang Riverside Restaurant (טלפון ‎+66 94 994 9353) או Samsen Villa." },
     ],
     drives: [{ id: "d02-chiangmai", fromId: "lodging:cr", toId: "lodging:cm2", departAt: "2026-12-02T09:00" }],
     reminders: [{ id: "r02-checkout", at: "2026-12-02T21:00", textHe: "מחר צ'ק-אאוט ב-05:30. לארוז הערב ולכוון שעון מעורר." }],

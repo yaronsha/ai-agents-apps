@@ -13,9 +13,9 @@ describe("where reminders show without push", () => {
     }
   });
 
-  it("keeps the 21:00 wake-up and packing reminders as evening rows", () => {
+  it("keeps the 21:00 boat-day and packing reminders as evening rows", () => {
     const ids = publicTrip.days.flatMap((d) => eveningReminders(d.stops, d.reminders).map((r) => r.id));
-    expect(ids).toEqual(expect.arrayContaining(["r29-phuchifa", "r02-checkout"]));
+    expect(ids).toEqual(expect.arrayContaining(["r29-boat", "r02-checkout"]));
   });
 
   it("counts a reminder after the last stop's start as evening, even while the stop is still on", () => {
