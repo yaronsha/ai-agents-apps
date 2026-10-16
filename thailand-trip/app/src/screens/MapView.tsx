@@ -54,7 +54,12 @@ export function MapView({
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map.current);
     layers.current = L.layerGroup().addTo(map.current);
+    // Leaflet only re-measures on a window resize; beside the plan on a computer the map's box also
+    // changes when the day strip comes and goes, so watch the box itself.
+    const resized = new ResizeObserver(() => map.current?.invalidateSize());
+    resized.observe(el.current);
     return () => {
+      resized.disconnect();
       map.current?.remove();
       map.current = null;
     };
@@ -114,9 +119,12 @@ export function MapView({
     });
 
     trip.lodgings.forEach((l) =>
-      L.marker([l.lat, l.lng], { icon: L.divIcon({ className: "", html: '<div class="pin-hotel">⌂</div>', iconSize: [20, 20], iconAnchor: [10, 10] }), title: l.name })
-        .bindPopup(`<b>${esc(l.name)}</b><br>${shortDay(l.checkIn)}–${shortDay(l.checkOut)}`)
-        .addTo(g),
+      pins.current.set(
+        `lodging:${l.id}`,
+        L.marker([l.lat, l.lng], { icon: L.divIcon({ className: "", html: '<div class="pin-hotel">⌂</div>', iconSize: [20, 20], iconAnchor: [10, 10] }), title: l.name })
+          .bindPopup(`<b>${esc(l.name)}</b><br>${shortDay(l.checkIn)}–${shortDay(l.checkOut)}`)
+          .addTo(g),
+      ),
     );
 
     if (showHospitals) {
@@ -156,9 +164,13 @@ export function MapView({
     m.fitBounds(focus.current, { paddingTopLeft: [40, above], paddingBottomRight: [40, below], maxZoom: 12 });
   }
 
+  // Only a new request moves the map: a place asked for earlier must not come back when the map
+  // remounts (crossing the computer breakpoint), where the day framing wins.
+  const flown = useRef(flyTo);
   useEffect(() => {
     const m = map.current;
-    if (!m || !flyTo) return;
+    if (!m || !flyTo || flown.current === flyTo) return;
+    flown.current = flyTo;
     m.setView([flyTo.lat, flyTo.lng], Math.max(m.getZoom(), 14));
     for (const marker of pins.current.values()) {
       const ll = marker.getLatLng();
