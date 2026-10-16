@@ -26,8 +26,16 @@
  "d25-pai": {
   "routes": [
    {
-    "duration": "5093s",
-    "staticDuration": "4805s"
+    "duration": "2181s",
+    "staticDuration": "2058s"
+   }
+  ]
+ },
+ "d25-mokfa": {
+  "routes": [
+   {
+    "duration": "3269s",
+    "staticDuration": "3084s"
    }
   ]
  },
@@ -132,6 +140,14 @@
    {
     "duration": "2648s",
     "staticDuration": "2498s"
+   }
+  ]
+ },
+ "d30-hotel": {
+  "routes": [
+   {
+    "duration": "175s",
+    "staticDuration": "165s"
    }
   ]
  },
