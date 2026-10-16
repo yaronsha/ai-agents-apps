@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { dayOrDefault, googleMapsDirections, hhmm, placeInfo, placeOf, thDate, type Drive, type Lodging, type Reminder, type Stop, type StopForecast } from "@trip/shared";
+import { dayOrDefault, googleMapsDirections, hhmm, placeInfo, placeOf, thDate, type Drive, type LatLng, type Lodging, type Reminder, type Stop, type StopForecast } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../live";
 import { ago, dayLabel, shortDay, statusText } from "../format";
@@ -118,7 +118,8 @@ export function Today({
   live: Live;
   refresh: () => void;
   openAlerts: () => void;
-  openMap: () => void;
+  /** Shows the place on the map (the map tab on a phone; the map beside the plan on a computer). */
+  openMap: (at: LatLng) => void;
   openReplan: () => void;
 }) {
   const trip = useTrip();
@@ -133,6 +134,10 @@ export function Today({
   const troubled = status === "yellow" || status === "red";
   const close = () => setOpen(null);
   const evening = eveningReminders(day.stops, day.reminders);
+  const showOnMap = (at: LatLng) => () => {
+    close();
+    openMap(at);
+  };
 
   // Stops and drives in the order they happen (local time strings sort as text); a drive
   // that leaves when a stop starts goes first.
@@ -188,9 +193,9 @@ export function Today({
       )}
 
       {open?.kind === "stop" && (
-        <StopSheet stop={open.stop} date={date} reminders={remindersBefore(day.stops, day.reminders, open.stop)} onClose={close} onMap={openMap} />
+        <StopSheet stop={open.stop} date={date} reminders={remindersBefore(day.stops, day.reminders, open.stop)} onClose={close} onMap={showOnMap(open.stop)} />
       )}
-      {open?.kind === "lodging" && <LodgingSheet lodging={open.lodging} reminders={evening} onClose={close} onMap={openMap} />}
+      {open?.kind === "lodging" && <LodgingSheet lodging={open.lodging} reminders={evening} onClose={close} onMap={showOnMap(open.lodging)} />}
       {open?.kind === "planB" && <PlanBSheet date={date} planB={day.planB} onClose={close} onReplan={openReplan} />}
     </>
   );
