@@ -19,6 +19,13 @@ const QUERY: Record<string, string | null> = {
   "khao-soi": null,
   "kok-river-lunch": null,
   "akha-kitchen": null,
+  // Pins placed from descriptions, not checked on a map yet (2026-10-16). Remove once checked.
+  thingamajiggy: null,
+  "rak-chang": null,
+  "wat-ban-den": null,
+  "kok-boat": null,
+  ruammit: null,
+  "pha-soet": null,
   "doi-chang-coffee": "Doi Chang Coffee Farm",
 };
 

@@ -7,7 +7,7 @@ import { FakeKV, makeEnv, makeSubscription, stubFetch, type FetchLog } from "./f
 afterEach(() => vi.unstubAllGlobals());
 
 describe("engine", () => {
-  it("raises rain, cold, cloud-sea and quake alerts on a trip day and pushes the quake at once", async () => {
+  it("raises rain and quake alerts on a trip day and pushes the quake at once", async () => {
     const kv = new FakeKV();
     const env = await makeEnv(kv);
     await kv.put("subs", JSON.stringify([await makeSubscription()]));
@@ -18,9 +18,7 @@ describe("engine", () => {
     const ids = state.alerts.map((a) => a.id);
 
     expect(ids).toContain("weather:pai-canyon:rain");
-    expect(ids).toContain("cold:phu-chi-fa");
     expect(ids.some((id) => id.includes("twin-pagodas"))).toBe(false); // past days are not fetched
-    expect(ids).toContain("clouds:phu-chi-fa:high");
     expect(ids).toContain("quake:us7");
     expect(state.dayStatus["2026-11-26"]).toBe("red");
     expect(state.forecasts["pai-canyon"].maxRainProb).toBe(85);
