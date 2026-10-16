@@ -3,7 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type { NewsItem, Trip, TripAlert } from "@trip/shared";
 import type { Article } from "./sources/gdelt";
 import type { Env } from "./env";
-import { ADVISORY_SYSTEM, REPLAN_REFUSED, REPLAN_SYSTEM, replanPrompt, toNewsItems, Triage, TRIAGE_REQUEST, TRIAGE_SYSTEM, triagePrompt } from "./claude";
+import { ADVISORY_SYSTEM, REPLAN_REFUSED, REPLAN_SYSTEM, replanPrompt, toNewsItems, Triage, TRIAGE_REQUEST, TRIAGE_SYSTEM, triagePrompt } from "./prompts";
 
 // The same prompts and answer shape as ./claude, sent to OpenAI's Responses API.
 

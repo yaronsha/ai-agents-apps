@@ -54,11 +54,12 @@ npx wrangler login
 npm run vapid                                # prints a public key and a private JWK
 ```
 
-Put the public key in `VAPID_PUBLIC_KEY` and your email in `VAPID_CONTACT` in `wrangler.toml`, then set the secrets:
+Put the public key in `VAPID_PUBLIC_KEY` in `wrangler.toml`, then set the secrets:
 
 ```bash
 npx wrangler secret put APP_TOKEN            # any shared code; you type it into the app once
 npx wrangler secret put VAPID_PRIVATE_JWK    # the JSON line from npm run vapid
+npx wrangler secret put VAPID_CONTACT        # optional, mailto:you@example.com (a secret so it stays out of git)
 npx wrangler secret put ANTHROPIC_API_KEY    # optional, when AI_PROVIDER = "claude"
 npx wrangler secret put OPENAI_API_KEY       # optional, when AI_PROVIDER = "openai"
 npx wrangler secret put GOOGLE_MAPS_KEY      # optional, Routes API enabled
@@ -79,7 +80,7 @@ Open the site, go to **הגדרות** and tap **הפעלת התראות**, then 
 
 ### 3. Automatic deploy from main
 
-`.github/workflows/thailand-trip-deploy.yml` runs on every push to `main` that touches `thailand-trip/`: it type-checks, runs the tests, builds the app, then deploys the worker and the Pages project `thailand-trip-app`. Other branches and pull requests never deploy. It can also be run by hand from the Actions tab (on `main` only).
+Once the workflow update from issue #50 is applied in the GitHub UI (until then the deploy still runs straight on every push to `main`, and CI does not lint), `.github/workflows/thailand-trip-deploy.yml` starts after **thailand-trip CI** (type-check, tests, lint and the simulator) passes on a push to `main`. It deploys the commit CI checked: it writes the real trip file, type-checks and tests again, builds the app, then deploys the worker and the Pages project `thailand-trip-app`. A red CI deploys nothing, and if a newer commit is already on `main`, the older run steps aside for it. Other branches and pull requests never deploy. It can also be run by hand from the Actions tab (on `main` only), which deploys the current `main` without waiting for CI.
 
 Repository secrets it needs (Settings → Secrets and variables → Actions):
 
@@ -90,6 +91,16 @@ Repository secrets it needs (Settings → Secrets and variables → Actions):
 | `TRIP_PRIVATE_JSON` | The full contents of `shared/src/trip-private.json` |
 
 Worker secrets (`APP_TOKEN`, `VAPID_PRIVATE_JWK`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` and the optional keys) stay in Cloudflare; a deploy keeps them.
+
+### Rolling back
+
+The service worker takes over as soon as a new version loads (`skipWaiting`), so a deploy reaches every phone at once. If one breaks something, roll back first and fix after:
+
+- **Worker:** `cd worker && npx wrangler deployments list`, then `npx wrangler rollback <version-id>` (with no id it goes back one version). Or in the dashboard: **Workers → thailand-trip → Deployments**, pick a version, **Rollback**. Secrets and KV data are not touched.
+- **App:** **Workers & Pages → thailand-trip-app → Deployments**, open an earlier production deployment, **⋯ → Rollback to this deployment**. Phones pick it up on their next load.
+- Then revert the commit on `main`, so the next deploy does not bring the problem back.
+
+**During the trip (21.11–03.12)** merge only fixes to `main`: every merge deploys to both phones within minutes, with no way to test it there first. Keep other changes on their branches until after the trip.
 
 ### 4. Who can open the app
 
@@ -105,7 +116,8 @@ To add someone, add their email to the policy or list; it works at once. To remo
 
 ## Checks
 
-- **Offline, on GitHub:** `.github/workflows/thailand-trip-ci.yml` runs `npm run typecheck`, `npm test` and `npm run sim -- --browser` on every pull request and push to `main`. None of it calls a real source or a paid API.
+- **Offline, on GitHub:** `.github/workflows/thailand-trip-ci.yml` runs `npm run typecheck`, `npm test`, `npm run lint` (once the #50 workflow update is applied) and `npm run sim -- --browser` on every pull request and push to `main`. None of it calls a real source or a paid API.
+- **The same, locally:** `npm run check` runs type-check, tests, lint (ESLint on `worker/` and `shared/`, plus the privacy rule on `app/`) and the simulator.
 - **Live, only by hand on your machine:** copy `.env.example` to `.env` and fill in the keys, then `npm run check:free` (free sources: format, plausible values, and a second independent source for each) and `npm run check:paid` (Routes, AeroDataBox, OpenAI or Claude; prints the calls and their cost and asks first). Details in [sim/README.md](sim/README.md#offline-in-ci-live-only-by-hand).
 
 ## How alerts work

@@ -8,7 +8,11 @@ export interface Env {
   ACCESS_AUD?: string;
   VAPID_PUBLIC_KEY: string;
   VAPID_PRIVATE_JWK: string;
-  VAPID_CONTACT: string;
+  /**
+   * Who push services can contact about this sender, "mailto:you@example.com". A secret, not a
+   * wrangler.toml var, so the email stays out of the public repo; without it the app's address is sent.
+   */
+  VAPID_CONTACT?: string;
   /** "claude" (default) or "openai": which model runs news triage and re-plan. */
   AI_PROVIDER?: string;
   CLAUDE_TRIAGE_MODEL: string;
