@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { defaultDate, publicTrip, thDate, withPrivate } from "@trip/shared";
+import { defaultDate, publicTrip, thDate, withPrivate, type LatLng } from "@trip/shared";
 import { cachedPrivate, loadPrivate, loadState } from "./api";
 import type { Live } from "./live";
 import { TripContext } from "./tripContext";
@@ -33,6 +33,19 @@ function tripPhase(first: string, last: string, today: string): string {
   return `יום ${daysBetween(first, today) + 1} מתוך ${daysBetween(first, last) + 1}`;
 }
 type Tab = (typeof TABS)[number]["id"];
+
+/** A computer screen: side menu, the plan in the middle and the map always open beside it. */
+const DESKTOP = "(min-width: 1100px)";
+function useDesktop(): boolean {
+  const [desktop, setDesktop] = useState(() => window.matchMedia(DESKTOP).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP);
+    const on = () => setDesktop(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return desktop;
+}
 
 const tabFromHash = (): Tab => {
   const h = window.location.hash.slice(1);
@@ -75,10 +88,16 @@ export function App() {
     };
   }, [refresh]);
 
+  const desktop = useDesktop();
+  // On a computer the map is always on screen, so there is no map tab: a link to it opens the plan.
+  const shown: Tab = desktop && tab === "map" ? "today" : tab;
+  const [mapFocus, setMapFocus] = useState<LatLng | null>(null);
+
   const go = (t: Tab) => {
     window.location.hash = t;
     setTab(t);
   };
+  const openMap = (at: LatLng) => (desktop ? setMapFocus({ lat: at.lat, lng: at.lng }) : go("map"));
   /** The alerts screen, scrolled to the "ask for a new plan" box. */
   const openReplan = () => {
     go("alerts");
@@ -89,46 +108,72 @@ export function App() {
   const first = publicTrip.days[0].date;
   const last = publicTrip.days[publicTrip.days.length - 1].date;
   const activeCount = live.state?.alerts.filter((a) => a.category !== "reminder" && a.date >= thDate(new Date())).length ?? 0;
+  const dayTab = DAY_TABS.includes(shown);
+
+  const head = (
+    <header className="app-head">
+      <div>
+        <div className="app-title">צפון תאילנד</div>
+        <div className="app-sub">
+          {shortDay(first)}–{shortDay(last)}.{last.slice(0, 4)} · {daysBetween(first, last)} לילות
+        </div>
+      </div>
+      <span className="phase">{tripPhase(first, last, thDate(new Date()))}</span>
+    </header>
+  );
+  const nav = (
+    <nav className={desktop ? "sidenav" : "tabbar"} aria-label="מסכים">
+      {TABS.filter((t) => !desktop || t.id !== "map").map((t) => (
+        <button key={t.id} className={shown === t.id ? "active" : ""} aria-current={shown === t.id ? "page" : undefined} onClick={() => go(t.id)}>
+          <span className="tab-icon">
+            <Icon name={t.id} size={22} />
+            {t.id === "alerts" && activeCount > 0 && (
+              <span className="count">
+                {activeCount}
+                <span className="sr-only"> התראות פעילות</span>
+              </span>
+            )}
+          </span>
+          {t.label}
+        </button>
+      ))}
+    </nav>
+  );
+  const screen = (
+    <main className={`screen ${shown === "map" ? "screen-map" : ""}`}>
+      {shown === "today" && (
+        <Today date={date} live={live} refresh={refresh} openAlerts={() => go("alerts")} openMap={openMap} openReplan={openReplan} />
+      )}
+      {shown === "map" && <MapView date={date} setDate={setDate} live={live} openAlerts={() => go("alerts")} />}
+      {shown === "alerts" && <Alerts date={date} live={live} refresh={refresh} />}
+      {shown === "sos" && <Emergency date={date} />}
+      {shown === "settings" && <Settings live={live} refresh={refresh} />}
+    </main>
+  );
+  const dayPicker = dayTab && <DayPicker date={date} setDate={setDate} status={live.state?.dayStatus} />;
 
   return (
     <TripContext.Provider value={trip}>
-    <div className="shell">
-      <header className="app-head">
-        <div>
-          <div className="app-title">צפון תאילנד</div>
-          <div className="app-sub">
-            {shortDay(first)}–{shortDay(last)}.{last.slice(0, 4)} · {daysBetween(first, last)} לילות
+      {desktop ? (
+        <div className={`shell desktop ${dayTab ? "" : "no-strip"}`}>
+          <aside className="side">
+            {head}
+            {nav}
+          </aside>
+          {dayPicker}
+          {screen}
+          <div className="dock-map">
+            <MapView date={date} setDate={setDate} live={live} openAlerts={() => go("alerts")} docked flyTo={mapFocus} />
           </div>
         </div>
-        <span className="phase">{tripPhase(first, last, thDate(new Date()))}</span>
-      </header>
-      {DAY_TABS.includes(tab) && <DayPicker date={date} setDate={setDate} status={live.state?.dayStatus} />}
-      <main className={`screen ${tab === "map" ? "screen-map" : ""}`}>
-        {tab === "today" && (
-          <Today date={date} live={live} refresh={refresh} openAlerts={() => go("alerts")} openMap={() => go("map")} openReplan={openReplan} />
-        )}
-        {tab === "map" && <MapView date={date} setDate={setDate} live={live} openAlerts={() => go("alerts")} />}
-        {tab === "alerts" && <Alerts date={date} live={live} refresh={refresh} />}
-        {tab === "sos" && <Emergency date={date} />}
-        {tab === "settings" && <Settings live={live} refresh={refresh} />}
-      </main>
-      <nav className="tabbar" aria-label="מסכים">
-        {TABS.map((t) => (
-          <button key={t.id} className={tab === t.id ? "active" : ""} aria-current={tab === t.id ? "page" : undefined} onClick={() => go(t.id)}>
-            <span className="tab-icon">
-              <Icon name={t.id} size={22} />
-              {t.id === "alerts" && activeCount > 0 && (
-                <span className="count">
-                  {activeCount}
-                  <span className="sr-only"> התראות פעילות</span>
-                </span>
-              )}
-            </span>
-            {t.label}
-          </button>
-        ))}
-      </nav>
-    </div>
+      ) : (
+        <div className="shell">
+          {head}
+          {dayPicker}
+          {screen}
+          {nav}
+        </div>
+      )}
     </TripContext.Provider>
   );
 }
