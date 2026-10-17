@@ -15,6 +15,8 @@
     "build": "npm run build -w app",
     "test": "vitest run",
     "typecheck": "tsc -p shared && tsc -p app --noEmit && tsc -p worker --noEmit && tsc -p sim",
+    "lint": "eslint worker shared app",
+    "check": "npm run typecheck && npm test && npm run lint && npm run sim",
     "sim": "npm run sim -w sim --",
     "verify:places": "npm run places -w sim",
     "check:free": "npm run check:free -w sim --",
@@ -23,7 +25,10 @@
     "shadow:report": "npm run shadow:report -w sim --"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
     "typescript": "^5.9.0",
+    "typescript-eslint": "^8.71.2",
     "vitest": "^5.0.0"
   },
   "overrides": {

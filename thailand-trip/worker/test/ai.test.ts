@@ -58,14 +58,28 @@ describe("ai provider", () => {
     expect(seen[0].body.reasoning).toEqual({ effort: "low" });
   });
 
-  it("checks places with OpenAI's web search when configured", async () => {
+  it("checks places with OpenAI's web search when configured, and drops made-up links", async () => {
     const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
     const seen: Array<{ url: string; body: Record<string, unknown> }> = [];
     const item = { stopId: "mok-fa", date: "2026-11-25", severity: "warning", titleHe: "שעות חדשות", bodyHe: "לפי הפארק.", url: "https://park.example/news" };
-    vi.stubGlobal("fetch", stubOpenAI(JSON.stringify({ items: [item, { ...item, stopId: "not-on-the-plan" }] }), seen));
+    const cited = { ...item, url: "https://www.news.example/closed?id=7" };
+    const madeUp = { ...item, severity: "urgent", url: "https://www.bangkokpost.com/made-up" };
+    const text = JSON.stringify({ items: [item, cited, madeUp, { ...item, stopId: "not-on-the-plan" }] });
+    const output = [
+      { type: "web_search_call", id: "ws_1", status: "completed", action: { type: "search", query: "mok fa", sources: [{ type: "url", url: "https://park.example/news/" }] } },
+      {
+        type: "message",
+        id: "msg_1",
+        role: "assistant",
+        status: "completed",
+        content: [{ type: "output_text", text, annotations: [{ type: "url_citation", url: "https://news.example/closed?id=7&utm_source=openai", title: "", start_index: 0, end_index: 0 }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", stubOpenAI(text, seen, { output }));
     const items = await checkPlaces(env, "2026-11-24", placeTargets(trip, ["2026-11-25"]));
-    expect(items).toEqual([item]);
+    expect(items).toEqual([item, cited]);
     expect(seen[0].body.tools).toEqual([{ type: "web_search" }]);
+    expect(seen[0].body.include).toEqual(["web_search_call.action.sources"]);
   });
 
   it("reports a triage answer cut off by the token cap clearly", async () => {

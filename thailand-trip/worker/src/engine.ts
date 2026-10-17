@@ -265,20 +265,23 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   const placeDates = opts.dryRun || !aiProvider(env) ? [] : placeCheckDates(trip, now);
   if (placeDates.length) {
     const targets = placeTargets(trip, placeDates);
+    // The batches run at the same time, so even the weekly check of every stop takes about as long
+    // as one search and ends well inside the cron run.
+    const batches: (typeof targets)[] = [];
+    for (let i = 0; i < targets.length && spend("places"); i += PLACES_PER_CALL) batches.push(targets.slice(i, i + PLACES_PER_CALL));
+    const results = await Promise.allSettled(batches.map((batch) => checkPlaces(env, today, batch)));
     let checked = 0;
     let failed: string | undefined;
-    for (let i = 0; i < targets.length; i += PLACES_PER_CALL) {
-      const batch = targets.slice(i, i + PLACES_PER_CALL);
-      if (!spend("places")) break;
-      try {
-        const found = await checkPlaces(env, today, batch);
-        const done = (n: PlaceNotice) => batch.some((t) => t.stopId === n.stopId && t.date === n.date);
-        placeItems = [...placeItems.filter((n) => !done(n)), ...found];
-        checked += batch.length;
-      } catch (err) {
-        failed = String(err);
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        failed = String(r.reason);
+        return;
       }
-    }
+      const batch = batches[i];
+      const done = (n: PlaceNotice) => batch.some((t) => t.stopId === n.stopId && t.date === n.date);
+      placeItems = [...placeItems.filter((n) => !done(n)), ...r.value];
+      checked += batch.length;
+    });
     note("places", !failed, failed ?? `${checked} עצירות נבדקו`);
   }
   alerts.push(...placeNoticeAlerts(placeItems, now));

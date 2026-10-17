@@ -4,7 +4,7 @@
 import { thDate, thParts } from "@trip/shared";
 import { trip } from "@trip/shared/private";
 import type { Env } from "./env";
-import { Store } from "./store";
+import { DailyBudget, Store } from "./store";
 import { withTimeout } from "./sources/http";
 import { fetchArticles, type Article } from "./sources/gdelt";
 import { fetchGoogleNews } from "./sources/googlenews";
@@ -125,20 +125,17 @@ export async function runShadow(env: Env, now: Date, opts: ShadowOptions = {}): 
     const aiDone = records.some((r) => r.ai);
     if ((env.SHADOW_AI ?? "off").toLowerCase() === "on" && hour >= AI_FROM_HOUR && !aiDone && aiProvider(env)) {
       record.ai = {};
-      const budgetKey = `budget:${today}`;
-      const budgetBefore = await store.json<Record<string, number>>(budgetKey, {});
-      const budget = { ...budgetBefore };
+      const budget = await DailyBudget.load(store, today, DAILY_CAPS);
       for (const name of AI_SOURCES) {
         const fresh = (articles.get(name) ?? []).filter((a) => now.getTime() - published(a.seendate) <= 24 * 60 * MIN).slice(0, 25);
         if (!fresh.length) {
           record.ai[name] = { ok: true, sent: 0, relevant: 0, titles: [] };
           continue;
         }
-        if ((budget.claude ?? 0) >= DAILY_CAPS.claude) {
+        if (!budget.spend("claude")) {
           record.ai[name] = { ok: false, error: "daily AI cap reached", sent: fresh.length, relevant: 0, titles: [] };
           continue;
         }
-        budget.claude = (budget.claude ?? 0) + 1;
         try {
           const items = await withTimeout(triageNews(env, trip, today, fresh), 30_000);
           const byUrl = new Map(fresh.map((a) => [a.url, a.title]));
@@ -147,7 +144,7 @@ export async function runShadow(env: Env, now: Date, opts: ShadowOptions = {}): 
           record.ai[name] = { ok: false, error: String(err).slice(0, 200), sent: fresh.length, relevant: 0, titles: [] };
         }
       }
-      await store.putIfChanged(budgetKey, budget, budgetBefore);
+      await budget.save();
     }
   } catch (err) {
     record.error = String(err).slice(0, 200);

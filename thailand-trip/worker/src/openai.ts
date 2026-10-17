@@ -5,6 +5,7 @@ import type { Article } from "./sources/gdelt";
 import type { Env } from "./env";
 import {
   ADVISORY_SYSTEM,
+  foundLinks,
   PlaceCheck,
   PLACES_REQUEST,
   PLACES_SYSTEM,
@@ -19,7 +20,7 @@ import {
   TRIAGE_SYSTEM,
   triagePrompt,
   type PlaceTarget,
-} from "./claude";
+} from "./prompts";
 
 // The same prompts and answer shape as ./claude, sent to OpenAI's Responses API.
 
@@ -63,7 +64,26 @@ export async function replan(env: Env, trip: Trip, date: string, alerts: TripAle
   return response.output_text.trim() || REPLAN_REFUSED;
 }
 
-/** The same place check with OpenAI's web search tool. Its links come back in the structured answer. */
+/** Every link the web search returned or opened, and every link the answer cites. */
+function searchedLinks(output: OpenAI.Responses.ResponseOutputItem[]): string[] {
+  return output.flatMap((item) => {
+    if (item.type === "web_search_call") {
+      const a = item.action;
+      if (a.type === "search") return (a.sources ?? []).map((s) => s.url);
+      return a.url ? [a.url] : [];
+    }
+    if (item.type === "message") {
+      return item.content.flatMap((c) => (c.type === "output_text" ? c.annotations.flatMap((n) => (n.type === "url_citation" ? [n.url] : [])) : []));
+    }
+    return [];
+  });
+}
+
+/**
+ * The same place check with OpenAI's web search tool. As with Claude, a finding counts only if its
+ * link is one the search actually returned (or an official page we gave), so a made-up link never
+ * becomes an alert.
+ */
 export async function checkPlaces(env: Env, today: string, targets: PlaceTarget[]): Promise<PlaceNotice[]> {
   if (!targets.length) return [];
   const response = await client(env).responses.create(
@@ -72,6 +92,7 @@ export async function checkPlaces(env: Env, today: string, targets: PlaceTarget[
       max_output_tokens: 16000,
       reasoning: { effort: "low" },
       tools: [{ type: "web_search" }],
+      include: ["web_search_call.action.sources"],
       instructions: PLACES_SYSTEM,
       input: placesPrompt(today, targets),
       text: { format: zodTextFormat(PlaceCheck, "places") },
@@ -79,5 +100,5 @@ export async function checkPlaces(env: Env, today: string, targets: PlaceTarget[
     PLACES_REQUEST,
   );
   if (response.status === "incomplete") throw new Error(`OpenAI place check incomplete: ${response.incomplete_details?.reason ?? "unknown"}`);
-  return toPlaceNotices(PlaceCheck.parse(JSON.parse(response.output_text)), targets);
+  return toPlaceNotices(PlaceCheck.parse(JSON.parse(response.output_text)), targets, foundLinks(searchedLinks(response.output), targets));
 }

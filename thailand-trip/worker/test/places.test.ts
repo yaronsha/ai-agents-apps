@@ -114,6 +114,39 @@ describe("place check in the cron run", () => {
     expect(next.alerts.some((a) => a.id === alert!.id)).toBe(false);
   });
 
+  it("runs the weekly check's searches at the same time, and keeps what the others found when one fails", async () => {
+    const kv = new FakeKV();
+    const env = { ...(await makeEnv(kv)), ANTHROPIC_API_KEY: "k" };
+    const rest = stubFetch({ urls: [], pushes: 0 });
+    let inFlight = 0;
+    let most = 0;
+    let calls = 0;
+    let failedOne = false;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const req = new Request(input, init);
+      if (new URL(req.url).host !== "api.anthropic.com") return rest(input, init);
+      const body = (await req.json()) as { system: string; messages: Array<{ content: string }> };
+      if (!body.system.includes("You check places")) return new Response("{}", { status: 500 });
+      calls++;
+      inFlight++;
+      most = Math.max(most, inFlight);
+      await new Promise((r) => setTimeout(r, 20));
+      inFlight--;
+      const hasMokFa = body.messages[0].content.includes("stopId mok-fa:");
+      if (!hasMokFa && !failedOne && (failedOne = true)) return new Response(JSON.stringify({ type: "error", error: { type: "api_error", message: "down" } }), { status: 500 });
+      return new Response(JSON.stringify(claudeAnswer(hasMokFa ? [finding(REAL)] : [])), { headers: { "Content-Type": "application/json" } });
+    });
+
+    // A Monday before the trip: every stop is checked, in several batches.
+    const state = await runCheck(env, thLocal("2026-11-16T06:00"));
+    expect(calls).toBeGreaterThan(1);
+    expect(most).toBe(calls);
+    expect(state.sources.places.ok).toBe(false);
+    expect(state.alerts.some((a) => a.id === `site:mok-fa:${REAL}`)).toBe(true);
+    const saved = JSON.parse((await kv.get("places:items")) ?? "[]") as Array<{ stopId: string }>;
+    expect(saved.map((n) => n.stopId)).toEqual(["mok-fa"]);
+  });
+
   it("shows the bundled facts without any AI key", async () => {
     const env = await makeEnv(new FakeKV());
     vi.stubGlobal("fetch", stubFetch({ urls: [], pushes: 0 }));

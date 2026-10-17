@@ -2,7 +2,7 @@
 // stops at 06:00 and 14:00 (Thai time). Before it: every stop, once a week on Monday at 06:00, to catch
 // changes to the hours, fees and closures gathered in shared/src/place-facts.ts.
 import { addDays, placeFacts, placeInfo, thParts, type PlaceFacts, type Trip } from "@trip/shared";
-import type { PlaceTarget } from "./claude";
+import type { PlaceTarget } from "./prompts";
 
 /** Stops per AI call: each gets up to two searches, and one call allows ten. */
 export const PLACES_PER_CALL = 5;

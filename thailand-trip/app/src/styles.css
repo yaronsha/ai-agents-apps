@@ -1,4 +1,5 @@
 /* Layout: a phone-shaped column. App header, day strip, one scrolling screen, tab bar at the bottom.
+   On a computer (see "Computer" at the end): side menu, the plan in the middle, the map always open beside it.
    Palette: misty highland green neutrals with a lotus-pink accent; status colours stay separate. */
 :root {
   --bg: #e9efea;
@@ -20,6 +21,8 @@
   --alarm: #b02e24;
   /* Bright status badges on the day strip; text-grade --warn/--bad are too dark at this size. */
   --flag-yellow: #f2a516;
+  /* The bright yellow alone is too faint on the light page (1.8:1); a dark rim carries the contrast. */
+  --flag-yellow-edge: #8a5a00;
   --flag-red: #e0362c;
   /* Map pins: the white edge sets them off the light tiles; the warning ring matches the day strip. */
   --pin-edge: #ffffff;
@@ -54,6 +57,7 @@
     --bad-soft: #3d1d1a;
     --alarm: #b3352b;
     --flag-yellow: #f5b43a;
+    --flag-yellow-edge: transparent;
     --flag-red: #ff5a4e;
     --pin-edge: #0e1a17;
     --pin-bg: var(--surface-2);
@@ -91,6 +95,15 @@ button {
   font: inherit;
   color: inherit;
   cursor: pointer;
+}
+/* Press feedback: a slight shrink while the finger is down. */
+@media (prefers-reduced-motion: no-preference) {
+  button {
+    transition: transform 100ms ease-out;
+  }
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
 }
 
 :focus-visible {
@@ -249,6 +262,12 @@ h3 {
   font-size: 14px;
   line-height: 1.2;
 }
+/* The pill is about 31px tall; this stretches the tap area to 44px into the strip's padding. */
+.day::after {
+  content: "";
+  position: absolute;
+  inset: -7px -4px;
+}
 .day .wd {
   font-size: 12px;
   color: var(--muted);
@@ -278,6 +297,7 @@ h3 {
 }
 .flag.yellow {
   background: var(--flag-yellow);
+  box-shadow: inset 0 0 0 1.5px var(--flag-yellow-edge), 0 0 0 2px var(--bg);
 }
 .flag.red {
   background: var(--flag-red);
@@ -692,10 +712,16 @@ a.btn.primary {
   font-size: 14px;
   margin-top: 2px;
 }
+/* A taller tap area (about 42px) for the short text link, without pushing the row apart. It wins
+   over the stop names' own enlarged areas where they meet, but never covers a name's text. */
 .nav-link {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 2px 6px 18px;
+  margin: -2px -6px -18px;
   text-decoration: none;
 }
 .forecast {
@@ -1290,4 +1316,115 @@ button.sheet-chips {
 }
 .sources .dot.bad {
   background: var(--bad);
+}
+
+/* Computer: side menu, the day strip across the top, the plan (or another screen) in a column and the
+   map always open beside it. The breakpoint matches DESKTOP in App.tsx. Phones never get here. */
+.shell.desktop {
+  --tabbar-h: 0px;
+  max-width: none;
+  display: grid;
+  grid-template-columns: 220px minmax(420px, 500px) 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "side strip strip"
+    "side main map";
+}
+.shell.desktop.no-strip {
+  grid-template-areas:
+    "side main map"
+    "side main map";
+}
+.desktop .side {
+  grid-area: side;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 18px 12px;
+  background: var(--surface);
+  border-inline-end: 1px solid var(--line);
+}
+.desktop .app-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 14px 0;
+}
+.sidenav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidenav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: start;
+}
+.sidenav button:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.sidenav button.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+/* The count sits at the row's far end instead of on the icon. */
+.sidenav .tab-icon {
+  display: contents;
+}
+.sidenav .count {
+  position: static;
+  order: 1;
+  margin-inline-start: auto;
+}
+.desktop .daypicker {
+  grid-area: strip;
+  padding: 18px 24px 10px;
+}
+.desktop .day:hover {
+  border-color: var(--muted);
+}
+.desktop .screen {
+  grid-area: main;
+  padding: 12px 24px 32px;
+}
+.dock-map {
+  grid-area: map;
+  min-width: 0;
+  min-height: 0;
+  margin: 12px 0 20px 20px;
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: var(--surface-2);
+}
+.no-strip .dock-map {
+  margin-top: 20px;
+}
+/* Place cards and Plan B open as a centred card rather than a sheet from the bottom edge. */
+.desktop dialog.sheet {
+  inset: 0;
+  margin: auto;
+  height: fit-content;
+  max-height: min(80dvh, 760px);
+  border-radius: 20px;
+}
+.desktop .sheet-grab {
+  visibility: hidden;
+}
+.desktop .toast {
+  inset: auto auto 24px 24px;
+  max-width: 420px;
 }

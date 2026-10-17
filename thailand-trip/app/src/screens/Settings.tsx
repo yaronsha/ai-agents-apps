@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Trip } from "@trip/shared";
 import type { Live } from "../live";
-import { enablePush, errorText, previewAt, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
+import { enablePush, errorText, pushEnabled, pushSupport, serverConfig, settings, testPush } from "../api";
 import { ago, shortDay } from "../format";
 import { useTrip } from "../tripContext";
 
@@ -24,8 +24,9 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
   const [auth, setAuth] = useState<"access" | "token" | null>(null);
   const [configured, setConfigured] = useState<Partial<Record<string, boolean>>>({});
   const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [push, setPush] = useState(false);
-  const [at, setAt] = useState("2026-11-26T12:00");
   const support = pushSupport();
   const trip = useTrip();
 
@@ -41,17 +42,33 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
     );
   }, []);
 
+  // A result stays up long enough to read, then gets out of the way of the sources list.
+  // An error stays until the next action, since it is the one message that needs reading.
+  useEffect(() => {
+    if (!msg || busy || failed) return;
+    const t = setTimeout(() => setMsg(null), 4000);
+    return () => clearTimeout(t);
+  }, [msg, busy, failed]);
+
+  // One request at a time: a second tap on "test push" would send a second push.
   const run = async (fn: () => Promise<string>) => {
-    setMsg("...");
+    if (busy) return;
+    setBusy(true);
+    setFailed(false);
+    setMsg("רגע...");
     try {
       setMsg(await fn());
     } catch (e) {
+      setFailed(true);
       setMsg(errorText(e));
+    } finally {
+      setBusy(false);
     }
   };
 
   const save = () => {
     settings.setToken(token);
+    setFailed(false);
     setMsg("נשמר");
     refresh();
   };
@@ -83,23 +100,14 @@ export function Settings({ live, refresh }: { live: Live; refresh: () => void })
           <>
             <p>{push ? "המכשיר הזה רשום להתראות." : "המכשיר הזה עוד לא רשום."}</p>
             <div className="row">
-              <button className="primary" onClick={() => run(async () => `נרשם. ${await enablePush()} מכשירים רשומים.`).then(() => pushEnabled().then(setPush, () => setPush(false)))}>
+              <button className="primary" disabled={busy} onClick={() => run(async () => `נרשם. ${await enablePush()} מכשירים רשומים.`).then(() => pushEnabled().then(setPush, () => setPush(false)))}>
                 {push ? "רישום מחדש" : "הפעלת התראות"}
               </button>
-              <button onClick={() => run(async () => `נשלח ל-${(await testPush()).sent} מכשירים`)}>שליחת התראת בדיקה</button>
+              <button disabled={busy} onClick={() => run(async () => `נשלח ל-${(await testPush()).sent} מכשירים`)}>שליחת התראת בדיקה</button>
             </div>
           </>
         )}
         <p className="muted">שקט מ-22:00 עד 06:00, חוץ מדברים דחופים. תדריך על מחר בכל ערב ב-20:00.</p>
-      </section>
-
-      <section className="card form">
-        <h2>תצוגה מקדימה</h2>
-        <p className="muted">איך המנוע רואה רגע אחר בטיול, בלי לשלוח פוש. תחזית אמיתית קיימת רק עד 16 יום קדימה.</p>
-        <input dir="ltr" value={at} onChange={(e) => setAt(e.target.value)} />
-        <button onClick={() => run(async () => `${(await previewAt(at)).alerts.filter((a) => a.category !== "reminder").length} התראות ברגע הזה`)}>
-          הרצה
-        </button>
       </section>
 
       {live.state && (

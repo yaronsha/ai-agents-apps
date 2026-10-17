@@ -2,7 +2,7 @@ import type { NewsItem, PlaceNotice, Trip, TripAlert } from "@trip/shared";
 import type { Article } from "./sources/gdelt";
 import type { Env } from "./env";
 import * as claude from "./claude";
-import type { PlaceTarget } from "./claude";
+import type { PlaceTarget } from "./prompts";
 import * as openai from "./openai";
 
 export type AiProvider = "claude" | "openai";

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { dayOrDefault, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections, type Stop } from "@trip/shared";
+import { dayOrDefault, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections, type LatLng, type Stop } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../live";
 import { dayLabel, severityText, shortDay } from "../format";
@@ -13,7 +13,23 @@ const esc = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 const dayColor = (i: number) => `hsl(${(i * 360) / publicTrip.days.length + 170}, 62%, 38%)`;
 
-export function MapView({ date, setDate, live, openAlerts }: { date: string; setDate: (d: string) => void; live: Live; openAlerts: () => void }) {
+export function MapView({
+  date,
+  setDate,
+  live,
+  openAlerts,
+  docked = false,
+  flyTo,
+}: {
+  date: string;
+  setDate: (d: string) => void;
+  live: Live;
+  openAlerts: () => void;
+  /** Beside the plan on a computer: the day card is left out, the plan next to it already shows the day. */
+  docked?: boolean;
+  /** A place to fly to ("על המפה" in a place card); a new object each time, so the same place can be asked twice. */
+  flyTo?: LatLng | null;
+}) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
@@ -38,7 +54,12 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map.current);
     layers.current = L.layerGroup().addTo(map.current);
+    // Leaflet only re-measures on a window resize; beside the plan on a computer the map's box also
+    // changes when the day strip comes and goes, so watch the box itself.
+    const resized = new ResizeObserver(() => map.current?.invalidateSize());
+    resized.observe(el.current);
     return () => {
+      resized.disconnect();
       map.current?.remove();
       map.current = null;
     };
@@ -98,9 +119,12 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
     });
 
     trip.lodgings.forEach((l) =>
-      L.marker([l.lat, l.lng], { icon: L.divIcon({ className: "", html: '<div class="pin-hotel">⌂</div>', iconSize: [20, 20], iconAnchor: [10, 10] }), title: l.name })
-        .bindPopup(`<b>${esc(l.name)}</b><br>${shortDay(l.checkIn)}–${shortDay(l.checkOut)}`)
-        .addTo(g),
+      pins.current.set(
+        `lodging:${l.id}`,
+        L.marker([l.lat, l.lng], { icon: L.divIcon({ className: "", html: '<div class="pin-hotel">⌂</div>', iconSize: [20, 20], iconAnchor: [10, 10] }), title: l.name })
+          .bindPopup(`<b>${esc(l.name)}</b><br>${shortDay(l.checkIn)}–${shortDay(l.checkOut)}`)
+          .addTo(g),
+      ),
     );
 
     if (showHospitals) {
@@ -139,6 +163,20 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
     const below = (sheet.current?.offsetHeight ?? 0) + 36;
     m.fitBounds(focus.current, { paddingTopLeft: [40, above], paddingBottomRight: [40, below], maxZoom: 12 });
   }
+
+  // Only a new request moves the map: a place asked for earlier must not come back when the map
+  // remounts (crossing the computer breakpoint), where the day framing wins.
+  const flown = useRef(flyTo);
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !flyTo || flown.current === flyTo) return;
+    flown.current = flyTo;
+    m.setView([flyTo.lat, flyTo.lng], Math.max(m.getZoom(), 14));
+    for (const marker of pins.current.values()) {
+      const ll = marker.getLatLng();
+      if (ll.lat === flyTo.lat && ll.lng === flyTo.lng) marker.openPopup();
+    }
+  }, [flyTo]);
 
   const locate = () => {
     if (!navigator.geolocation || !map.current) return;
@@ -180,6 +218,7 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
           המסלול של היום
         </button>
       </div>
+      {!docked && (
       <section className="map-sheet" ref={sheet}>
         <div className="sheet-row">
           <div className="sheet-title">
@@ -223,6 +262,7 @@ export function MapView({ date, setDate, live, openAlerts }: { date: string; set
           })}
         </button>
       </section>
+      )}
       {place && <StopSheet stop={place.stop} date={place.date} onClose={() => setPlace(null)} />}
     </div>
   );

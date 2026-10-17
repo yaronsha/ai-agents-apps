@@ -16,9 +16,8 @@ id = "13fa53eda98a4075bae6c728ddf2ef49"
 
 [vars]
 VAPID_PUBLIC_KEY = "BK9irya7D4tahwpR8dry7xJzYMth2ya_iaUbSu1MSyF-bADJPWeb-ECntORAb7Ccee5YMmbCrF9LWmZhrl8FKo0"
-VAPID_CONTACT = "https://thailand-trip.yaron-shapira7.workers.dev"
 # Which model runs news triage and "re-plan for me": "claude" or "openai". Each needs its own key below.
-AI_PROVIDER = "claude"
+AI_PROVIDER = "openai"
 CLAUDE_TRIAGE_MODEL = "claude-haiku-4-5"
 CLAUDE_REPLAN_MODEL = "claude-sonnet-5-5"
 OPENAI_TRIAGE_MODEL = "gpt-5.4-mini"
@@ -33,6 +32,7 @@ SHADOW_AI = "off"
 #   ACCESS_TEAM_DOMAIN  e.g. myteam.cloudflareaccess.com; with ACCESS_AUD, only signed-in allowed emails get in
 #   ACCESS_AUD          the Access application's "Application Audience (AUD) Tag"
 #   VAPID_PRIVATE_JWK   private key JSON from `npm run vapid`
+#   VAPID_CONTACT       optional: "mailto:you@example.com" for push services; kept out of this public file
 #   ANTHROPIC_API_KEY   optional: news triage and "re-plan for me" when AI_PROVIDER = "claude"
 #   OPENAI_API_KEY      optional: the same when AI_PROVIDER = "openai"
 #   GOOGLE_MAPS_KEY     optional: live drive times (Routes API)

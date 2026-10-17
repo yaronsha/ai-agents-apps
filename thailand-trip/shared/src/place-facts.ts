@@ -30,7 +30,6 @@ export interface PlaceFacts {
 
 const CHECKED = "2026-10-16";
 const CASH = "מזומן בבאט. בקופות של אתרים ומקדשים כמעט לא מקבלים כרטיס.";
-const NATIONAL_PARKS = "https://portal.dnp.go.th/p/nationalpark";
 
 export const PLACE_FACTS: Record<string, PlaceFacts> = {
   "cnx-arrive": {
@@ -64,13 +63,11 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
     feeHe: "כניסה לפארק הלאומי דוי אינתנון 300 באט לזר. לפגודות דמי כניסה נפרדים.",
     payHe: CASH,
     notesHe: ["כרטיס הפארק תקף לכל היום, לשמור אותו לכל העצירות בהר."],
-    officialUrls: [NATIONAL_PARKS],
     checked: CHECKED,
   },
   "ang-ka": {
     hours: { open: "06:00", close: "18:00" },
     feeHe: "כלול בכרטיס הפארק.",
-    officialUrls: [NATIONAL_PARKS],
     checked: CHECKED,
   },
   "pha-dok-siew": {
@@ -81,13 +78,11 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
       "השביל נסגר כמעט כל שנה בעונת הגשמים (יוני-אוקטובר) ונפתח ב-1 בנובמבר.",
       "בספטמבר 2026 השביל ומפל Mae Ya נסגרו זמנית אחרי שיטפונות. הבדיקה היומית תבדוק שנפתח.",
     ],
-    officialUrls: [NATIONAL_PARKS],
     checked: CHECKED,
   },
   wachirathan: {
     hours: { open: "06:00", close: "18:00" },
     feeHe: "כלול בכרטיס הפארק.",
-    officialUrls: [NATIONAL_PARKS],
     checked: CHECKED,
   },
   "old-city-temples": {
@@ -115,7 +110,6 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
     feeHe: "100 באט לזר (פארק דוי סוטפ-פוי). חניה 30 באט.",
     payHe: CASH,
     notesHe: ["המפל נסגר זמנית ב-29.9.2026 אחרי גשמים חזקים. הבדיקה היומית תבדוק שנפתח."],
-    officialUrls: [NATIONAL_PARKS],
     checked: CHECKED,
   },
   "pai-loy-krathong": {
@@ -133,7 +127,6 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
     feeHe: "מדריכה עם פנס חובה: כ-150 באט לקבוצה של עד 3. רפסודת במבוק: כ-400 באט לעד 3. ייתכן גם כרטיס לשמורה.",
     payHe: CASH,
     notesHe: ["בעונת הגשמים מפלס המים משנה את המסלול. בסוף נובמבר זה לרוב בסדר."],
-    officialUrls: [NATIONAL_PARKS],
     checked: CHECKED,
   },
   "pai-canyon": {
@@ -180,7 +173,6 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
     hoursHe: "08:00-17:00. כניסה אחרונה לשביל בערך ב-15:30 (מקור אחד)",
     feeHe: "בחינם (פארק יער, לא פארק לאומי).",
     notesHe: ["כ-30-45 דקות הליכה לכל כיוון. השביל נסגר לפעמים אחרי גשם חזק."],
-    officialUrls: [NATIONAL_PARKS],
     checked: CHECKED,
   },
   "white-temple": {
@@ -217,7 +209,6 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
     closedNoteHe: "לפי כמה מדריכים הבריכה המינרלית סגורה בימי שני וחמישי לניקוי. טבילת הרגליים בבריכות הפתוחות כנראה אפשרית.",
     payHe: CASH,
     notesHe: ["המקום נפגע בשיטפונות של אוקטובר 2024 ועדיין משתקם, ייתכן שחלק מהמתקנים סגורים."],
-    officialUrls: [NATIONAL_PARKS],
     checked: CHECKED,
   },
   "kok-river-lunch": {
