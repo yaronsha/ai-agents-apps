@@ -276,6 +276,28 @@ h3 {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+/* Today, when another day is picked: an accent rim and a dot under the date. */
+.day.today {
+  border-color: var(--accent);
+  border-width: 1.5px;
+}
+.day.today b {
+  color: var(--accent);
+}
+.day.today::before {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  inset-inline-start: 50%;
+  width: 4px;
+  height: 4px;
+  margin-inline-start: -2px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.day.today[aria-pressed="true"] b {
+  color: inherit;
+}
 .day[aria-pressed="true"] {
   background: var(--ink);
   border-color: var(--ink);
@@ -360,16 +382,25 @@ h3 {
 .statusbar > span:last-child {
   font-size: 14px;
 }
+/* Old data is a warning, not a footnote: a bar like Plan B's, in the warning colour. */
 .offline {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   width: 100%;
   margin: 8px 0 0;
-  padding: 0;
+  padding: 10px 14px;
   border: 0;
-  background: none;
+  border-radius: 14px;
+  background: var(--warn-soft);
   text-align: start;
-  font-size: 13px;
-  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  color: var(--warn);
+}
+.offline .icon {
+  flex: none;
+  margin-top: 2px;
 }
 
 /* Timeline: a rail with a dot per stop, a van marker per drive */

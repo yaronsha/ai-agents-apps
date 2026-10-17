@@ -96,7 +96,7 @@ export function weatherAlerts(day: Day, summaries: Record<string, StopForecast>)
       titleHe: `${what} ב${stop.nameHe}`,
       // The day's Plan B lines are about particular stops; quoting the first one sent the canyon
       // sunset advice with a night-market warning. The alerts screen lists them all.
-      bodyHe: `בין ${hhmm(stop.start)} ל-${hhmm(stop.end)}.${day.planB.length ? " תוכניות ב' ליום במסך הבלת\"מים." : ""}`,
+      bodyHe: `בין ${hhmm(stop.start)} ל-${hhmm(stop.end)}.${day.planB.length ? " יש תוכנית ב' מוכנה ליום הזה." : ""}`,
       pushAt: warningPushes(day, thLocal(stop.start)),
       digest: true,
     });

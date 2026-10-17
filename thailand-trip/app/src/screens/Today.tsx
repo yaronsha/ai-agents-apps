@@ -12,10 +12,14 @@ import { LodgingSheet, PlanBSheet, StopSheet } from "./Sheets";
 function Forecast({ f }: { f?: StopForecast }) {
   if (!f || f.tempMax === null) return null;
   const rain = f.maxRainProb ?? 0;
+  const lo = Math.round(f.tempMin ?? f.tempMax);
+  const hi = Math.round(f.tempMax);
   return (
     <span className={`forecast ${f.thunder || rain >= 70 ? "wet" : ""}`}>
-      {f.thunder ? "⛈ " : rain >= 40 ? "🌧 " : "☀ "}
-      {Math.round(f.tempMin ?? f.tempMax)}°–{Math.round(f.tempMax)}°{rain > 0 ? ` · ${rain}%` : ""}
+      {f.thunder ? "⛈ " : rain >= 40 ? "🌧 " : rain >= 20 ? "⛅ " : "☀ "}
+      {/* Low to high, left to right, also inside Hebrew text. */}
+      <bdi dir="ltr">{lo === hi ? `${hi}°` : `${lo}°–${hi}°`}</bdi>
+      {rain >= 20 ? ` · גשם ${rain}%` : ""}
       {f.pm25Max !== null && f.pm25Max > 50 ? ` · PM2.5 ${Math.round(f.pm25Max)}` : ""}
     </span>
   );
@@ -174,7 +178,10 @@ export function Today({
       )}
       {(live.offline || live.stale) && (
         <button className="offline" onClick={refresh}>
+          <Icon name="offline" size={16} />
+          <span>
           {live.offline ? `מוצג מידע שמור. ${live.error ?? ""}` : "המידע מהשרת לא התעדכן לאחרונה."} עודכן {live.state ? ago(live.state.generatedAt) : "אף פעם"} · לחצו לרענון
+          </span>
         </button>
       )}
       {/* One card at a time: install first, then push (better asked from the installed app). */}
