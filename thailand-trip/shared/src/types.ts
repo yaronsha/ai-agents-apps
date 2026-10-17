@@ -91,6 +91,7 @@ export type AlertCategory =
   | "flight"
   | "news"
   | "advisory"
+  | "place"
   | "reminder";
 
 export interface TripAlert {

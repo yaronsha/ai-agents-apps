@@ -12,6 +12,7 @@ const SOURCES = (trip: Trip): { key: string; he: string; when: string }[] => [
   { key: "weather", he: "מזג אוויר ואיכות אוויר", when: "פעם בשעה" },
   { key: "advisory", he: "אזהרות מסע של בריטניה", when: "פעם בשעה" },
   { key: "news", he: "חדשות", when: `מ-${shortDay(dayBefore(trip.startDate, 7))}` },
+  { key: "places", he: "שינויים באתרים שבמסלול", when: "פעם בשבוע, ובטיול פעמיים ביום" },
   { key: "quakes", he: "רעידות אדמה", when: `מ-${shortDay(trip.days[0].date)}` },
   { key: "routes", he: "זמני נסיעה", when: "לפני כל נסיעה" },
   { key: "flights", he: "טיסות", when: "יום לפני כל טיסה" },

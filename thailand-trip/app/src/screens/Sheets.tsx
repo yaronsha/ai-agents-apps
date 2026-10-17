@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { googleMapsDirections, hhmm, placeInfo, thDate, type LatLng, type Lodging, type Reminder, type Stop } from "@trip/shared";
+import { googleMapsDirections, hhmm, placeFacts, placeInfo, thDate, type PlaceFacts, type LatLng, type Lodging, type Reminder, type Stop } from "@trip/shared";
 import { shortDay } from "../format";
 import { Icon } from "../icons";
 
@@ -64,6 +64,53 @@ function Reminders({ reminders }: { reminders: Reminder[] }) {
   ));
 }
 
+const WEEKDAYS_HE = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"];
+
+/** Hours, fees, payment and local rules, as gathered before the trip, with the date they were checked. */
+function Facts({ facts }: { facts: PlaceFacts }) {
+  const hours = facts.hoursHe ?? (facts.hours && `${facts.hours.open}-${facts.hours.close}`);
+  const rows: Array<[string, string | undefined]> = [
+    ["שעות", hours && (facts.hours?.lastEntry && !facts.hoursHe ? `${hours} (כניסה אחרונה ${facts.hours.lastEntry})` : hours)],
+    ["סגור", facts.closedOn && (facts.closedNoteHe ?? `בימי ${facts.closedOn.map((d) => WEEKDAYS_HE[d]).join(", ")}`)],
+    ["כניסה", facts.feeHe],
+    ["תשלום", facts.payHe],
+  ];
+  const [y, m, d] = facts.checked.split("-");
+  return (
+    <>
+      <h3>כדאי לדעת מראש</h3>
+      <dl className="sheet-facts">
+        {rows
+          .filter((r): r is [string, string] => Boolean(r[1]))
+          .map(([k, v]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+      </dl>
+      {facts.notesHe && (
+        <ul>
+          {facts.notesHe.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+      )}
+      <p className="sheet-source">
+        נבדק ב-{`${Number(d)}.${Number(m)}.${y}`} ממדריכי טיולים וחדשות, ולא מול המקום עצמו.
+        {facts.officialUrls?.map((u) => (
+          <span key={u}>
+            {" "}
+            <a href={u} target="_blank" rel="noreferrer" dir="ltr">
+              {new URL(u).hostname.replace(/^www\./, "")}
+            </a>
+          </span>
+        ))}
+      </p>
+    </>
+  );
+}
+
 export function StopSheet({
   stop,
   date,
@@ -79,6 +126,7 @@ export function StopSheet({
   onMap?: () => void;
 }) {
   const info = placeInfo(stop.id);
+  const facts = placeFacts(stop.id);
   return (
     <Sheet label={stop.nameHe} onClose={onClose} actions={<PlaceActions at={stop} onMap={onMap} />}>
       <h2>{stop.nameHe}</h2>
@@ -109,6 +157,7 @@ export function StopSheet({
           </ul>
         </>
       )}
+      {facts && <Facts facts={facts} />}
     </Sheet>
   );
 }

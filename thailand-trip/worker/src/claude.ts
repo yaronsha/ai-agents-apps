@@ -1,9 +1,28 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import type { NewsItem, Trip, TripAlert } from "@trip/shared";
+import type { NewsItem, PlaceNotice, Trip, TripAlert } from "@trip/shared";
 import type { Article } from "./sources/gdelt";
 import type { Env } from "./env";
-import { ADVISORY_SYSTEM, REPLAN_REFUSED, REPLAN_SYSTEM, replanPrompt, toNewsItems, Triage, TRIAGE_REQUEST, TRIAGE_SYSTEM, triagePrompt } from "./prompts";
+import {
+  ADVISORY_SYSTEM,
+  foundLinks,
+  lastJson,
+  PlaceCheck,
+  PLACES_JSON,
+  PLACES_REQUEST,
+  PLACES_SYSTEM,
+  placesPrompt,
+  REPLAN_REFUSED,
+  REPLAN_SYSTEM,
+  replanPrompt,
+  toNewsItems,
+  toPlaceNotices,
+  Triage,
+  TRIAGE_REQUEST,
+  TRIAGE_SYSTEM,
+  triagePrompt,
+  type PlaceTarget,
+} from "./prompts";
 
 function client(env: Env): Anthropic {
   return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
@@ -44,4 +63,39 @@ export async function replan(env: Env, trip: Trip, date: string, alerts: TripAle
   });
   if (response.stop_reason === "refusal") return REPLAN_REFUSED;
   return response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
+}
+
+/**
+ * Looks the places up with Claude's web search. A finding counts only if its link is one the search
+ * actually returned (or an official page we gave), so a made-up link never becomes an alert.
+ */
+export async function checkPlaces(env: Env, today: string, targets: PlaceTarget[]): Promise<PlaceNotice[]> {
+  if (!targets.length) return [];
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: placesPrompt(today, targets) }];
+  const found: string[] = [];
+  for (let round = 0; round < 3; round++) {
+    const response = await client(env).messages.create(
+      {
+        model: env.CLAUDE_TRIAGE_MODEL,
+        max_tokens: 8000,
+        system: `${PLACES_SYSTEM}\n${PLACES_JSON}`,
+        messages,
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: Math.min(2 * targets.length, 10) }],
+      },
+      PLACES_REQUEST,
+    );
+    for (const b of response.content) {
+      if (b.type === "web_search_tool_result" && Array.isArray(b.content)) for (const r of b.content) found.push(r.url);
+    }
+    // A long search turn pauses; sending it back lets the server carry on where it stopped.
+    if (response.stop_reason === "pause_turn") {
+      messages.push({ role: "assistant", content: response.content });
+      continue;
+    }
+    const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n");
+    const parsed = PlaceCheck.safeParse(lastJson(text));
+    if (!parsed.success) throw new Error(`place check: no JSON answer (${response.stop_reason})`);
+    return toPlaceNotices(parsed.data, targets, foundLinks(found, targets));
+  }
+  throw new Error("place check: the search did not finish");
 }

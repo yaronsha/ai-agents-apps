@@ -648,6 +648,29 @@ dialog.sheet::backdrop {
   font-size: 14px;
   line-height: 1.45;
 }
+.sheet-facts {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.sheet-facts div {
+  display: grid;
+  grid-template-columns: 4.5em 1fr;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sheet-facts dt {
+  color: var(--muted);
+}
+.sheet-facts dd {
+  margin: 0;
+}
+.sheet-source {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
 .sheet-option {
   margin: 10px 0;
   padding: 10px 12px;
