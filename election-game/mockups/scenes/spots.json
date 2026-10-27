@@ -1,0 +1,31 @@
+{
+  "_doc": "Pop-up spots per scene, in px inside a 358x556 scene box. Each spot is a clipping box: the 120x150 caricature sits at the box bottom, centered, scaled by `scale` from the bottom edge, so the box bottom is the line it hides behind (seat row, podium, pedestal, ballot box). `sink` pushes it down for a half-risen pose. Draw order: bg, foreground layer, spots, name plates.",
+  "size": { "w": 358, "h": 556 },
+  "character": { "w": 120, "h": 150 },
+  "scenes": {
+    "plenum": {
+      "background": "plenum-bg.svg",
+      "foreground": [{ "file": "plenum-podium.svg", "x": 114, "y": 426 }],
+      "spots": [
+        { "id": "speakerChair", "x": 144, "y": 48, "w": 70, "h": 72, "scale": 0.55 },
+        { "id": "backLeft", "x": 50, "y": 150, "w": 76, "h": 84, "scale": 0.6 },
+        { "id": "backRight", "x": 232, "y": 150, "w": 76, "h": 84, "scale": 0.6 },
+        { "id": "sideDoor", "x": 306, "y": 76, "w": 48, "h": 96, "scale": 0.6 },
+        { "id": "middleLeft", "x": 9, "y": 228, "w": 94, "h": 104, "scale": 0.75 },
+        { "id": "middleRight", "x": 255, "y": 228, "w": 94, "h": 104, "scale": 0.75 },
+        { "id": "podium", "x": 119, "y": 302, "w": 120, "h": 150, "scale": 1 }
+      ]
+    },
+    "outside": {
+      "background": "outside-bg.svg",
+      "foreground": [{ "file": "outside-fg.svg", "x": 0, "y": 452 }],
+      "spots": [
+        { "id": "roof", "x": 250, "y": 92, "w": 70, "h": 60, "scale": 0.5, "sink": 18 },
+        { "id": "entrance", "x": 145, "y": 246, "w": 68, "h": 84, "scale": 0.55 },
+        { "id": "menorahPedestal", "x": 14, "y": 344, "w": 96, "h": 108, "scale": 0.75 },
+        { "id": "bushes", "x": 248, "y": 318, "w": 100, "h": 118, "scale": 0.8 },
+        { "id": "ballotBox", "x": 119, "y": 318, "w": 120, "h": 150, "scale": 0.95 }
+      ]
+    }
+  }
+}

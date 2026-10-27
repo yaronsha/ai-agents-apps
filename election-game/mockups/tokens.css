@@ -1,0 +1,25 @@
+/* Design tokens from the mockups. */
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Secular+One&display=swap");
+
+:root {
+  --ink: #141a2e;          /* page background */
+  --ink-raised: #1e2640;   /* cards, pills, tab tracks on ink */
+  --paper: #f4efe6;        /* light cards, text on ink */
+  --muted-on-ink: #c9cfdf;
+  --subtle-on-ink: #aeb6cc;
+  --muted-on-paper: #4a5068;
+  --tomato: #e5482e;       /* tomatoes, poll bars */
+  --tomato-bright: #ff6b4a;/* tomato-colored text on ink */
+  --action: #c9341c;       /* primary buttons, wrong-hit toast (white text) */
+  --action-on-paper: #b32e17;
+  --highlight: #ffd23f;    /* correct-hit toast, badges, "this was the one" ring */
+  --ballot-blue: #2b4c8c;
+  --leaf: #3c9a4e;
+
+  --font-display: "Secular One", sans-serif;
+  --font-body: Rubik, sans-serif;
+
+  --radius-card: 16px;
+  --radius-button: 16px;
+  --tap-min: 44px;
+}
