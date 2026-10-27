@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="358" height="556" viewBox="0 0 358 556">
+<rect x="0" y="0" width="358" height="172" fill="#7A5638"></rect>
+<g fill="#6A4A30">
+<rect x="14" y="34" width="4" height="138"></rect><rect x="40" y="34" width="4" height="138"></rect><rect x="66" y="34" width="4" height="138"></rect><rect x="92" y="34" width="4" height="138"></rect>
+<rect x="262" y="34" width="4" height="138"></rect><rect x="288" y="34" width="4" height="138"></rect>
+</g>
+<rect x="0" y="0" width="358" height="34" fill="#3E2A1B"></rect>
+<path d="M0 34 L358 34" stroke="#C9A25A" stroke-width="3"></path>
+<g fill="#2A1C12" opacity="0.8">
+<circle cx="30" cy="22" r="7"></circle><circle cx="52" cy="24" r="7"></circle><circle cx="96" cy="23" r="7"></circle><circle cx="250" cy="22" r="7"></circle><circle cx="300" cy="24" r="7"></circle><circle cx="326" cy="22" r="7"></circle>
+</g>
+<g stroke="#D9B45A" stroke-width="3" fill="none" stroke-linecap="round">
+<path d="M179 52 L179 92 M166 92 L192 92"></path>
+<path d="M171 58 Q171 74 179 76 Q187 74 187 58"></path>
+<path d="M164 54 Q164 82 179 84 Q194 82 194 54"></path>
+<path d="M157 50 Q157 90 179 90 Q201 90 201 50"></path>
+</g>
+<rect x="306" y="72" width="48" height="100" fill="#2A1C12"></rect>
+<rect x="302" y="68" width="56" height="6" fill="#C9A25A"></rect>
+<rect x="109" y="120" width="140" height="52" rx="4" fill="#5A3D27"></rect>
+<rect x="117" y="128" width="124" height="36" rx="3" fill="#6B4A31"></rect>
+<rect x="0" y="172" width="358" height="384" fill="#22345C"></rect>
+<path d="M8 228 Q179 278 350 228" stroke="#2F5DAE" stroke-width="26" fill="none" stroke-dasharray="24 4"></path>
+<path d="M8 246 Q179 296 350 246" stroke="#15203F" stroke-width="8" fill="none"></path>
+<path d="M0 330 Q179 390 358 330" stroke="#2F5DAE" stroke-width="30" fill="none" stroke-dasharray="28 4"></path>
+<path d="M0 350 Q179 410 358 350" stroke="#15203F" stroke-width="9" fill="none"></path>
+<path d="M0 440 Q179 500 358 440" stroke="#2F5DAE" stroke-width="32" fill="none" stroke-dasharray="30 4"></path>
+<path d="M0 461 Q179 521 358 461" stroke="#15203F" stroke-width="10" fill="none"></path>
+</svg>
