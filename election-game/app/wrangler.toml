@@ -1,0 +1,10 @@
+# Cloudflare Pages project for the game (deployed with `wrangler pages deploy dist` from this folder).
+name = "tomato-ballot"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-10-01"
+
+# Tomato poll counts (functions/api/poll.js). Schema: schema.sql.
+[[d1_databases]]
+binding = "DB"
+database_name = "election-game-poll"
+database_id = "0d2718dd-46b2-42a2-97cb-8546d29d11fb"
