@@ -1,0 +1,74 @@
+{
+  "netanyahu": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Benjamin_Netanyahu,_February_2023_(cropped)(b).jpg",
+    "author": "Avi Ohayon / Government Press Office of Israel",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "original_date": "2023-02-01",
+    "note": ""
+  },
+  "liberman": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Avigdor_Lieberman_2017.jpg",
+    "author": "U.S. Department of Defense (Jim Mattis Flickr)",
+    "license": "Public domain",
+    "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "original_date": "2017-03-07",
+    "note": "US federal government work, public domain"
+  },
+  "eisenkot": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Gadi_Eisenkot_2_(cropped).jpg",
+    "author": "Yahav Trudler (Yahav Studio)",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "original_date": "2026-06-07",
+    "note": ""
+  },
+  "golan": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Yair_Golan_(SHL_9404).jpg",
+    "author": "Shlomi Amsalem (Knesset Archives)",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "original_date": "2021-04-06",
+    "note": ""
+  },
+  "bennett": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Naftali_Bennett_official_portrait.jpg",
+    "author": "Avi Ohayon / Government Press Office of Israel",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "original_date": "2021-06-21",
+    "note": ""
+  },
+  "bengvir": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Itamar_Ben_Gvir_3_(cropped).jpg",
+    "author": "Alon Nuriel (אלון נוריאל)",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "original_date": "2022",
+    "note": ""
+  },
+  "smotrich": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Bezalel_Smotrich.jpg",
+    "author": "Avi Ohayon / Government Press Office of Israel",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "original_date": "2023-02-20",
+    "note": ""
+  },
+  "lapid": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Yair_Lapid_(D1237-011).jpg",
+    "author": "Avi Ohayon / Government Press Office of Israel",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "original_date": "2022-06-30",
+    "note": ""
+  },
+  "gantz": {
+    "file_page": "https://commons.wikimedia.org/wiki/File:Israeli_Minister_Benny_Gantz_at_the_Department_of_State_in_Washington,_D.C._on_March_5,_2024_(cropped).jpg",
+    "author": "U.S. Department of State",
+    "license": "Public domain",
+    "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "original_date": "2024-03-05",
+    "note": "US federal government work, public domain"
+  }
+}
