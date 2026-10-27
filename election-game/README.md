@@ -9,7 +9,7 @@ will be built from.
 
 ## What's here
 
-- `data/quotes.json`: the quote bank, about 105 real quotes with year, context, a
+- `data/quotes.json`: the quote bank, 103 real quotes with year, context, a
   recognizability level (3 = everyone knows it, 1 = politics buffs) and who else a player
   might confuse it with. Entries with `"source": null` came from memory and need their
   wording checked against an original before release. Entries marked `"sensitive": true`
