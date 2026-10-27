@@ -25,7 +25,7 @@ test('dist quotes are playable', () => {
 
 test('every caricature and scene file is there', () => {
   for (const { id } of read('assets/caricatures/cast.json')) {
-    for (const v of ['idle', 'hit']) assert.ok(existsSync(new URL(`assets/caricatures/${id}-${v}.svg`, dist)), id + v);
+    for (const v of ['idle', 'hit']) assert.ok(existsSync(new URL(`assets/ai/${id}-${v}.webp`, dist)), id + v);
   }
   const spots = read('scenes/spots.json');
   for (const sc of Object.values(spots.scenes)) {

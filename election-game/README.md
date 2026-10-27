@@ -24,14 +24,20 @@ Status: first playable version in `app/`, deployed to Cloudflare Pages (project
   and the exact words spoken. Play clips from the throw/tap handler (mobile blocks
   autoplay otherwise) and give players a mute toggle.
 
-- `assets/caricatures/`: the drawn politicians, idle and hit.
+- `assets/ai/`: the faces the game uses. AI caricature stickers of each politician, idle
+  and hit, made with OpenAI's image model from a reference photo (prompts in the project
+  files, `caricatures-v3/`). `<id>-idle.png` / `<id>-hit.png` are the raw generations;
+  `python3 cutout.py` removes the painted background and writes the 360x450 `.webp` files.
+  The game says on its home screen that the illustrations were made with AI (election rules
+  on AI content about candidates).
+- `assets/caricatures/`: the earlier hand-drawn SVG politicians, and `cast.json` (names).
 - `mockups/`: the design reference and the two game scenes.
 - `app/`: the game itself. See below.
 
 ## The game (`app/`)
 
 Plain HTML, CSS and JavaScript, no framework and no dependencies. `node build.mjs` copies
-`src/` plus the caricatures, scenes, audio and quote bank into `dist/`. Only quotes said by
+`src/` plus the faces, scenes, audio and quote bank into `dist/`. Only quotes said by
 one of the nine drawn politicians and with a documented source (a link, or an audio clip
 listed in `assets/audio/sources.json`) go into the game; the rest stay in the bank until
 they're checked.
@@ -53,6 +59,6 @@ they're checked.
 
 - **Only real quotes, word for word.** Putting words in a real person's mouth is a
   defamation risk, so every quote needs a source.
-- **Drawn caricatures only.** No press photos, no party logos.
+- **Caricatures only, AI use disclosed.** No press photos in the game, no party logos.
 - **No commercial use** of politicians' likenesses: no ads and no paid version without a
   lawyer's review.

@@ -205,7 +205,7 @@
   function popUp(spot, who, ms) {
     clearTimeout(spot.timer);
     spot.who = who;
-    spot.img.src = `assets/caricatures/${who}-idle.svg`;
+    spot.img.src = `assets/ai/${who}-idle.webp`;
     spot.plate.textContent = CAST[who];
     spot.btn.setAttribute('aria-label', 'לזרוק עגבנייה על ' + CAST[who]);
     spot.btn.tabIndex = 0;
@@ -417,7 +417,7 @@
     const tx = p ? p.x : d.x + d.w / 2;
     const ty = Math.min(p ? p.y : d.y + d.h * 0.4, d.y + d.h - 10);
     await fly(tx, ty);
-    spot.img.src = `assets/caricatures/${who}-hit.svg`;
+    spot.img.src = `assets/ai/${who}-hit.webp`;
     spot.btn.classList.add('hit');
     splatSound(1);
     if (navigator.vibrate) navigator.vibrate(30);
@@ -538,8 +538,8 @@
     if (pairs.length) {
       const [[key, n]] = pairs;
       const [a, b] = key.split('|');
-      $('cfA').src = `assets/caricatures/${a}-idle.svg`;
-      $('cfB').src = `assets/caricatures/${b}-idle.svg`;
+      $('cfA').src = `assets/ai/${a}-idle.webp`;
+      $('cfB').src = `assets/ai/${b}-idle.webp`;
       $('cfText').textContent = `${CAST[a]} ל${CAST[b]}` + (n > 1 ? ` (${n} פעמים)` : '');
       $('confused').hidden = false;
     } else $('confused').hidden = true;
@@ -625,7 +625,7 @@
       const li = document.createElement('li');
       li.className = 'poll-row';
       li.innerHTML = `<span class="rank">${i + 1}</span>
-        <span class="mini"><img src="assets/caricatures/${row.id}-idle.svg" alt=""></span>
+        <span class="mini"><img src="assets/ai/${row.id}-idle.webp" alt=""></span>
         <span class="bar-box"><span class="bar-head"><span class="bar-name"></span><span class="bar-count">${fmt(row.n)}</span></span>
         <span class="bar"><span style="width:${Math.round((row.n / max) * 100)}%"></span></span></span>`;
       li.querySelector('.bar-name').textContent = CAST[row.id];
@@ -647,7 +647,7 @@
     QUOTES = quotes.quotes.filter((q) => CAST[q.speaker]);
     SPOTS = spotsJson;
     // Warm the cache so faces don't flash in on first pop.
-    for (const id of Object.keys(CAST)) for (const v of ['idle', 'hit']) new Image().src = `assets/caricatures/${id}-${v}.svg`;
+    for (const id of Object.keys(CAST)) for (const v of ['idle', 'hit']) new Image().src = `assets/ai/${id}-${v}.webp`;
     if (location.hash === '#poll') openPoll();
   }
   boot().catch(() => {
