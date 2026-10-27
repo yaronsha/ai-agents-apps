@@ -1,0 +1,61 @@
+name: Deploy election-game
+
+# Builds the game and deploys it to Cloudflare Pages (project tomato-ballot).
+# main deploys to production; any other branch gets its own preview URL,
+# which reads the tomato poll but does not write to it (see functions/api/poll.js).
+on:
+  push:
+    paths:
+      - "election-game/**"
+      - ".github/workflows/election-game-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: election-game-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PAGES_PROJECT: tomato-ballot
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: election-game/app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Builds dist/ and runs the poll and data tests on it.
+      - run: npm test
+
+      # Fails once the project exists; that's expected.
+      - name: Create Pages project if missing
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: election-game/app
+          command: pages project create ${{ env.PAGES_PROJECT }} --production-branch main
+
+      - name: Deploy to Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: election-game/app
+          command: pages deploy dist --project-name ${{ env.PAGES_PROJECT }} --branch ${{ github.ref_name }} --commit-dirty=true
+
+      - name: Deployment URL
+        run: |
+          echo "Deployed: ${{ steps.deploy.outputs.deployment-url }}"
+          echo "### Deployed: ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
