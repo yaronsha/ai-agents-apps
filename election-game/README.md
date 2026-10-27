@@ -11,8 +11,9 @@ will be built from.
 
 - `data/quotes.json`: the quote bank, 103 real quotes with year, context, a
   recognizability level (3 = everyone knows it, 1 = politics buffs) and who else a player
-  might confuse it with. Entries with `"source": null` came from memory and need their
-  wording checked against an original before release. Entries marked `"sensitive": true`
+  might confuse it with. Each quote has a stable `id` (like `netanyahu-01`) and an
+  optional `audio` clip path relative to this folder. Entries with `"source": null` came
+  from memory and need their wording checked against an original before release. Entries marked `"sensitive": true`
   are in by choice. They can be dropped in a family-friendly mode.
 
 Other parts (mockups, caricatures, voice clips) are added here as they're ready.
