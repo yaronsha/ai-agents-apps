@@ -1,0 +1,26 @@
+# Election game: tomatoes at the ballot box
+
+A satirical browser game for the 2026 Israeli election. Politicians pop up in the Knesset,
+a quote appears at the top of the screen, and you throw a tomato at whoever actually said it.
+Hit the wrong politician and you lose points. Hebrew, right to left, made for phones first.
+
+Status: planning. There is no game code yet. This folder collects the material the game
+will be built from.
+
+## What's here
+
+- `data/quotes.json`: the quote bank, about 105 real quotes with year, context, a
+  recognizability level (3 = everyone knows it, 1 = politics buffs) and who else a player
+  might confuse it with. Entries with `"source": null` came from memory and need their
+  wording checked against an original before release. Entries marked `"sensitive": true`
+  are in by choice. They can be dropped in a family-friendly mode.
+
+Other parts (mockups, caricatures, voice clips) are added here as they're ready.
+
+## Ground rules
+
+- **Only real quotes, word for word.** Putting words in a real person's mouth is a
+  defamation risk, so every quote needs a source.
+- **Drawn caricatures only.** No press photos, no party logos.
+- **No commercial use** of politicians' likenesses: no ads and no paid version without a
+  lawyer's review.
