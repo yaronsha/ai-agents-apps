@@ -16,10 +16,12 @@ const cast = JSON.parse(readFileSync(join(root, 'assets/caricatures/cast.json'),
 const ids = new Set(cast.map((c) => c.id));
 mkdirSync(join(dist, 'assets/caricatures'), { recursive: true });
 cpSync(join(root, 'assets/caricatures/cast.json'), join(dist, 'assets/caricatures/cast.json'));
+// The faces are the AI stickers (assets/ai/cutout.py makes the webp files from the generated PNGs).
+mkdirSync(join(dist, 'assets/ai'), { recursive: true });
 for (const id of ids) {
   for (const v of ['idle', 'hit']) {
-    const f = `${id}-${v}.svg`;
-    cpSync(join(root, 'assets/caricatures', f), join(dist, 'assets/caricatures', f));
+    const f = `${id}-${v}.webp`;
+    cpSync(join(root, 'assets/ai', f), join(dist, 'assets/ai', f));
   }
 }
 
