@@ -133,7 +133,7 @@
   });
   $('playAudio').addEventListener('click', () => {
     const r = app.round;
-    if (!r) return;
+    if (!r || r.active) return;
     unlockAudio();
     if (app.muted) { app.muted = false; store.set('muted', false); renderMute(); }
     playClip(r.quotes[r.qi]);
@@ -296,7 +296,8 @@
     qEl.textContent = '״' + q.text + '״';
     qEl.className = quoteSizeClass(q.text);
     $('ammo').textContent = '× ' + (r.quotes.length - r.qi);
-    $('playAudio').hidden = !q.audio;
+    // The voice gives the answer away, so the clip waits until the player has thrown.
+    $('playAudio').hidden = true;
     $('hint').textContent = 'הם צצים ונעלמים. תפסו את מי שאמר!';
 
     // Decoys: people you could mix this quote up with first, then anyone else.
@@ -316,7 +317,6 @@
     clearInterval(r.clock);
     r.clock = setInterval(updateClock, 200);
     updateClock();
-    playClip(q);
   }
 
   function pop() {
@@ -412,6 +412,8 @@
     // Freeze the one we aimed at; it stays up for the splat.
     clearTimeout(spot.timer);
     spot.btn.classList.add('up', 'frozen');
+    // Start the clip here, inside the tap: mobile browsers block it once we've awaited the throw.
+    playClip(r.quotes[r.qi]);
     const d = spot.def;
     const p = stagePoint(e);
     const tx = p ? p.x : d.x + d.w / 2;
@@ -433,6 +435,8 @@
     const q = r.quotes[r.qi];
     const target = q.speaker;
     const right = spot && spot.who === target;
+    if (!spot) playClip(q);
+    $('playAudio').hidden = !q.audio;
 
     // Hide everyone who's not part of the answer.
     let targetSpot = right ? spot : spots.find((s) => s.who === target && s !== spot);
