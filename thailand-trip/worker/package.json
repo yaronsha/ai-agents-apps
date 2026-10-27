@@ -11,7 +11,7 @@
     "@anthropic-ai/sdk": "^0.131.0",
     "@pushforge/builder": "^2.0.5",
     "openai": "^7.30.0",
-    "zod": "^4.0.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261003.1",
