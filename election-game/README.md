@@ -16,7 +16,15 @@ will be built from.
   from memory and need their wording checked against an original before release. Entries marked `"sensitive": true`
   are in by choice. They can be dropped in a family-friendly mode.
 
-Other parts (mockups, caricatures, voice clips) are added here as they're ready.
+- `assets/audio/`: short clips (2–6 s) of the politician saying the quote, cut from
+  original public recordings (Knesset channel, official channels, broadcast interviews).
+  No AI-generated or cloned voices. Files are named by quote id, and a quote plays its
+  clip only when its `audio` field is set, so audio is a bonus and every other quote
+  shows as text. `sources.json` lists each clip's source URL, owner, start and end time,
+  and the exact words spoken. Play clips from the throw/tap handler (mobile blocks
+  autoplay otherwise) and give players a mute toggle.
+
+Other parts (mockups, caricatures) are added here as they're ready.
 
 ## Ground rules
 

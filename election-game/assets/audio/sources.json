@@ -1,0 +1,102 @@
+[
+  {
+    "file": "netanyahu-04.mp3",
+    "quote_id": "netanyahu-04",
+    "spoken_text": "הם מפחדים!",
+    "source_url": "https://www.youtube.com/watch?v=329oRlrFvPw",
+    "source_owner": "ערוץ כנסת 99",
+    "start": 25.6,
+    "end": 28.55,
+    "confidence": "high"
+  },
+  {
+    "file": "netanyahu-05.mp3",
+    "quote_id": "netanyahu-05",
+    "spoken_text": "הבוחרים הערבים נעים בכמויות אדירות לקלפי",
+    "source_url": "https://www.youtube.com/watch?v=Q2cUoglR1yk",
+    "source_owner": "Benjamin Netanyahu (official channel)",
+    "start": 2.44,
+    "end": 6.08,
+    "confidence": "high"
+  },
+  {
+    "file": "netanyahu-06.mp3",
+    "quote_id": "netanyahu-06",
+    "spoken_text": "ניצחון מוחלט",
+    "source_url": "https://www.youtube.com/watch?v=0WvyyQ_i5Xc",
+    "source_owner": "IsraeliPM (PMO official)",
+    "start": 16.82,
+    "end": 18.4,
+    "confidence": "high"
+  },
+  {
+    "file": "liberman-01.mp3",
+    "quote_id": "liberman-01",
+    "spoken_text": "הייתי שם את החרדים יחד עם ביבי על מריצה אחת ולמזבלה הקרובה",
+    "source_url": "https://www.youtube.com/watch?v=1PogrmXtNtI",
+    "source_owner": "חדשות הציבור (re-upload; original אופירה וברקו, ערוץ 13)",
+    "start": 16.45,
+    "end": 22.28,
+    "confidence": "high"
+  },
+  {
+    "file": "liberman-02.mp3",
+    "quote_id": "liberman-02",
+    "spoken_text": "אני נותן לאדון הנייה 48 שעות",
+    "source_url": "https://www.youtube.com/watch?v=d_d02vdCnWM",
+    "source_owner": "מויש יאול (re-upload of 2016 interview)",
+    "start": 8.8,
+    "end": 13.3,
+    "confidence": "high"
+  },
+  {
+    "file": "bennett-01.mp3",
+    "quote_id": "bennett-01",
+    "spoken_text": "אני לא אאפשר ליאיר לפיד להיות ראש ממשלה",
+    "source_url": "https://www.youtube.com/watch?v=t9NhZWM-yn0",
+    "source_owner": "C14 (Channel 14, formerly Channel 20 – original broadcaster)",
+    "start": 45.2,
+    "end": 49.35,
+    "confidence": "high"
+  },
+  {
+    "file": "lapid-01.mp3",
+    "quote_id": "lapid-01",
+    "spoken_text": "ובגלל זה אני שואל איפה הכסף",
+    "source_url": "https://www.youtube.com/watch?v=5_kfoUPfpfM",
+    "source_owner": "יאיר לפיד (official channel)",
+    "start": 10.5,
+    "end": 12.55,
+    "confidence": "high"
+  },
+  {
+    "file": "gantz-01.mp3",
+    "quote_id": "gantz-01",
+    "spoken_text": "בשבילי ישראל לפני הכל",
+    "source_url": "https://www.youtube.com/watch?v=pWYJXoiThwY",
+    "source_owner": "ynet (Gantz 2019 campaign video)",
+    "start": 17.45,
+    "end": 21.0,
+    "confidence": "high"
+  },
+  {
+    "file": "golan-01.mp3",
+    "quote_id": "golan-01",
+    "spoken_text": "לזהות תהליכים מעוררי חלחלה",
+    "source_url": "https://www.youtube.com/watch?v=2X9-1Til5kA",
+    "source_owner": "ערוץ כנסת 99",
+    "start": 3.8,
+    "end": 6.25,
+    "confidence": "high"
+  },
+  {
+    "file": "golan-02.mp3",
+    "quote_id": "golan-02",
+    "spoken_text": "מדינה שפויה לא מנהלת לחימה נגד אזרחים, לא הורגת תינוקות כתחביב",
+    "source_url": "https://www.youtube.com/watch?v=yBxERzC8bOM",
+    "source_owner": "Hagay Amir (re-upload of כאן רשת ב, 20.5.2025)",
+    "start": 177.45,
+    "end": 183.2,
+    "confidence": "high"
+  }
+]
