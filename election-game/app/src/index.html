@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141a2e">
+<title>עגבנייה בקלפי</title>
+<meta name="description" content="משחק סאטירי לבחירות 2026: מופיע ציטוט מוכר, וזורקים עגבנייה על מי שאמר אותו.">
+<meta property="og:title" content="עגבנייה בקלפי">
+<meta property="og:description" content="מופיע ציטוט מוכר. זרקו עגבנייה על מי שאמר אותו.">
+<meta property="og:locale" content="he_IL">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Secular+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app">
+
+<!-- Home -->
+<section id="home" class="screen home">
+  <div class="home-top">
+    <span class="badge">בחירות 2026 · משחק סאטירי</span>
+    <button type="button" class="link" data-go="poll">סקר העגבניות</button>
+  </div>
+  <div class="home-title">
+    <h1><span class="t1">עגבנייה</span><span>בקלפי</span></h1>
+    <p>מופיע ציטוט מוכר. זרקו עגבנייה על מי שאמר אותו. פגעתם במישהו אחר? יורדות לכם נקודות.</p>
+  </div>
+  <div class="ballot" aria-hidden="true">
+    <div class="ballot-faces">
+      <img src="assets/caricatures/bengvir-idle.svg" alt="" class="tilt-r">
+      <img src="assets/caricatures/netanyahu-idle.svg" alt="" class="mid">
+      <img src="assets/caricatures/bennett-idle.svg" alt="" class="tilt-l">
+    </div>
+    <div class="ballot-box"><span class="slot"></span><span class="ballot-word">קלפי</span></div>
+    <svg class="ballot-tomato" width="64" height="48" viewBox="0 0 64 48">
+      <path d="M4 30 L22 26 M2 40 L20 34 M8 20 L24 20" stroke="#FFD23F" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="44" cy="26" r="16" fill="#E5482E"/>
+      <path d="M38 11 L44 14 L50 11 L47 16 L44 15 L41 16 Z" fill="#3C9A4E"/>
+    </svg>
+  </div>
+  <div class="level">
+    <span id="lvl" class="level-label">רמת קושי</span>
+    <div role="group" aria-labelledby="lvl" class="seg seg-2">
+      <button type="button" data-level="easy" aria-pressed="true">קל · עם שמות</button>
+      <button type="button" data-level="hard" aria-pressed="false">קשה · בלי שמות</button>
+    </div>
+  </div>
+  <button type="button" class="btn-primary" id="start">שחקו</button>
+  <p id="best" class="best" hidden></p>
+  <p class="fine">סאטירה. הדמויות מצוירות, ולכל ציטוט יש מקור מתועד.</p>
+</section>
+
+<!-- Play -->
+<section id="play" class="screen play" hidden>
+  <header class="hud">
+    <div class="hud-score"><span class="lbl">ניקוד</span><span id="score" class="big">0</span></div>
+    <div class="pill" aria-label="זמן שנותר">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFD23F" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9 L12 13 L15 15 M9 2 L15 2"/></svg>
+      <span id="timer">0:10</span>
+    </div>
+    <div class="hud-ammo" aria-label="עגבניות שנותרו">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="14" r="8.5" fill="#E5482E"/><path d="M8 6.5 L12 8 L16 6.5 L14 9.5 L12 8.5 L10 9.5 Z" fill="#3C9A4E"/></svg>
+      <span id="ammo">× 10</span>
+    </div>
+  </header>
+  <div class="quote-card">
+    <div class="quote-body">
+      <div class="quote-head"><span class="who">מי אמר?</span><span id="qcount"></span></div>
+      <p id="quote" class="quote" aria-live="polite"></p>
+    </div>
+    <button type="button" id="playAudio" class="round-btn" aria-label="השמיעו את הציטוט" hidden>
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z"/><path d="M16.5 8.5 C18 10 18 14 16.5 15.5 M19 6 C22 9 22 15 19 18"/></svg>
+    </button>
+  </div>
+  <div class="stage-wrap" id="stageWrap">
+    <div class="stage" id="stage"></div>
+    <div id="toast" class="toast" role="status" hidden>
+      <div class="toast-text">
+        <span id="toastTitle" class="toast-title"></span>
+        <span id="toastSub" class="toast-sub"></span>
+        <span id="toastCtx" class="toast-ctx"></span>
+      </div>
+      <button type="button" id="next" class="toast-btn">הבא</button>
+    </div>
+  </div>
+  <footer class="play-foot">
+    <span id="hint">הם צצים ונעלמים. תפסו את מי שאמר!</span>
+    <span class="foot-btns">
+      <button type="button" id="mute" class="icon-btn" aria-pressed="false" aria-label="השתקה"></button>
+      <button type="button" id="quit" class="icon-btn" aria-label="חזרה למסך הפתיחה">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2.2" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+      </button>
+    </span>
+  </footer>
+</section>
+
+<!-- End of round -->
+<section id="end" class="screen end" hidden>
+  <h1 class="end-title">סוף הסיבוב!</h1>
+  <div class="score-card">
+    <svg aria-hidden="true" class="card-splat" width="90" height="70" viewBox="0 0 90 70"><path d="M45 8 C57 3 61 18 73 15 C86 13 84 30 78 36 C88 44 81 58 70 56 C67 68 54 66 50 59 C40 70 27 62 31 51 C18 53 14 38 24 33 C16 24 27 12 37 18 C39 10 40 9 45 8 Z" fill="#E5482E" opacity="0.9"/></svg>
+    <span class="sc-label">הניקוד שלכם</span>
+    <span id="endScore" class="sc-score">0</span>
+    <span id="endRank" class="sc-rank"></span>
+    <span id="endBest" class="sc-best"></span>
+  </div>
+  <div class="stats">
+    <div class="stat"><span id="stCorrect" class="stat-v"></span><span class="stat-l">זיהוי נכון</span></div>
+    <div class="stat"><span id="stAcc" class="stat-v"></span><span class="stat-l">דיוק זריקות</span></div>
+    <div class="stat"><span id="stStreak" class="stat-v"></span><span class="stat-l">רצף שיא</span></div>
+  </div>
+  <div id="confused" class="panel confused" hidden>
+    <div class="pair">
+      <span class="thumb"><img id="cfA" alt=""></span>
+      <span class="swap" aria-hidden="true">⇄</span>
+      <span class="thumb"><img id="cfB" alt=""></span>
+    </div>
+    <div class="pair-text">
+      <span class="muted">הכי התבלבלתם בין</span>
+      <span id="cfText" class="strong"></span>
+    </div>
+  </div>
+  <div id="gotYou" class="panel got" hidden>
+    <span class="muted">הציטוט שהפיל אתכם</span>
+    <span id="gotQuote" class="got-quote"></span>
+    <span class="muted"><span id="gotWho"></span> <a id="gotSrc" href="#" target="_blank" rel="noopener">מקור</a></span>
+  </div>
+  <div class="end-actions">
+    <button type="button" id="share" class="btn-primary btn-share">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 L15.4 17.5 M15.4 6.5 L8.6 10.5"/></svg>
+      שתפו את התוצאה
+    </button>
+    <div class="two">
+      <button type="button" id="again" class="btn-light">עוד סיבוב</button>
+      <button type="button" class="btn-outline" data-go="poll">סקר העגבניות</button>
+    </div>
+    <span id="shareNote" class="share-note" role="status"></span>
+  </div>
+</section>
+
+<!-- Tomato poll -->
+<section id="poll" class="screen poll" hidden>
+  <div class="poll-top">
+    <h1>סקר העגבניות</h1>
+    <button type="button" class="link" data-go="home">חזרה</button>
+  </div>
+  <p class="poll-intro">כמה עגבניות ספג כל פוליטיקאי מכל השחקנים יחד. רק פגיעות נכונות נספרות.</p>
+  <div role="group" aria-label="טווח זמן" class="seg seg-3" id="ranges">
+    <button type="button" data-range="today" aria-pressed="false">היום</button>
+    <button type="button" data-range="week" aria-pressed="false">השבוע</button>
+    <button type="button" data-range="all" aria-pressed="true">מההתחלה</button>
+  </div>
+  <ol id="pollRows" class="poll-rows"></ol>
+  <p id="pollNote" class="poll-note" role="status"></p>
+  <div class="poll-bottom">
+    <button type="button" class="btn-primary" data-go="start">גם אני רוצה לזרוק</button>
+  </div>
+</section>
+
+</main>
+<script src="game.js"></script>
+</body>
+</html>
