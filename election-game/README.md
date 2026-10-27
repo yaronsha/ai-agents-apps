@@ -21,8 +21,9 @@ Status: first playable version in `app/`, deployed to Cloudflare Pages (project
   No AI-generated or cloned voices. Files are named by quote id, and a quote plays its
   clip only when its `audio` field is set, so audio is a bonus and every other quote
   shows as text. `sources.json` lists each clip's source URL, owner, start and end time,
-  and the exact words spoken. Play clips from the throw/tap handler (mobile blocks
-  autoplay otherwise) and give players a mute toggle.
+  and the exact words spoken. A clip plays only after the player throws, since the voice
+  gives the answer away. It starts from the throw/tap handler (mobile blocks autoplay
+  otherwise), and players get a mute toggle.
 
 - `assets/ai/`: the faces the game uses. AI caricature stickers of each politician, idle
   and hit, made with OpenAI's image model from a reference photo (prompts in the project
