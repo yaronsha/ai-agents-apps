@@ -92,7 +92,7 @@ const days: Day[] = [
       { id: "doi-kiew-lom", nameHe: "תצפית דוי קיו לו", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4458, lng: 98.3192, start: "2026-11-26T10:30", end: "2026-11-26T10:50", outdoor: true },
       { id: "tham-lod", nameHe: "מערת תאם לוד", nameEn: "Tham Lod Cave", lat: 19.5664, lng: 98.2789, start: "2026-11-26T11:30", end: "2026-11-26T14:30", outdoor: false, noteHe: "ארוחת צהריים באחת המסעדות הקטנות ליד המערה, 13:30-14:30." },
       { id: "sai-ngam", nameHe: "מעיינות סאי נגאם", nameEn: "Sai Ngam Hot Spring", lat: 19.452, lng: 98.44, start: "2026-11-26T15:00", end: "2026-11-26T16:00", outdoor: true, noteHe: "בכפר באן סאי נגאם, צפונית לפאי. לקחת בגד ים ומגבת. מיקום משוער, לבדוק במפה." },
-      { id: "two-huts", nameHe: "שקיעה ב-Two Huts Cafe", nameEn: "Two Huts", lat: 19.3561, lng: 98.4952, start: "2026-11-26T16:35", end: "2026-11-26T18:00", outdoor: true, noteHe: "מרפסת פתוחה מעל העמק, השקיעה בסביבות 17:30. כדאי להגיע מוקדם לתפוס מקום. מיקום משוער, לבדוק במפה." },
+      { id: "two-huts", nameHe: "שקיעה ב-Two Huts Cafe", nameEn: "Two Huts", lat: 19.3561, lng: 98.4952, start: "2026-11-26T16:35", end: "2026-11-26T18:00", outdoor: true, noteHe: "מרפסת פתוחה מעל העמק, השקיעה בסביבות 17:45. כדאי להגיע מוקדם לתפוס מקום. מיקום משוער, לבדוק במפה." },
       { id: "pai-walking-street", nameHe: "שוק הלילה של פאי", nameEn: "Pai Walking Street", lat: 19.3589, lng: 98.4406, start: "2026-11-26T20:00", end: "2026-11-26T22:00", outdoor: true },
     ],
     drives: [
