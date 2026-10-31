@@ -1,6 +1,6 @@
 {
-  "name": "סופת רעמים בשקיעה בקניון פאי",
-  "description": "26.11 in Pai. The morning forecast is clear; at 09:00 it turns to thunderstorms over Pai Canyon for the afternoon, and at 13:30 heavy rain is added for the evening market. Expect a warning for each outdoor stop, a push two hours before each, and a yellow day.",
+  "name": "סופת רעמים בשקיעה ב-Two Huts",
+  "description": "26.11 in Pai. The morning forecast is clear; at 09:00 it turns to thunderstorms over the Two Huts sunset for the afternoon, and at 13:30 heavy rain is added for the evening market. Expect a warning for each outdoor stop, a push two hours before each, and a yellow day.",
   "start": "2026-11-26T06:00",
   "end": "2026-11-26T21:00",
   "events": [
@@ -8,13 +8,13 @@
       "at": "2026-11-26T09:00",
       "weather": {
         "stops": [
-          "pai-canyon"
+          "two-huts"
         ],
         "from": "2026-11-26T15:00",
         "to": "2026-11-26T19:00",
         "preset": "storm"
       },
-      "note": "The forecast turns: thunderstorms over Pai Canyon, 15:00-19:00"
+      "note": "The forecast turns: thunderstorms over the Two Huts sunset, 15:00-19:00"
     },
     {
       "at": "2026-11-26T13:30",
@@ -31,11 +31,11 @@
   ],
   "expect": [
     {
-      "noAlert": "weather:pai-canyon",
+      "noAlert": "weather:two-huts",
       "before": "2026-11-26T09:00"
     },
     {
-      "alert": "weather:pai-canyon:storm",
+      "alert": "weather:two-huts:storm",
       "by": "2026-11-26T10:00",
       "severity": "warning"
     },
@@ -44,15 +44,15 @@
       "by": "2026-11-26T14:30"
     },
     {
-      "push": "קניון פאי",
-      "after": "2026-11-26T14:15",
-      "before": "2026-11-26T14:45"
+      "push": "Two Huts",
+      "after": "2026-11-26T14:20",
+      "before": "2026-11-26T14:50"
     },
     {
       "push": "שוק הלילה של פאי",
       "after": "2026-11-26T17:45",
       "before": "2026-11-26T18:15",
-      "bodyNot": "קניון"
+      "bodyNot": "Two Huts"
     },
     {
       "noAlert": "weather:tham-lod"
@@ -62,11 +62,11 @@
       "status": "yellow"
     },
     {
-      "maxPushes": 3
+      "maxPushes": 4
     }
   ],
   "screen": [
-    "סופת רעמים צפויה בשקיעה בקניון פאי",
+    "סופת רעמים צפויה בשקיעה ב-Two Huts Cafe",
     "צפוי בשוק הלילה של פאי"
   ]
 }

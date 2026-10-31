@@ -26,40 +26,72 @@
  "d25-pai": {
   "routes": [
    {
-    "duration": "2181s",
-    "staticDuration": "2058s"
+    "duration": "5093s",
+    "staticDuration": "4805s"
    }
   ]
  },
- "d25-mokfa": {
+ "d25-coffee": {
   "routes": [
    {
-    "duration": "3269s",
-    "staticDuration": "3084s"
+    "duration": "182s",
+    "staticDuration": "172s"
    }
   ]
  },
  "d25-bridge": {
   "routes": [
    {
-    "duration": "4890s",
-    "staticDuration": "4613s"
+    "duration": "5015s",
+    "staticDuration": "4731s"
+   }
+  ]
+ },
+ "d25-canyon": {
+  "routes": [
+   {
+    "duration": "186s",
+    "staticDuration": "175s"
+   }
+  ]
+ },
+ "d25-hotel": {
+  "routes": [
+   {
+    "duration": "749s",
+    "staticDuration": "707s"
    }
   ]
  },
  "d26-thamlod": {
   "routes": [
    {
-    "duration": "1773s",
-    "staticDuration": "1673s"
+    "duration": "2034s",
+    "staticDuration": "1919s"
+   }
+  ]
+ },
+ "d26-saingam": {
+  "routes": [
+   {
+    "duration": "2685s",
+    "staticDuration": "2533s"
+   }
+  ]
+ },
+ "d26-twohuts": {
+  "routes": [
+   {
+    "duration": "1537s",
+    "staticDuration": "1450s"
    }
   ]
  },
  "d26-back": {
   "routes": [
    {
-    "duration": "4339s",
-    "staticDuration": "4093s"
+    "duration": "725s",
+    "staticDuration": "684s"
    }
   ]
  },
