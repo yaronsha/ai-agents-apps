@@ -8,7 +8,7 @@ The worker's code is not mocked. The real `worker/src` bundle runs in workerd (C
 npm run sim                          # every scenario, a few seconds each
 npm run sim -- road-to-pai           # one scenario
 npm run sim -- --browser             # also open the real app in Chromium (see below)
-npm run sim -- storm-pai-canyon --serve   # keep the worker running at :8787 afterwards (access code: sim-token)
+npm run sim -- storm-pai-sunset --serve   # keep the worker running at :8787 afterwards (access code: sim-token)
 npm run sim -- --real-claude         # real Claude news triage instead of the scenario's answers (needs ANTHROPIC_API_KEY)
 ```
 
@@ -26,7 +26,7 @@ followed by the scenario's checks. The command fails if any check fails.
 
 | File | Day | What happens |
 | --- | --- | --- |
-| `storm-pai-canyon` | 26.11 | Forecast turns to thunderstorms over the canyon at sunset, then rain over the night market |
+| `storm-pai-sunset` | 26.11 | Forecast turns to thunderstorms over the Two Huts sunset, then rain over the night market |
 | `road-to-pai` | 25.11 | Route 1095 slows, a landslide is in the news, then no route at all, before the 08:30 van |
 | `flight-home` | 2–3.12 | Gate change, 90-minute delay, cancellation of the flight home |
 | `quake-and-advisory` | 28.11 | M5.6 quake near Chiang Dao (a small one and a far one are ignored), UK advice changes for Chiang Rai |

@@ -1,4 +1,4 @@
-// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-16).
+// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-30).
 // Coordinates were checked on 2026-10-07 against map listings (AllTrails, Tripadvisor, Waze, Wikipedia,
 // Atlas Obscura, plus codes). `npm run verify:places` re-checks them against OpenStreetMap.
 import type { Day, Trip, TripPrivate } from "./types";
@@ -60,44 +60,52 @@ const days: Day[] = [
   },
   {
     date: "2026-11-25",
-    titleHe: "דרך ההרים לפאי, מפל מוק פה ולוי קראטונג",
+    titleHe: "דרך ההרים לפאי, מפל מוק פה, קניון פאי ולוי קראטונג",
     lodgingId: "pai",
     stops: [
-      { id: "thingamajiggy", nameHe: "קפה Thingamajiggy Coffee Roaster", nameEn: "Thingamajiggy Coffee Roaster", lat: 18.95, lng: 98.95, start: "2026-11-25T09:00", end: "2026-11-25T09:30", outdoor: false, noteHe: "בית קפה בין שדות האורז של מאה רים. מיקום משוער, לבדוק במפה." },
-      { id: "mok-fa", nameHe: "מפל מוק פה", nameEn: "Mok Fa Waterfall", lat: 19.1088, lng: 98.7718, start: "2026-11-25T09:30", end: "2026-11-25T11:00", outdoor: true, noteHe: "השעה לפי התוכנית. מבית הקפה זו כשעה נסיעה, אז ההגעה בפועל כנראה קרוב ל-10:30." },
-      { id: "pai-memorial-bridge", nameHe: "גשר הזיכרון של פאי", nameEn: "Pai Memorial Bridge", lat: 19.2977, lng: 98.465, start: "2026-11-25T13:15", end: "2026-11-25T13:30", outdoor: true },
+      { id: "mok-fa", nameHe: "מפל מוק פה", nameEn: "Mok Fa Waterfall", lat: 19.1088, lng: 98.7718, start: "2026-11-25T09:30", end: "2026-11-25T10:45", outdoor: true },
+      { id: "pankled-coffee", nameHe: "קפה Pankled Coffee", nameEn: "Pankled Coffee", lat: 19.112, lng: 98.785, start: "2026-11-25T10:45", end: "2026-11-25T11:15", outdoor: false, noteHe: "בית קפה על כביש 1095, בפנייה למפל, כ-2 דקות נסיעה. מיקום משוער, לבדוק במפה." },
+      { id: "pai-memorial-bridge", nameHe: "גשר הזיכרון של פאי", nameEn: "Pai Memorial Bridge", lat: 19.2977, lng: 98.465, start: "2026-11-25T13:15", end: "2026-11-25T13:30", outdoor: true, noteHe: "אחר כך ארוחת צהריים ב-14:00." },
+      { id: "pai-canyon", nameHe: "טיול קצר בקניון פאי", nameEn: "Pai Canyon", lat: 19.3076, lng: 98.4558, start: "2026-11-25T15:00", end: "2026-11-25T15:45", outdoor: true, noteHe: "5 דקות במדרגות לתצפית, ואז הליכה של 30-45 דקות בין מצוקי החימר." },
       { id: "pai-loy-krathong", nameHe: "לוי קראטונג על נהר פאי", nameEn: "Loy Krathong, Pai river", lat: 19.3596, lng: 98.4455, start: "2026-11-25T17:00", end: "2026-11-25T21:00", outdoor: true, noteHe: "הלילה המרכזי הוא 24.11; ב-25.11 החגיגות כנראה קטנות יותר." },
     ],
     drives: [
-      { id: "d25-pai", fromId: "lodging:cm1", toId: "thingamajiggy", departAt: "2026-11-25T08:30" },
-      { id: "d25-mokfa", fromId: "thingamajiggy", toId: "mok-fa", departAt: "2026-11-25T09:30" },
-      { id: "d25-bridge", fromId: "mok-fa", toId: "pai-memorial-bridge", departAt: "2026-11-25T11:00" },
+      { id: "d25-pai", fromId: "lodging:cm1", toId: "mok-fa", departAt: "2026-11-25T08:30" },
+      { id: "d25-coffee", fromId: "mok-fa", toId: "pankled-coffee", departAt: "2026-11-25T10:45" },
+      { id: "d25-bridge", fromId: "pankled-coffee", toId: "pai-memorial-bridge", departAt: "2026-11-25T11:15" },
+      { id: "d25-canyon", fromId: "pai-memorial-bridge", toId: "pai-canyon", departAt: "2026-11-25T14:45" },
+      { id: "d25-hotel", fromId: "pai-canyon", toId: "lodging:pai", departAt: "2026-11-25T15:45" },
     ],
     reminders: [{ id: "r25-van", at: "2026-11-25T08:00", textHe: "הנהג מגיע ב-08:30. כביש 1095 מפותל מאוד, כדאי כדור נגד בחילה." }],
     planB: [
       "כביש 1095 חסום או מוצף: לעכב את היציאה ולהתייעץ עם הנהג על מצב הכביש.",
       "גשם חזק: השביל למפל מוק פה חלקלק, להסתפק בתצפית מתחילת השביל.",
+      "גשם בקניון פאי: שבילי החימר חלקלקים ומסוכנים ברטיבות. להסתפק בתצפית שבראש המדרגות או לדלג.",
       "גשם בערב: לחגוג בשוק הלילה (Walking Street) ולשוט קראטונג כשהגשם נחלש.",
     ],
   },
   {
     date: "2026-11-26",
-    titleHe: "מערת תאם לוד ושקיעה בקניון פאי",
+    titleHe: "מערת תאם לוד, מעיינות סאי נגאם ושקיעה ב-Two Huts",
     lodgingId: "pai",
     stops: [
       { id: "doi-kiew-lom", nameHe: "תצפית דוי קיו לו", nameEn: "Doi Kiew Lom Viewpoint", lat: 19.4458, lng: 98.3192, start: "2026-11-26T10:30", end: "2026-11-26T10:50", outdoor: true },
-      { id: "tham-lod", nameHe: "מערת תאם לוד", nameEn: "Tham Lod Cave", lat: 19.5664, lng: 98.2789, start: "2026-11-26T11:30", end: "2026-11-26T14:00", outdoor: false },
-      { id: "pai-canyon", nameHe: "שקיעה בקניון פאי", nameEn: "Pai Canyon", lat: 19.3076, lng: 98.4558, start: "2026-11-26T16:30", end: "2026-11-26T18:15", outdoor: true },
+      { id: "tham-lod", nameHe: "מערת תאם לוד", nameEn: "Tham Lod Cave", lat: 19.5664, lng: 98.2789, start: "2026-11-26T11:30", end: "2026-11-26T14:30", outdoor: false, noteHe: "ארוחת צהריים באחת המסעדות הקטנות ליד המערה, 13:30-14:30." },
+      { id: "sai-ngam", nameHe: "מעיינות סאי נגאם", nameEn: "Sai Ngam Hot Spring", lat: 19.452, lng: 98.44, start: "2026-11-26T15:00", end: "2026-11-26T16:00", outdoor: true, noteHe: "בכפר באן סאי נגאם, צפונית לפאי. לקחת בגד ים ומגבת. מיקום משוער, לבדוק במפה." },
+      { id: "two-huts", nameHe: "שקיעה ב-Two Huts Cafe", nameEn: "Two Huts", lat: 19.3561, lng: 98.4952, start: "2026-11-26T16:35", end: "2026-11-26T18:00", outdoor: true, noteHe: "מרפסת פתוחה מעל העמק, השקיעה בסביבות 17:30. כדאי להגיע מוקדם לתפוס מקום. מיקום משוער, לבדוק במפה." },
       { id: "pai-walking-street", nameHe: "שוק הלילה של פאי", nameEn: "Pai Walking Street", lat: 19.3589, lng: 98.4406, start: "2026-11-26T20:00", end: "2026-11-26T22:00", outdoor: true },
     ],
     drives: [
       { id: "d26-thamlod", fromId: "lodging:pai", toId: "doi-kiew-lom", departAt: "2026-11-26T09:30" },
-      { id: "d26-back", fromId: "tham-lod", toId: "pai-canyon", departAt: "2026-11-26T14:00" },
+      { id: "d26-saingam", fromId: "tham-lod", toId: "sai-ngam", departAt: "2026-11-26T14:30" },
+      { id: "d26-twohuts", fromId: "sai-ngam", toId: "two-huts", departAt: "2026-11-26T16:00" },
+      { id: "d26-back", fromId: "two-huts", toId: "lodging:pai", departAt: "2026-11-26T18:05" },
     ],
-    reminders: [],
+    reminders: [{ id: "r26-swim", at: "2026-11-26T09:00", textHe: "היום יש טבילה במעיינות סאי נגאם. לקחת בגד ים, מגבת וכפכפים." }],
     planB: [
-      "גשם בשקיעה: לצפות מתצפית Yun Lai או מבית קפה מקורה. שבילי החימר בקניון חלקלקים ומסוכנים ברטיבות.",
+      "גשם בשקיעה: המרפסת ב-Two Huts פתוחה. לצפות מבית קפה מקורה בעיירה, או לוותר על השקיעה ולחזור למלון.",
       "שייט הרפסודות במערה מושבת בגלל מים גבוהים: סיור רגלי בלבד, או כפר באן ג'אבו והמרק התלוי.",
+      "גשם חזק אחר הצהריים: המעיינות בתוך יער, השביל חלקלק. אפשר לדלג ולחזור מוקדם לפאי.",
     ],
   },
   {
