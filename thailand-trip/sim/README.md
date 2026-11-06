@@ -8,16 +8,16 @@ The worker's code is not mocked. The real `worker/src` bundle runs in workerd (C
 npm run sim                          # every scenario, a few seconds each
 npm run sim -- road-to-pai           # one scenario
 npm run sim -- --browser             # also open the real app in Chromium (see below)
-npm run sim -- storm-pai-canyon --serve   # keep the worker running at :8787 afterwards (access code: sim-token)
+npm run sim -- storm-pai-sunset --serve   # keep the worker running at :8787 afterwards (access code: sim-token)
 npm run sim -- --real-claude         # real Claude news triage instead of the scenario's answers (needs ANTHROPIC_API_KEY)
 ```
 
 Each run prints the day as the travellers would live it and writes `reports/<scenario>.md`:
 
 ```
-09:00  ◆ world   The forecast turns: thunderstorms over Pai Canyon and Yun Lai, 15:00-19:00
-09:00  ▲ alert   [warning] סופת רעמים צפוי בשקיעה בקניון פאי  (weather:pai-canyon:storm, 2026-11-26)
-14:30  🔔 push    סופת רעמים צפוי בשקיעה בקניון פאי | בין 16:30 ל-18:15. ...
+09:00  ◆ world   The forecast turns: thunderstorms over the Two Huts sunset, 15:00-19:00
+09:00  ▲ alert   [warning] סופת רעמים צפויה בשקיעה ב-Two Huts Cafe  (weather:two-huts:storm, 2026-11-26)
+14:45  🔔 push    סופת רעמים צפויה בשקיעה ב-Two Huts Cafe | בין 16:35 ל-18:00. ...
 ```
 
 followed by the scenario's checks. The command fails if any check fails.
@@ -26,7 +26,7 @@ followed by the scenario's checks. The command fails if any check fails.
 
 | File | Day | What happens |
 | --- | --- | --- |
-| `storm-pai-canyon` | 26.11 | Forecast turns to thunderstorms over the canyon at sunset, then rain over the night market |
+| `storm-pai-sunset` | 26.11 | Forecast turns to thunderstorms over the Two Huts sunset, then rain over the night market |
 | `road-to-pai` | 25.11 | Route 1095 slows, a landslide is in the news, then no route at all, before the 08:30 van |
 | `flight-home` | 2–3.12 | Gate change, 90-minute delay, cancellation of the flight home |
 | `quake-and-advisory` | 28.11 | M5.6 quake near Chiang Dao (a small one and a far one are ignored), UK advice changes for Chiang Rai |
@@ -36,7 +36,7 @@ followed by the scenario's checks. The command fails if any check fails.
 A scenario is a JSON file in `scenarios/`: a time window, `events` (what the world does and when) and `expect` (what the app must do). The event and check types are documented in `src/scenario.ts`. Times are Thailand local time. Stop and drive ids come from `shared/src/itinerary.ts`; flight ids from `trip-private.sim.json`.
 
 ```json
-{ "at": "2026-11-26T09:00", "weather": { "stops": ["pai-canyon"], "from": "2026-11-26T15:00", "to": "2026-11-26T19:00", "preset": "storm" } }
+{ "at": "2026-11-26T09:00", "weather": { "stops": ["two-huts"], "from": "2026-11-26T15:00", "to": "2026-11-26T19:00", "preset": "storm" } }
 { "at": "2026-11-25T07:15", "traffic": { "drive": "d25-pai", "closed": true } }
 { "at": "2026-12-03T04:30", "flight": { "flight": "ret-1", "status": "Canceled" } }
 { "at": "2026-11-28T09:20", "quake": { "mag": 5.6, "nearStop": "chiang-dao-cave", "km": 60, "place": "Shan State, Myanmar" } }

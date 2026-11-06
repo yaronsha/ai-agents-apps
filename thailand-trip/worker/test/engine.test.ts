@@ -17,11 +17,11 @@ describe("engine", () => {
     const state = await runCheck(env, thLocal("2026-11-26T12:00"));
     const ids = state.alerts.map((a) => a.id);
 
-    expect(ids).toContain("weather:pai-canyon:rain");
+    expect(ids).toContain("weather:two-huts:rain");
     expect(ids.some((id) => id.includes("twin-pagodas"))).toBe(false); // past days are not fetched
     expect(ids).toContain("quake:us7");
     expect(state.dayStatus["2026-11-26"]).toBe("red");
-    expect(state.forecasts["pai-canyon"].maxRainProb).toBe(85);
+    expect(state.forecasts["two-huts"].maxRainProb).toBe(85);
     expect(log.pushes).toBeGreaterThanOrEqual(1);
     expect(JSON.parse(kv.data.get("sent")!)).toContain("quake:us7#0");
   });

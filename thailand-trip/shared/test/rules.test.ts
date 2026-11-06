@@ -49,28 +49,28 @@ describe("time", () => {
 
 describe("weather", () => {
   const day = dayOf(trip, "2026-11-26")!;
-  const canyon = day.stops.find((s) => s.id === "pai-canyon")!;
+  const sunset = day.stops.find((s) => s.id === "two-huts")!;
 
   it("warns about heavy rain at an outdoor stop 2 hours before (the evening briefing covers the night before)", () => {
     const fc = hourly("2026-11-26", { precipProb: 80, precip: 3 });
-    const summary = summarizeStop(canyon, fc);
-    const alerts = weatherAlerts(day, { [canyon.id]: summary });
+    const summary = summarizeStop(sunset, fc);
+    const alerts = weatherAlerts(day, { [sunset.id]: summary });
     expect(alerts).toHaveLength(1);
     expect(alerts[0].severity).toBe("warning");
     expect(alerts[0].digest).toBe(true);
-    expect(alerts[0].pushAt).toEqual([thLocal("2026-11-26T14:30").toISOString()]);
+    expect(alerts[0].pushAt).toEqual([thLocal("2026-11-26T14:35").toISOString()]);
   });
 
   it("stays quiet for light drizzle", () => {
     const fc = hourly("2026-11-26", { precipProb: 80, precip: 0.5 });
-    expect(weatherAlerts(day, { [canyon.id]: summarizeStop(canyon, fc) })).toHaveLength(0);
+    expect(weatherAlerts(day, { [sunset.id]: summarizeStop(sunset, fc) })).toHaveLength(0);
   });
 
   it("always warns about thunderstorms", () => {
     const fc = hourly("2026-11-26", { code: 95 });
-    const [storm] = weatherAlerts(day, { [canyon.id]: summarizeStop(canyon, fc) });
+    const [storm] = weatherAlerts(day, { [sunset.id]: summarizeStop(sunset, fc) });
     expect(storm.id).toContain("storm");
-    expect(storm.titleHe).toBe(`סופת רעמים צפויה ב${canyon.nameHe}`);
+    expect(storm.titleHe).toBe(`סופת רעמים צפויה ב${sunset.nameHe}`);
   });
 
   it("moves a pre-dawn warning out of quiet hours when the van has not left yet", () => {
@@ -141,7 +141,7 @@ describe("roads and flights", () => {
 describe("push scheduling", () => {
   const alert: TripAlert = {
     id: "x", category: "weather", severity: "warning", date: "2026-11-26", titleHe: "", bodyHe: "",
-    pushAt: [thLocal("2026-11-25T20:00").toISOString(), thLocal("2026-11-26T14:30").toISOString()], digest: true,
+    pushAt: [thLocal("2026-11-25T20:00").toISOString(), thLocal("2026-11-26T14:35").toISOString()], digest: true,
   };
   it("sends each push once", () => {
     const now = thLocal("2026-11-25T20:05");
@@ -162,7 +162,7 @@ describe("push scheduling", () => {
   });
   it("builds the evening digest for tomorrow", () => {
     const d = eveningDigest(trip, [alert], {}, thLocal("2026-11-25T20:00"))!;
-    expect(d.title).toContain("קניון");
+    expect(d.title).toContain("Two Huts");
     expect(d.body).toContain("09:30");
   });
 });
