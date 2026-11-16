@@ -15,8 +15,9 @@ export function aiProvider(env: Env): AiProvider | null {
 
 const impl = (env: Env) => (aiProvider(env) === "openai" ? openai : claude);
 
-export function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
-  return impl(env).triageNews(env, trip, today, articles);
+/** `reported` is the titles of the news items already shown, so another outlet's copy of one isn't raised again. */
+export function triageNews(env: Env, trip: Trip, today: string, articles: Article[], reported: string[] = []): Promise<NewsItem[]> {
+  return impl(env).triageNews(env, trip, today, articles, reported);
 }
 
 export function translateAdvisory(env: Env, text: string): Promise<string> {

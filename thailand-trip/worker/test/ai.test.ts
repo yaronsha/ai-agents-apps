@@ -82,6 +82,22 @@ describe("ai provider", () => {
     expect(seen[0].body.include).toEqual(["web_search_call.action.sources"]);
   });
 
+  it("ignores web search sources that have no link, such as OpenAI's live data feeds", async () => {
+    // The crash of 2026-11-15: a search listed { type: "api", name: "oai-weather" } next to pages,
+    // and cleaning up its missing url threw "Cannot read properties of undefined (reading 'replace')".
+    const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
+    const item = { stopId: "mok-fa", date: "2026-11-25", severity: "warning", titleHe: "שעות חדשות", bodyHe: "לפי הפארק.", url: "https://park.example/news" };
+    const text = JSON.stringify({ items: [item] });
+    const sources = [{ type: "api", name: "oai-weather" }, { type: "url", url: "https://park.example/news" }];
+    const output = [
+      { type: "web_search_call", id: "ws_1", status: "completed", action: { type: "search", query: "mok fa", sources } },
+      { type: "web_search_call", id: "ws_2", status: "completed", action: { type: "open_page", url: null } },
+      { type: "message", id: "msg_1", role: "assistant", status: "completed", content: [{ type: "output_text", text, annotations: [] }] },
+    ];
+    vi.stubGlobal("fetch", stubOpenAI(text, [], { output }));
+    expect(await checkPlaces(env, "2026-11-24", placeTargets(trip, ["2026-11-25"]))).toEqual([item]);
+  });
+
   it("reports a triage answer cut off by the token cap clearly", async () => {
     const env = { ...(await makeEnv(new FakeKV())), AI_PROVIDER: "openai", OPENAI_API_KEY: "k" };
     vi.stubGlobal("fetch", stubOpenAI('{"items":[{"index":0,', [], { status: "incomplete", incomplete_details: { reason: "max_output_tokens" } }));

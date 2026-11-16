@@ -13,8 +13,17 @@ export function fetchWithTimeout(url: string, init: RequestInit = {}, ms = FETCH
 export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetchWithTimeout(url, init);
   const host = new URL(url).host;
-  if (!res.ok) throw new Error(`${host} ${res.status}`);
   const text = await res.text();
+  if (!res.ok) {
+    // Open-Meteo and others say why in a JSON "reason"; keep it so the source note explains itself.
+    let reason = "";
+    try {
+      reason = String((JSON.parse(text) as { reason?: unknown }).reason ?? "");
+    } catch {
+      // not JSON
+    }
+    throw new Error(`${host} ${res.status}${reason ? `: ${reason.slice(0, 160)}` : ""}`);
+  }
   try {
     return JSON.parse(text) as T;
   } catch {

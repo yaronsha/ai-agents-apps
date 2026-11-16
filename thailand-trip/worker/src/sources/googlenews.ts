@@ -2,19 +2,10 @@
 // lagged more than a day behind; shadow mode compares the two before one replaces the other.
 import type { Article } from "./gdelt";
 import { fetchWithTimeout } from "./http";
+import { parseRss } from "./rss";
 
 const PLACES = '("Chiang Mai" OR "Chiang Rai" OR "Mae Hong Son" OR Pai)';
 const TROUBLE = "(protest OR closed OR flood OR landslide OR accident OR cancelled OR evacuation OR wildfire OR border OR earthquake OR haze)";
-
-const decode = (s: string) =>
-  s
-    .replace(/<!\[CDATA\[|\]\]>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
 
 /** Headlines from the past `days` days (Google's `when:` operator), newest first. */
 export async function fetchGoogleNews(days = 1): Promise<Article[]> {
@@ -25,18 +16,6 @@ export async function fetchGoogleNews(days = 1): Promise<Article[]> {
   const xml = await res.text();
   if (!res.ok) throw new Error(`news.google.com ${res.status}`);
   if (!xml.includes("<rss")) throw new Error(`news.google.com: not RSS: ${xml.slice(0, 120).trim()}`);
-  const tag = (s: string, t: string) => decode(s.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`))?.[1] ?? "");
-  return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]
-    .map(([, item]) => {
-      const sourceUrl = item.match(/<source url="([^"]+)"/)?.[1];
-      const pub = new Date(tag(item, "pubDate"));
-      return {
-        url: tag(item, "link"),
-        // Google appends " - Source Name" to every title.
-        title: tag(item, "title").replace(/ - [^-]+$/, ""),
-        domain: sourceUrl ? new URL(sourceUrl).hostname.replace(/^www\./, "") : tag(item, "source"),
-        seendate: Number.isNaN(+pub) ? "" : pub.toISOString(),
-      };
-    })
-    .sort((a, b) => b.seendate.localeCompare(a.seendate));
+  // Google appends " - Source Name" to every title.
+  return parseRss(xml, "news.google.com").map((a) => ({ ...a, title: a.title.replace(/ - [^-]+$/, "") }));
 }

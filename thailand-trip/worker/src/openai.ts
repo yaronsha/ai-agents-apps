@@ -28,7 +28,7 @@ function client(env: Env): OpenAI {
   return new OpenAI({ apiKey: env.OPENAI_API_KEY });
 }
 
-export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
+export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[], reported: string[] = []): Promise<NewsItem[]> {
   if (!articles.length) return [];
   // Reasoning tokens count toward max_output_tokens, so keep effort low and leave room for the answer.
   const response = await client(env).responses.create({
@@ -36,7 +36,7 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
     max_output_tokens: 16000,
     reasoning: { effort: "low" },
     instructions: TRIAGE_SYSTEM,
-    input: triagePrompt(trip, today, articles),
+    input: triagePrompt(trip, today, articles, reported),
     text: { format: zodTextFormat(Triage, "triage") },
   }, TRIAGE_REQUEST);
   if (response.status === "incomplete") throw new Error(`OpenAI triage incomplete: ${response.incomplete_details?.reason ?? "unknown"}`);
@@ -69,7 +69,9 @@ function searchedLinks(output: OpenAI.Responses.ResponseOutputItem[]): string[] 
   return output.flatMap((item) => {
     if (item.type === "web_search_call") {
       const a = item.action;
-      if (a.type === "search") return (a.sources ?? []).map((s) => s.url);
+      // Not every source is a page: live feeds come back as { type: "api", name } with no url,
+      // whatever the SDK's types say.
+      if (a.type === "search") return (a.sources ?? []).flatMap((s) => (typeof s.url === "string" ? [s.url] : []));
       return a.url ? [a.url] : [];
     }
     if (item.type === "message") {

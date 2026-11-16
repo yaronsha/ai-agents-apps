@@ -51,6 +51,12 @@ describe("place check schedule", () => {
     expect(placeCheckDates(trip, thLocal("2026-10-20T06:00"))).toEqual([]);
   });
 
+  it("repeats a failed weekly check the next morning instead of a week later", () => {
+    expect(placeCheckDates(trip, thLocal("2026-11-17T06:00"), true)).toHaveLength(trip.days.length); // a Tuesday
+    expect(placeCheckDates(trip, thLocal("2026-11-17T09:00"), true)).toEqual([]);
+    expect(placeCheckDates(trip, thLocal("2026-11-17T06:00"))).toEqual([]);
+  });
+
   it("skips the airport, which the flight check covers", () => {
     const ids = placeTargets(trip, ["2026-11-22"]).map((t) => t.stopId);
     expect(ids).toContain("doi-suthep");

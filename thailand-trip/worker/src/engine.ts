@@ -37,15 +37,18 @@ import type { Env } from "./env";
 import { Store } from "./store";
 import { sendToAll, vapidKey } from "./push";
 import { fetchAir, fetchForecasts } from "./sources/openmeteo";
+import { fetchNews } from "./sources/news";
 import { fetchQuakes } from "./sources/usgs";
 import { fetchAdvisory } from "./sources/fcdo";
-import { fetchArticles } from "./sources/gdelt";
 import { fetchDriveTime } from "./sources/routes";
 import { fetchFlightStatus } from "./sources/flights";
 import { aiProvider, checkPlaces, translateAdvisory, triageNews } from "./ai";
 import { placeCheckDates, placeTargets, PLACES_PER_CALL } from "./places";
 
 const MIN = 60_000;
+
+/** Headlines sent to the AI model in one run. The live test of 2026-11-16 found about 40 new ones a day. */
+const NEWS_PER_RUN = 40;
 
 /** Daily caps on paid calls, so a bug can never run up a bill. */
 export const DAILY_CAPS = { routes: 100, flights: 60, claude: 60, places: 8, replan: 20 } as const;
@@ -114,7 +117,9 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   let weather = await store.json<WeatherCache | null>("cache:weather", null);
   if (!weather || now.getTime() - weather.at > 55 * MIN || opts.dryRun) {
     const start = today > trip.days[0].date ? today : trip.days[0].date;
-    const end = [addDays(today, 15), trip.endDate].sort()[0];
+    // Open-Meteo allows 16 days counted from its own UTC date, which is still yesterday until
+    // 07:00 Thai time: asking for Thai today + 15 then is a 400. Today + 14 is inside it all day.
+    const end = [addDays(today, 14), trip.endDate].sort()[0];
     const airEnd = [addDays(today, 4), trip.endDate].sort()[0];
     const daysIn = (to: string) => trip.days.filter((d) => d.date >= start && d.date <= to);
     const points = (to: string) => daysIn(to).flatMap((d) => d.stops);
@@ -184,19 +189,25 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   advisoryAlerts = advisoryAlerts.filter((a) => a.date >= addDays(today, -1)).slice(0, 5);
   alerts.push(...advisoryAlerts);
 
-  // News: hourly from a week before the trip. Only unseen headlines go to the AI model.
+  // News: hourly from a week before the trip. Only unseen headlines go to the AI model, at most
+  // NEWS_PER_RUN of them; the sources take turns in the list, so each one gets a share.
   let newsItems = await store.json<NewsItem[]>("news:items", []);
   const newsBefore = newsItems;
   let seen = await store.json<string[]>("news:seen", []);
   const seenBefore = seen;
   if (hourly && newsWindow && aiProvider(env) && !opts.dryRun) {
     try {
-      const fresh = (await fetchArticles()).filter((a) => !seen.includes(a.url)).slice(0, 25);
+      const news = await fetchNews(now);
+      const fresh = news.articles.filter((a) => !seen.includes(a.url)).slice(0, NEWS_PER_RUN);
       if (fresh.length && spend("claude")) {
-        newsItems = [...(await triageNews(env, trip, today, fresh)), ...newsItems];
+        // The items still on screen go along, so the same event from another source isn't raised twice.
+        const reported = newsItems.filter((n) => n.date >= today).map((n) => n.titleHe);
+        newsItems = [...(await triageNews(env, trip, today, fresh, reported)), ...newsItems];
         seen = [...fresh.map((a) => a.url), ...seen].slice(0, 500);
       }
-      note("news", true, `${fresh.length} כתבות חדשות`);
+      // Sources that didn't answer are named, so a source that stops working shows up here.
+      const down = news.failed.length ? ` · לא ענו: ${news.failed.map((f) => f.split(":")[0]).join(", ")}` : "";
+      note("news", true, `${fresh.length} כתבות חדשות מ-${news.ok.length} מקורות${down}`);
     } catch (err) {
       note("news", false, String(err));
     }
@@ -262,7 +273,7 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
   alerts.push(...placeAlerts(trip));
   const placesBefore = await store.json<PlaceNotice[]>("places:items", []);
   let placeItems = placesBefore.filter((n) => n.date >= today);
-  const placeDates = opts.dryRun || !aiProvider(env) ? [] : placeCheckDates(trip, now);
+  const placeDates = opts.dryRun || !aiProvider(env) ? [] : placeCheckDates(trip, now, previous?.sources.places?.ok === false);
   if (placeDates.length) {
     const targets = placeTargets(trip, placeDates);
     // The batches run at the same time, so even the weekly check of every stop takes about as long
