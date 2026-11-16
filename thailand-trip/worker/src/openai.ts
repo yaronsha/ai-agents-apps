@@ -28,7 +28,7 @@ function client(env: Env): OpenAI {
   return new OpenAI({ apiKey: env.OPENAI_API_KEY });
 }
 
-export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
+export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[], reported: string[] = []): Promise<NewsItem[]> {
   if (!articles.length) return [];
   // Reasoning tokens count toward max_output_tokens, so keep effort low and leave room for the answer.
   const response = await client(env).responses.create({
@@ -36,7 +36,7 @@ export async function triageNews(env: Env, trip: Trip, today: string, articles: 
     max_output_tokens: 16000,
     reasoning: { effort: "low" },
     instructions: TRIAGE_SYSTEM,
-    input: triagePrompt(trip, today, articles),
+    input: triagePrompt(trip, today, articles, reported),
     text: { format: zodTextFormat(Triage, "triage") },
   }, TRIAGE_REQUEST);
   if (response.status === "incomplete") throw new Error(`OpenAI triage incomplete: ${response.incomplete_details?.reason ?? "unknown"}`);

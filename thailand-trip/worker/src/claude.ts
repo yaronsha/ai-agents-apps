@@ -28,13 +28,13 @@ function client(env: Env): Anthropic {
   return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 }
 
-export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[]): Promise<NewsItem[]> {
+export async function triageNews(env: Env, trip: Trip, today: string, articles: Article[], reported: string[] = []): Promise<NewsItem[]> {
   if (!articles.length) return [];
   const response = await client(env).messages.parse({
     model: env.CLAUDE_TRIAGE_MODEL,
     max_tokens: 4000,
     system: TRIAGE_SYSTEM,
-    messages: [{ role: "user", content: triagePrompt(trip, today, articles) }],
+    messages: [{ role: "user", content: triagePrompt(trip, today, articles, reported) }],
     output_config: { format: zodOutputFormat(Triage) },
   }, TRIAGE_REQUEST);
   return toNewsItems(response.parsed_output, articles, today);

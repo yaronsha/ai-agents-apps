@@ -47,10 +47,10 @@ import { placeCheckDates, placeTargets, PLACES_PER_CALL } from "./places";
 
 const MIN = 60_000;
 
-/** Daily caps on paid calls, so a bug can never run up a bill. */
 /** Headlines sent to the AI model in one run. The live test of 2026-11-16 found about 40 new ones a day. */
 const NEWS_PER_RUN = 40;
 
+/** Daily caps on paid calls, so a bug can never run up a bill. */
 export const DAILY_CAPS = { routes: 100, flights: 60, claude: 60, places: 8, replan: 20 } as const;
 // Re-plan is counted by its route under its own key (`replanBudgetKey`), so a cron run saving
 // this day's budget can't overwrite a tap made meanwhile.
@@ -200,7 +200,9 @@ export async function runCheck(env: Env, now: Date, opts: RunOptions = {}): Prom
       const news = await fetchNews(now);
       const fresh = news.articles.filter((a) => !seen.includes(a.url)).slice(0, NEWS_PER_RUN);
       if (fresh.length && spend("claude")) {
-        newsItems = [...(await triageNews(env, trip, today, fresh)), ...newsItems];
+        // The items still on screen go along, so the same event from another source isn't raised twice.
+        const reported = newsItems.filter((n) => n.date >= today).map((n) => n.titleHe);
+        newsItems = [...(await triageNews(env, trip, today, fresh, reported)), ...newsItems];
         seen = [...fresh.map((a) => a.url), ...seen].slice(0, 500);
       }
       // Sources that didn't answer are named, so a source that stops working shows up here.

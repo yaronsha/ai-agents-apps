@@ -83,3 +83,25 @@ describe("news sources", () => {
     await expect(fetchNews(now)).rejects.toThrow("not RSS");
   });
 });
+
+describe("rss reader", () => {
+  it("skips a broken item instead of dropping the feed, and decodes hex entities", async () => {
+    const { parseRss } = await import("../src/sources/rss");
+    const xml = `<rss><channel>
+      <item><title>Bad &#99999999; item</title><link>https://a.example/1</link><source url="not a url">x</source></item>
+      <item><title>Road closed &#x2013; Pai</title><link>https://a.example/2</link></item>
+    </channel></rss>`;
+    expect(parseRss(xml, "a.example").map((a) => a.title)).toEqual(["Road closed – Pai"]);
+  });
+});
+
+describe("news triage prompt", () => {
+  it("lists the events already reported and asks the model to weigh the source", async () => {
+    const { triagePrompt, TRIAGE_SYSTEM } = await import("../src/prompts");
+    const { trip } = await import("@trip/shared/private");
+    const text = triagePrompt(trip, "2026-11-24", [{ url: "https://x/1", title: "Mae Sai water cut", domain: "unknown.example", seendate: "" }], ["מים במאה סאי"]);
+    expect(text).toContain("Already reported:\n- מים במאה סאי");
+    expect(text).toContain("[unknown.example, ] Mae Sai water cut");
+    expect(TRIAGE_SYSTEM).toMatch(/established news outlet or an official body/);
+  });
+});
