@@ -31,6 +31,7 @@ Given their next few days and a list of headlines (in English or Thai), decide w
 Mark a headline relevant only when it plausibly affects a place or road on their route in the coming days. Most headlines are not relevant.
 Weigh the source shown next to each headline: only an established news outlet or an official body can make a headline "urgent" or "warning"; a headline from a site you don't recognise as one is "info" at most.
 Already-reported events are listed separately: mark a headline about one of them not relevant, even when it comes from another outlet.
+Several headlines in the list may be about one event (often from different outlets, in English and Thai): mark only the best-sourced one relevant and the rest not relevant, so each event becomes one entry.
 "urgent" means they should act today or tomorrow; "warning" means worth planning around; "info" means good to know.
 Write titleHe and bodyHe in natural Hebrew. Return one entry per headline index.`;
 
