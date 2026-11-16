@@ -7,7 +7,11 @@ import type { PlaceTarget } from "./prompts";
 /** Stops per AI call: each gets up to two searches, and one call allows ten. */
 export const PLACES_PER_CALL = 5;
 
-export function placeCheckDates(trip: Trip, now: Date): string[] {
+/**
+ * Which trip days the web check looks at in this run. Before the trip it is every stop on Monday
+ * mornings; `lastFailed` repeats it the next morning, so one failed run doesn't wait a week.
+ */
+export function placeCheckDates(trip: Trip, now: Date, lastFailed = false): string[] {
   const { date: today, hour, minute } = thParts(now);
   if (minute >= 15) return [];
   const tripDates = trip.days.map((d) => d.date);
@@ -15,7 +19,7 @@ export function placeCheckDates(trip: Trip, now: Date): string[] {
     return hour === 6 || hour === 14 ? tripDates.filter((d) => d === today || d === addDays(today, 1)) : [];
   }
   const monday = new Date(`${today}T12:00:00Z`).getUTCDay() === 1;
-  return today < trip.startDate && monday && hour === 6 ? tripDates : [];
+  return today < trip.startDate && (monday || lastFailed) && hour === 6 ? tripDates : [];
 }
 
 function knownHe(f: PlaceFacts): string {

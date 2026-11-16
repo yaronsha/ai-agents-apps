@@ -92,6 +92,15 @@ export class World {
   async handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+    const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const gdeltTime = (d: string) => d.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, "$1-$2-$3T$4:$5:$6Z");
+    const rss = (items: Array<Record<string, string>>) =>
+      new Response(
+        `<?xml version="1.0"?><rss version="2.0"><channel>${items
+          .map((a) => `<item><title>${esc(a.title)}</title><link>${esc(a.url)}</link><pubDate>${new Date(gdeltTime(a.seendate)).toUTCString()}</pubDate></item>`)
+          .join("")}</channel></rss>`,
+        { headers: { "Content-Type": "application/rss+xml" } },
+      );
     const log = (source: string, detail?: string) => this.calls.push({ at: this.now, source, detail });
 
     switch (url.host) {
@@ -108,8 +117,20 @@ export class World {
         log("advisory");
         return json(this.advisoryPage());
       case "api.gdeltproject.org":
-        log("news");
         return json({ articles: this.articles() });
+      // The news check reads RSS feeds; the scenario's headlines come from The Thaiger's Chiang
+      // Mai feed, and every other feed answers with nothing new.
+      case "thethaiger.com":
+        if (url.pathname.startsWith("/news/chiang-mai")) {
+          log("news");
+          return rss(this.articles());
+        }
+        return rss([]);
+      case "www.chiangmainews.co.th":
+      case "www.bing.com":
+      case "www.matichon.co.th":
+      case "news.google.com":
+        return rss([]);
       case "routes.googleapis.com": {
         const body = (await req.json()) as { origin: Waypoint; destination: Waypoint };
         const { id, reply } = this.route(body);

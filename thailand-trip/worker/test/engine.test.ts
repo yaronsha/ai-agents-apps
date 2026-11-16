@@ -26,6 +26,21 @@ describe("engine", () => {
     expect(JSON.parse(kv.data.get("sent")!)).toContain("quake:us7#0");
   });
 
+  it("asks Open-Meteo only for dates it allows, also just after Thai midnight", async () => {
+    // Open-Meteo counts its 16 days from the UTC date; at 00:15 Thai time that is still the day
+    // before, so Thai today + 15 was refused with a 400 every night (seen live on 2026-11-17).
+    const env = await makeEnv(new FakeKV());
+    const log: FetchLog = { urls: [], pushes: 0 };
+    vi.stubGlobal("fetch", stubFetch(log));
+    const now = thLocal("2026-11-17T00:15");
+    const state = await runCheck(env, now);
+    const url = new URL(log.urls.find((u) => u.includes("api.open-meteo.com"))!);
+    const utcLimit = new Date(now.getTime() + 15 * 86_400_000).toISOString().slice(0, 10);
+    expect(url.searchParams.get("end_date")! <= utcLimit).toBe(true);
+    expect(url.searchParams.get("end_date")).toBe("2026-12-01");
+    expect(state.sources.weather.ok).toBe(true);
+  });
+
   it("does not push the same alert twice on the next run", async () => {
     const kv = new FakeKV();
     const env = await makeEnv(kv);

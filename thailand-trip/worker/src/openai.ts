@@ -69,7 +69,9 @@ function searchedLinks(output: OpenAI.Responses.ResponseOutputItem[]): string[] 
   return output.flatMap((item) => {
     if (item.type === "web_search_call") {
       const a = item.action;
-      if (a.type === "search") return (a.sources ?? []).map((s) => s.url);
+      // Not every source is a page: live feeds come back as { type: "api", name } with no url,
+      // whatever the SDK's types say.
+      if (a.type === "search") return (a.sources ?? []).flatMap((s) => (typeof s.url === "string" ? [s.url] : []));
       return a.url ? [a.url] : [];
     }
     if (item.type === "message") {

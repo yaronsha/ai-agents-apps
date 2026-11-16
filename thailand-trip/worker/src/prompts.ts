@@ -27,7 +27,7 @@ export const Triage = z.object({
 });
 
 export const TRIAGE_SYSTEM = `You screen news for two Israeli tourists on a private-driver trip in northern Thailand.
-Given their next few days and a list of headlines, decide which headlines could change their plans: closed roads, landslides, floods, protests, closed parks or temples, cancelled festivals or flights, border incidents, disease outbreaks, severe smoke.
+Given their next few days and a list of headlines (in English or Thai), decide which headlines could change their plans: closed roads, landslides, floods, protests, closed parks or temples, cancelled festivals or flights, border incidents, disease outbreaks, severe smoke.
 Mark a headline relevant only when it plausibly affects a place or road on their route in the coming days. Most headlines are not relevant.
 "urgent" means they should act today or tomorrow; "warning" means worth planning around; "info" means good to know.
 Write titleHe and bodyHe in natural Hebrew. Return one entry per headline index.`;
@@ -163,6 +163,7 @@ export function foundLinks(found: Iterable<string>, targets: PlaceTarget[]): (ur
       .replace(/[?&]+$/, "")
       .replace(/^https?:\/\/(www\.)?/, "")
       .replace(/\/$/, "");
-  const seen = new Set([...found, ...targets.flatMap((t) => t.officialUrls)].map(norm));
-  return (u) => seen.has(norm(u));
+  const isUrl = (u: unknown): u is string => typeof u === "string" && u.length > 0;
+  const seen = new Set([...found, ...targets.flatMap((t) => t.officialUrls)].filter(isUrl).map(norm));
+  return (u) => isUrl(u) && seen.has(norm(u));
 }
