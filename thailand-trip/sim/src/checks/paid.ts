@@ -1,4 +1,4 @@
-// npm run check:paid [-- --yes] [--replan] [--models gpt-5.4-mini,gpt-5.4-nano,claude-haiku-4-5] [--runs 3]
+// npm run check:paid [-- --yes] [--replan] [--models gpt-6-luna,gpt-5.4-mini,claude-haiku-4-5] [--runs 3]
 //
 // Local, by-hand live check of the PAID sources, through the worker's own fetch and parse code:
 // Google Routes, AeroDataBox and AI news triage on planted headlines (plus "re-plan for me" with
@@ -20,8 +20,10 @@ import { CheckFailed, confirm, expect, flag, recordBodies, Report, warnUnless } 
 
 // $ per million tokens [input, output], from the providers' price pages (check them if a model changes).
 const PRICES: Record<string, [number, number]> = {
+  "gpt-6-luna": [0.1, 0.5],
   "gpt-5.4-nano": [0.2, 1.25],
   "gpt-5.4-mini": [0.75, 4.5],
+  "gpt-6.1-terra": [1, 5],
   "gpt-5.5": [5, 30],
   "claude-haiku-4-5": [1, 5],
   "claude-sonnet-5-5": [3, 15],
@@ -33,8 +35,8 @@ const REPLAN_TOKENS: [number, number] = [1200, 3000];
 // Compute Routes Pro (traffic-aware) is $10 per 1000 calls beyond the free monthly allowance.
 const ROUTES_PER_CALL = 0.01;
 
-const TRIAGE_DEFAULTS = ["gpt-5.4-mini", "gpt-5.4-nano", "claude-haiku-4-5"]; // wrangler.toml models + nano
-const REPLAN_MODEL = "gpt-5.5";
+const TRIAGE_DEFAULTS = ["gpt-6-luna", "gpt-5.4-mini", "claude-haiku-4-5"]; // wrangler.toml models + the previous OpenAI one
+const REPLAN_MODEL = "gpt-6.1-terra";
 const TODAY = "2026-11-24"; // lantern festival night; the drive to Pai on Route 1095 is tomorrow
 const PAI_DRIVE_DATE = "2026-11-25";
 // AeroDataBox's documented flight statuses; shared/src/rules.ts acts on /cancel/, flights.ts defaults to "Unknown".
