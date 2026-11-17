@@ -54,7 +54,7 @@ describe("ai provider", () => {
     const items = await triageNews(env, trip, day, articles);
     expect(items).toEqual([{ url: "https://a/1", date: day, severity: "urgent", titleHe: "כביש 1095 חסום", bodyHe: "מפולת." }]);
     expect(seen[0].url).toBe("https://api.openai.com/v1/responses");
-    expect(seen[0].body.model).toBe("gpt-5.4-mini");
+    expect(seen[0].body.model).toBe("gpt-6-luna");
     expect(seen[0].body.reasoning).toEqual({ effort: "low" });
   });
 
@@ -175,7 +175,7 @@ describe("ai provider", () => {
     const seen: Array<{ url: string; body: Record<string, unknown> }> = [];
     vi.stubGlobal("fetch", stubOpenAI(" לא לנסוע ליד הגבול. ", seen));
     expect(await translateAdvisory(env, "Avoid the border.")).toBe("לא לנסוע ליד הגבול.");
-    expect(seen[0].body.model).toBe("gpt-5.4-mini");
+    expect(seen[0].body.model).toBe("gpt-6-luna");
     expect(seen[0].body.input).toBe("Avoid the border.");
   });
 });
