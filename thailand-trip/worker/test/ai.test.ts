@@ -130,7 +130,7 @@ describe("ai provider", () => {
       env,
     );
     expect(await res.json()).toEqual({ text: "לצאת ב־8:00 במקום 9:00." });
-    expect(seen[0].body.model).toBe("gpt-5.5");
+    expect(seen[0].body.model).toBe("gpt-6.1-terra");
     expect(String(seen[0].body.input)).toContain("מה קרה: גשם");
   });
 

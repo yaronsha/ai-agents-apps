@@ -21,7 +21,7 @@ AI_PROVIDER = "openai"
 CLAUDE_TRIAGE_MODEL = "claude-haiku-4-5"
 CLAUDE_REPLAN_MODEL = "claude-sonnet-5-5"
 OPENAI_TRIAGE_MODEL = "gpt-6-luna"
-OPENAI_REPLAN_MODEL = "gpt-5.5"
+OPENAI_REPLAN_MODEL = "gpt-6.1-terra"
 # News shadow mode: hourly log of what GDELT and Google News return, no alerts. Read it with
 # `npm run shadow:report`; set "off" once a source is chosen. SHADOW_AI = "on" adds ~2 AI calls a day.
 SHADOW_NEWS = "on"
