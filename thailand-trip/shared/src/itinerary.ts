@@ -1,4 +1,4 @@
-// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-10-30).
+// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-11-18).
 // Coordinates were checked on 2026-10-07 against map listings (AllTrails, Tripadvisor, Waze, Wikipedia,
 // Atlas Obscura, plus codes). `npm run verify:places` re-checks them against OpenStreetMap.
 import type { Day, Trip, TripPrivate } from "./types";
@@ -47,7 +47,7 @@ const days: Day[] = [
     titleHe: "מקדשי העיר העתיקה ופסטיבל הפנסים",
     lodgingId: "cm1",
     stops: [
-      { id: "old-city-temples", nameHe: "ואט פרה סינג, ואט פאן טאו, ואט צ'די לואנג", nameEn: "Old City temples", lat: 18.7884, lng: 98.9819, start: "2026-11-24T09:00", end: "2026-11-24T12:00", outdoor: true },
+      { id: "old-city-temples", nameHe: "ואט פרה סינג, ואט פאן טאו, ואט צ'די לואנג", nameEn: "Old City temples", lat: 18.7884, lng: 98.9819, start: "2026-11-24T09:00", end: "2026-11-24T12:00", outdoor: true, noteHe: "אפשרות לסיור מודרך שהוזמן ב-Viator." },
       { id: "khao-soi", nameHe: "צהריים: קאו סוי", nameEn: "Khao Soi lunch", lat: 18.7953, lng: 98.962, start: "2026-11-24T12:00", end: "2026-11-24T13:00", outdoor: false },
       { id: "lantern-festival", nameHe: "פסטיבל הפנסים CAD Khomloy", nameEn: "CAD Khomloy Sky Lantern Festival", lat: 18.7664, lng: 99.2422, start: "2026-11-24T17:00", end: "2026-11-24T21:30", outdoor: true, noteHe: "CAD Cultural Center במחוז מאה און, כשעה נסיעה מהעיר. ההסעה יוצאת מ-CMEC או מקניון MAYA, לפי סוג הכרטיס. נקודת האיסוף ב-15:30." },
     ],
@@ -163,7 +163,7 @@ const days: Day[] = [
     titleHe: "שייט בנהר הקוק, כפרי השבטים והמקדש הכחול",
     lodgingId: "cr",
     stops: [
-      { id: "kok-boat", nameHe: "שייט פרטי בנהר הקוק וקופים במצוק", nameEn: "C.R. Pier", lat: 19.9216, lng: 99.8183, start: "2026-11-30T10:15", end: "2026-11-30T11:00", outdoor: true, noteHe: "סירה פרטית ל-3 שעות מהקופה ברציף. לבקש מהנהג להסביר למשיט: קופים במצוק, כפר הקארן, כפר הלאהו, וירידה במעיינות Pha Soet. מיקום הרציף משוער." },
+      { id: "kok-boat", nameHe: "שייט פרטי בנהר הקוק וקופים במצוק", nameEn: "C.R. Pier", lat: 19.9216, lng: 99.8183, start: "2026-11-30T10:15", end: "2026-11-30T11:00", outdoor: true, noteHe: "סירה פרטית ל-3 שעות מהקופה ברציף. לבקש מהנהג להסביר למשיט: קופים במצוק, כפר הקארן, כפר הלאהו, וירידה במעיינות Pha Soet. מיקום הרציף משוער. בקובץ יש תוכנית חלופית בגלל זיהום בנהר הקוק, ראו תוכניות ב'." },
       { id: "ruammit", nameHe: "כפר הקארן Ruammit וכפר הלאהו", nameEn: "Ban Ruam Mit", lat: 19.938, lng: 99.66, start: "2026-11-30T11:00", end: "2026-11-30T12:30", outdoor: true, noteHe: "מיקום משוער." },
       { id: "pha-soet", nameHe: "טבילת רגליים ובישול ביצים ב-Pha Soet", nameEn: "Pha Soet Hot Spring", lat: 19.94, lng: 99.632, start: "2026-11-30T12:30", end: "2026-11-30T13:15", outdoor: true, noteHe: "הנהג מחכה כאן עם הוואן ב-13:15. מיקום משוער." },
       { id: "kok-river-lunch", nameHe: "צהריים ב-Chivit Thamma Da על נהר הקוק", nameEn: "Chivit Thamma Da", lat: 19.9175, lng: 99.8295, start: "2026-11-30T13:30", end: "2026-11-30T15:00", outdoor: false, noteHe: "לפי התוכנית כ-20 דקות נסיעה מהמעיינות. לבקש מהנהג להזמין מקום מראש ל-13:35. מיקום משוער, לבדוק במפה." },
@@ -180,6 +180,7 @@ const days: Day[] = [
     planB: [
       "גשם חזק או נהר גבוה: לוותר על השייט ולנסוע בוואן לכפר Ruammit ולמעיינות Pha Soet בכביש שלאורך הנהר.",
       "גשם בערב: המקדש הכחול מקורה ברובו. בשוק הלילה לשבת ברחבת האוכל המקורה.",
+      "תוכנית חלופית מהקובץ (בגלל הזיהום בנהר הקוק): 09:00 יציאה צפונה. 09:30-10:30 כפר הקארן ארוכות הצוואר באזור Nang Lae / Mae Chan (כ-300 באט לאדם). 11:30-12:30 סירה פרטית על המקונג מרציף משולש הגבולות (כ-1,500-2,500 באט לסירה), כולל עצירה באי דון סאו בלאוס בלי ויזה. 12:30-13:15 פארק משולש הגבולות ובודהה הזהוב. 13:15-14:30 צהריים ב-Golden Time (להזמין דרך הנהג, ‎+66 80 696 1538) או Aunt Long. 14:30-15:30 היכל האופיום (הכניסה נסגרת ב-15:30). 18:15 המקדש הכחול, 19:15 שוק הלילה. להצטייד במזומן בבאט.",
     ],
   },
   {
