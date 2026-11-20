@@ -3,7 +3,8 @@
 // stops: nothing in the plan moves for them. The one exception is Khao Soi Khun Yai, which took the
 // place of the plan's generic khao soi lunch on 24.11 (stop "khao-soi"; its facts live in PLACE_FACTS).
 // Facts gathered on 2026-11-20 from food guides, Tripadvisor, Wanderlog and Yaron's Google Maps
-// screenshot, not from the places themselves. Guides disagree on hours; the text says so.
+// screenshot, not from the places themselves. Guides disagree on hours; the text says so. The worker's
+// place check also looks up the picks that are not stops, on their day (worker/src/places.ts).
 import type { LatLng } from "./types";
 import type { PlaceFacts } from "./place-facts";
 
@@ -46,7 +47,7 @@ export const PICKS: Pick[] = [
     teaserHe: "ראמן יפני, מרק טונקוטסו בסגנון האקאטה",
     tipHe: "ירון ממליץ על ראמן הטונקוטסו (Hakata Tonkotsu).",
     walkHe: "בנימן סוי 11, כמה דקות הליכה מקניון MAYA",
-    warnHe: "לפי אחד המדריכים סגור בימי שני, לכן הוא מוצע להיום.",
+    warnHe: "לפי אחד המדריכים סגור בימי שני, לכן הוא מוצע ליום ראשון 22.11.",
     lat: 18.7975,
     lng: 98.968,
     approx: true,

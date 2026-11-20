@@ -36,6 +36,7 @@ export function MapView({
   const [showHospitals, setShowHospitals] = useState(false);
   const [showPicks, setShowPicks] = useState(true);
   const [pick, setPick] = useState<Pick | null>(null);
+  const pendingPopup = useRef<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
   const me = useRef<L.CircleMarker | null>(null);
   const sheet = useRef<HTMLDivElement>(null);
@@ -137,8 +138,10 @@ export function MapView({
       );
     }
 
+    // A pick that is also a plan stop is shown by the stop's own pin (its popup and card carry the
+    // badge), so its warning ring stays visible.
     if (showPicks) {
-      PICKS.forEach((p) => {
+      PICKS.filter((p) => !p.stopId).forEach((p) => {
         const marker = L.marker([p.lat, p.lng], {
           icon: L.divIcon({ className: "", html: '<div class="pin-pick">♥</div>', iconSize: [24, 24], iconAnchor: [12, 12] }),
           title: `${p.nameHe}, ההמלצה של ירון`,
@@ -150,15 +153,22 @@ export function MapView({
           .on("popupopen", (e) =>
             e.popup.getElement()?.querySelector(".popup-more")?.addEventListener("click", () => {
               m.closePopup();
-              const stop = p.stopId ? trip.days.flatMap((d) => d.stops).find((s) => s.id === p.stopId) : undefined;
-              if (stop) setPlace({ stop, date: p.date });
-              else setPick(p);
+              setPick(p);
             }),
           )
           .addTo(g);
-        // "על המפה" in a pick's card flies here and opens this popup (stop pins at the same spot win).
-        if (!p.stopId) pins.current.set(p.id, marker);
+        // "על המפה" in a pick's card flies here and opens this popup.
+        pins.current.set(p.id, marker);
       });
+    }
+    // "על המפה" asked for a pick while the hearts were off: the layer came back on, now open its popup.
+    const want = pendingPopup.current;
+    if (want) {
+      pendingPopup.current = null;
+      for (const marker of pins.current.values()) {
+        const ll = marker.getLatLng();
+        if (ll.lat === want.lat && ll.lng === want.lng) marker.openPopup();
+      }
     }
   }, [date, showHospitals, showPicks, setDate, trip]);
 
@@ -198,6 +208,11 @@ export function MapView({
     if (!m || !flyTo || flown.current === flyTo) return;
     flown.current = flyTo;
     m.setView([flyTo.lat, flyTo.lng], Math.max(m.getZoom(), 14));
+    if (!showPicks && PICKS.some((p) => !p.stopId && p.lat === flyTo.lat && p.lng === flyTo.lng)) {
+      pendingPopup.current = flyTo;
+      setShowPicks(true);
+      return;
+    }
     for (const marker of pins.current.values()) {
       const ll = marker.getLatLng();
       if (ll.lat === flyTo.lat && ll.lng === flyTo.lng) marker.openPopup();

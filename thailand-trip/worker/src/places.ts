@@ -1,7 +1,7 @@
-// Which stops the place check looks up on the web, and when. During the trip: today's and tomorrow's
+// Which stops (and restaurant picks, see shared/src/picks.ts) the place check looks up on the web, and when. During the trip: today's and tomorrow's
 // stops at 06:00 and 14:00 (Thai time). Before it: every stop, once a week on Monday at 06:00, to catch
 // changes to the hours, fees and closures gathered in shared/src/place-facts.ts.
-import { addDays, placeFacts, placeInfo, thParts, type PlaceFacts, type Trip } from "@trip/shared";
+import { addDays, PICKS, placeFacts, placeInfo, thParts, type PlaceFacts, type Trip } from "@trip/shared";
 import type { PlaceTarget } from "./prompts";
 
 /** Stops per AI call: each gets up to two searches, and one call allows ten. */
@@ -49,5 +49,21 @@ export function placeTargets(trip: Trip, dates: string[]): PlaceTarget[] {
           },
         ];
       }),
+    )
+    .concat(
+      // Yaron's restaurant picks beside the plan, on the day they are suggested for. The one that is a
+      // stop is already covered above. A visit is the suggested time plus an hour.
+      PICKS.filter((p) => !p.stopId && dates.includes(p.date) && p.facts.watch !== false).map((p) => ({
+        stopId: p.id,
+        date: p.date,
+        start: p.at,
+        end: `${p.date}T${String(Number(p.at.slice(11, 13)) + 1).padStart(2, "0")}${p.at.slice(13)}`,
+        nameEn: p.nameEn,
+        nameTh: p.nameTh,
+        lat: p.lat,
+        lng: p.lng,
+        known: knownHe(p.facts),
+        officialUrls: p.facts.officialUrls ?? [],
+      })),
     );
 }
