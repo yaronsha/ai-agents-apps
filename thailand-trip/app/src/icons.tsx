@@ -18,6 +18,7 @@ const paths = {
   nav: <path d="M3 11 21 3l-8 18-2-8z" />,
   chevron: <path d="m15 6-6 6 6 6" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
+  heart: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />,
 } as const;
 
 export type IconName = keyof typeof paths;

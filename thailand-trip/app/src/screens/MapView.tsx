@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { dayOrDefault, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections, type LatLng, type Stop } from "@trip/shared";
+import { dayOrDefault, hhmm, hospitals, PICKS, placeOf, publicTrip, googleMapsDirections, type LatLng, type Pick, type Stop } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../live";
 import { dayLabel, severityText, shortDay } from "../format";
 import { GROUPS, worstOf } from "../categories";
 import { Icon } from "../icons";
-import { StopSheet } from "./Sheets";
+import { PickSheet, StopSheet } from "./Sheets";
 
 /** Popup HTML is built from strings; names and notes go in escaped so no data can inject markup. */
 const esc = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -34,6 +34,8 @@ export function MapView({
   const map = useRef<L.Map | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
   const [showHospitals, setShowHospitals] = useState(false);
+  const [showPicks, setShowPicks] = useState(true);
+  const [pick, setPick] = useState<Pick | null>(null);
   const [locating, setLocating] = useState(false);
   const me = useRef<L.CircleMarker | null>(null);
   const sheet = useRef<HTMLDivElement>(null);
@@ -134,7 +136,31 @@ export function MapView({
           .addTo(g),
       );
     }
-  }, [date, showHospitals, setDate, trip]);
+
+    if (showPicks) {
+      PICKS.forEach((p) => {
+        const marker = L.marker([p.lat, p.lng], {
+          icon: L.divIcon({ className: "", html: '<div class="pin-pick">♥</div>', iconSize: [24, 24], iconAnchor: [12, 12] }),
+          title: `${p.nameHe}, ההמלצה של ירון`,
+          zIndexOffset: 1500,
+        })
+          .bindPopup(
+            `<b>${esc(p.nameHe)}</b><br><small>ההמלצה של ירון · ${shortDay(p.date)} ${hhmm(p.at)}</small><br>${esc(p.tipHe)}<br><a href="${esc(googleMapsDirections(p))}" target="_blank" rel="noopener">ניווט</a><br><button class="popup-more">עוד על המקום</button>`,
+          )
+          .on("popupopen", (e) =>
+            e.popup.getElement()?.querySelector(".popup-more")?.addEventListener("click", () => {
+              m.closePopup();
+              const stop = p.stopId ? trip.days.flatMap((d) => d.stops).find((s) => s.id === p.stopId) : undefined;
+              if (stop) setPlace({ stop, date: p.date });
+              else setPick(p);
+            }),
+          )
+          .addTo(g);
+        // "על המפה" in a pick's card flies here and opens this popup (stop pins at the same spot win).
+        if (!p.stopId) pins.current.set(p.id, marker);
+      });
+    }
+  }, [date, showHospitals, showPicks, setDate, trip]);
 
   // A state refresh only moves the warning rings.
   useEffect(() => {
@@ -213,6 +239,10 @@ export function MapView({
           <Icon name="hospital" size={18} />
           בתי חולים
         </button>
+        <button className={showPicks ? "on pick" : "pick"} aria-pressed={showPicks} onClick={() => setShowPicks((v) => !v)}>
+          <Icon name="heart" size={18} />
+          ההמלצות של ירון
+        </button>
         <button onClick={fitDay}>
           <Icon name="fit" size={18} />
           המסלול של היום
@@ -264,6 +294,7 @@ export function MapView({
       </section>
       )}
       {place && <StopSheet stop={place.stop} date={place.date} onClose={() => setPlace(null)} />}
+      {pick && <PickSheet pick={pick} onClose={() => setPick(null)} />}
     </div>
   );
 }

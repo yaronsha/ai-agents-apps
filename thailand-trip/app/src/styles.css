@@ -1428,3 +1428,103 @@ button.sheet-chips {
   inset: auto auto 24px 24px;
   max-width: 420px;
 }
+
+/* Yaron's picks: restaurants suggested beside the plan */
+.pick-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+.pick-badge .icon {
+  fill: currentColor;
+}
+.tl-row.pick::after {
+  border: 0;
+  background: var(--accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z'/%3E%3C/svg%3E") center / contain no-repeat;
+  width: 14px;
+  height: 14px;
+  inset-inline-start: 55px;
+  top: 4px;
+}
+.pick-card {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.pick-card .stop-teaser {
+  white-space: normal;
+}
+.pick-card .stop-meta {
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+.pick-tip {
+  margin: 4px 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.sheet-body .pick-tip {
+  margin: 8px 0;
+  padding-inline-start: 10px;
+  border-inline-start: 3px solid var(--accent);
+  font-size: 15px;
+}
+.pick-warn {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--accent);
+}
+.pick-order {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+}
+.pick-order [lang="th"] {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: right;
+  color: var(--ink);
+}
+.pick-order small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.map-tools button.pick .icon {
+  color: var(--accent);
+}
+.map-tools button.pick.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.map-tools button.pick.on .icon {
+  fill: currentColor;
+}
+.pin-pick {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13px;
+  box-shadow: 0 0 0 2px var(--surface), var(--shadow);
+}

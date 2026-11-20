@@ -6,3 +6,4 @@ export * from "./emergency";
 export { publicTrip, withPrivate } from "./itinerary";
 export * from "./places";
 export * from "./place-facts";
+export * from "./picks";

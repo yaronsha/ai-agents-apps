@@ -48,7 +48,7 @@ const days: Day[] = [
     lodgingId: "cm1",
     stops: [
       { id: "old-city-temples", nameHe: "ואט פרה סינג, ואט פאן טאו, ואט צ'די לואנג", nameEn: "Old City temples", lat: 18.7884, lng: 98.9819, start: "2026-11-24T09:00", end: "2026-11-24T12:00", outdoor: true, noteHe: "אפשרות לסיור מודרך שהוזמן ב-Viator." },
-      { id: "khao-soi", nameHe: "צהריים: קאו סוי", nameEn: "Khao Soi lunch", lat: 18.7953, lng: 98.962, start: "2026-11-24T12:00", end: "2026-11-24T13:00", outdoor: false },
+      { id: "khao-soi", nameHe: "צהריים: קאו סוי קון יאי", nameEn: "Khao Soi Khun Yai", lat: 18.7946, lng: 98.986, start: "2026-11-24T12:00", end: "2026-11-24T13:00", outdoor: false, noteHe: "הוחלף: בתוכנית המקורית היה כאן 'צהריים: קאו סוי' בלי מקום מסוים. מיקום משוער, בסמטת Sri Poom 8." },
       { id: "lantern-festival", nameHe: "פסטיבל הפנסים CAD Khomloy", nameEn: "CAD Khomloy Sky Lantern Festival", lat: 18.7664, lng: 99.2422, start: "2026-11-24T17:00", end: "2026-11-24T21:30", outdoor: true, noteHe: "CAD Cultural Center במחוז מאה און, כשעה נסיעה מהעיר. ההסעה יוצאת מ-CMEC או מקניון MAYA, לפי סוג הכרטיס. נקודת האיסוף ב-15:30." },
     ],
     drives: [],
