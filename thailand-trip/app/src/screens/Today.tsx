@@ -7,7 +7,7 @@ import { Icon } from "../icons";
 import { useInstallPrompt } from "../installPrompt";
 import { InstallPrompt } from "./InstallPrompt";
 import { PushPrompt } from "./PushPrompt";
-import { LodgingSheet, PickBadge, PickSheet, PlanBSheet, StopSheet } from "./Sheets";
+import { LodgingSheet, PickBadge, PickSheet, PickWords, PlanBSheet, StopSheet } from "./Sheets";
 
 function Forecast({ f }: { f?: StopForecast }) {
   if (!f || f.tempMax === null) return null;
@@ -61,7 +61,7 @@ function PickRow({ pick, open }: { pick: Pick; open: () => void }) {
             <Icon name="chevron" size={16} />
           </button>
           <div className="stop-teaser">{pick.teaserHe}</div>
-          <div className="pick-tip">{pick.tipHe}</div>
+          <PickWords pick={pick} />
           <div className="stop-meta">
             <span>{pick.walkHe}</span>
             <a className="nav-link" href={googleMapsDirections(pick)} target="_blank" rel="noreferrer">

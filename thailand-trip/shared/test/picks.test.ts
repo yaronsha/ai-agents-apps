@@ -25,6 +25,11 @@ describe("Yaron's picks", () => {
     expect(bad).toEqual([]);
   });
 
+  it("never speak for Yaron outside his own quote", () => {
+    const bad = PICKS.filter((p) => [p.teaserHe, p.tipHe, p.walkHe, p.warnHe].some((t) => t && /ירון/.test(t))).map((p) => p.id);
+    expect(bad).toEqual([]);
+  });
+
   it("keep the card line short enough for a phone", () => {
     expect(PICKS.filter((p) => p.teaserHe.length > 50).map((p) => p.id)).toEqual([]);
   });

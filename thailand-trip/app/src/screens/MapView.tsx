@@ -148,7 +148,7 @@ export function MapView({
           zIndexOffset: 1500,
         })
           .bindPopup(
-            `<b>${esc(p.nameHe)}</b><br><small>ההמלצה של ירון · ${shortDay(p.date)} ${hhmm(p.at)}</small><br>${esc(p.tipHe)}<br><a href="${esc(googleMapsDirections(p))}" target="_blank" rel="noopener">ניווט</a><br><button class="popup-more">עוד על המקום</button>`,
+            `<b>${esc(p.nameHe)}</b><br><small>ההמלצה של ירון · ${shortDay(p.date)} ${hhmm(p.at)}</small>${p.yaronHe ? `<br>״${esc(p.yaronHe)}״ (ירון)` : ""}<br><a href="${esc(googleMapsDirections(p))}" target="_blank" rel="noopener">ניווט</a><br><button class="popup-more">עוד על המקום</button>`,
           )
           .on("popupopen", (e) =>
             e.popup.getElement()?.querySelector(".popup-more")?.addEventListener("click", () => {

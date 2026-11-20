@@ -1476,11 +1476,21 @@ button.sheet-chips {
   line-height: 1.45;
   color: var(--ink);
 }
-.sheet-body .pick-tip {
-  margin: 8px 0;
+.pick-tip {
+  color: var(--muted);
+}
+.pick-quote {
+  margin: 6px 0;
   padding-inline-start: 10px;
   border-inline-start: 3px solid var(--accent);
   font-size: 15px;
+  line-height: 1.45;
+}
+.pick-quote cite {
+  display: block;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
 }
 .pick-warn {
   margin-top: 4px;

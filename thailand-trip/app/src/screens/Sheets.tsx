@@ -141,7 +141,7 @@ export function StopSheet({
           </>
         )}
       </p>
-      {pick && <p className="pick-tip">{pick.tipHe}</p>}
+      {pick && <PickWords pick={pick} />}
       {info && <p className="sheet-lede">{info.aboutHe}</p>}
       <p className="sheet-plan">
         <strong>
@@ -175,6 +175,20 @@ export function PickBadge() {
   );
 }
 
+/** Yaron's own words as his quote (only when he wrote them), then a tip that names its source. */
+export function PickWords({ pick }: { pick: Pick }) {
+  return (
+    <>
+      {pick.yaronHe && (
+        <blockquote className="pick-quote">
+          ״{pick.yaronHe}״<cite>ירון</cite>
+        </blockquote>
+      )}
+      {pick.tipHe && <p className="pick-tip">{pick.tipHe}</p>}
+    </>
+  );
+}
+
 /** The dish in Thai script, big enough to show at the counter. */
 function OrderCard({ order }: { order: { th: string; he: string } }) {
   return (
@@ -205,7 +219,7 @@ export function PickSheet({ pick, onClose, onMap }: { pick: Pick; onClose: () =>
           </>
         )}
       </p>
-      <p className="pick-tip">{pick.tipHe}</p>
+      <PickWords pick={pick} />
       <p className="sheet-plan">
         <strong>
           {when(pick.date)} בסביבות <bdi dir="ltr">{hhmm(pick.at)}</bdi>.

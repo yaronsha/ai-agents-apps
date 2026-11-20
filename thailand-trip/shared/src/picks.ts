@@ -22,8 +22,13 @@ export interface Pick extends LatLng {
   stopId?: string;
   /** One short line on the card. */
   teaserHe: string;
-  /** What Yaron told us about it. */
-  tipHe: string;
+  /**
+   * Yaron's own words about the place, shown as his quote. Only what he wrote himself; never filled in
+   * for him. Left out until he gives it.
+   */
+  yaronHe?: string;
+  /** A practical tip from another source, which the text names ("לפי ביקורות בגוגל מפות..."). */
+  tipHe?: string;
   /** Distance from the nearby stop. */
   walkHe: string;
   /** A known limit, shown in red on the card ("פתוח עד 14:00"). */
@@ -45,7 +50,7 @@ export const PICKS: Pick[] = [
     date: "2026-11-22",
     at: "2026-11-22T13:00",
     teaserHe: "ראמן יפני, מרק טונקוטסו בסגנון האקאטה",
-    tipHe: "ירון ממליץ על ראמן הטונקוטסו (Hakata Tonkotsu).",
+    tipHe: "המנה המוכרת במקום: ראמן טונקוטסו בסגנון האקאטה.",
     walkHe: "בנימן סוי 11, כמה דקות הליכה מקניון MAYA",
     warnHe: "לפי אחד המדריכים סגור בימי שני, לכן הוא מוצע ליום ראשון 22.11.",
     lat: 18.7975,
@@ -68,7 +73,7 @@ export const PICKS: Pick[] = [
     date: "2026-12-02",
     at: "2026-12-02T13:15",
     teaserHe: "נודלס סיניים, כופתאות ולחמניות מאודות",
-    tipHe: "ירון ממליץ להזמין את המנטו המטוגן עם חלב מרוכז.",
+    tipHe: "לפי ביקורות בגוגל מפות, כדאי להזמין את המנטו המטוגן עם חלב מרוכז.",
     walkHe: "ברחוב צ'אנג קלאן, כ-15 דקות הליכה דרומה מהבזאר",
     order: { th: "หมั่นโถวทอด นมข้น", he: "מנטו מטוגן עם חלב מרוכז" },
     lat: 18.7745,
@@ -89,7 +94,7 @@ export const PICKS: Pick[] = [
     date: "2026-12-02",
     at: "2026-12-02T18:30",
     teaserHe: "על האש קוריאני, אפשרות נוספת לארוחת הסיום",
-    tipHe: "ירון זוכר במיוחד את הביצה המאודה (גיירן צ'ים). מקום פשוט באוהל פתוח, בלי מזגן.",
+    tipHe: "מקום פשוט באוהל פתוח, בלי מזגן.",
     walkHe: "86/1 Chang Khlan Rd, כ-8 דקות הליכה מהבזאר",
     warnHe: "פתוח רק בערב.",
     order: { th: "ไข่ตุ๋นเกาหลี", he: "ביצה מאודה קוריאנית (גיירן צ'ים)" },
@@ -111,7 +116,7 @@ export const PICKS: Pick[] = [
     at: "2026-11-24T12:00",
     stopId: "khao-soi",
     teaserHe: "הקאו סוי המפורסם של העיר העתיקה",
-    tipHe: "ירון ממליץ. צפוי תור, ושווה לחכות.",
+    tipHe: "לפי מדריכי אוכל, בצהריים יש לרוב תור.",
     walkHe: "כ-10 דקות הליכה מוואט צ'די לואנג, ליד החומה הצפונית",
     warnHe: "פתוח רק עד 14:00, ולפעמים נגמר מוקדם. כדאי להגיע עד 12:00.",
     order: { th: "ข้าวซอยไก่", he: "קאו סוי עוף" },
