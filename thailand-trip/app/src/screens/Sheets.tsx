@@ -160,7 +160,6 @@ export function StopSheet({
           </ul>
         </>
       )}
-      {pick?.order && <OrderCard order={pick.order} />}
       {facts && <Facts facts={facts} source={pick ? "ממדריכי אוכל וביקורות" : undefined} />}
     </Sheet>
   );
@@ -189,21 +188,6 @@ export function PickWords({ pick }: { pick: Pick }) {
   );
 }
 
-/** The dish in Thai script, big enough to show at the counter. */
-function OrderCard({ order }: { order: { th: string; he: string } }) {
-  return (
-    <>
-      <h3>להראות במקום</h3>
-      <p className="pick-order">
-        <span lang="th" dir="ltr">
-          {order.th}
-        </span>
-        <small>{order.he}</small>
-      </p>
-    </>
-  );
-}
-
 /** A restaurant Yaron recommends, suggested beside the plan. */
 export function PickSheet({ pick, onClose, onMap }: { pick: Pick; onClose: () => void; onMap?: () => void }) {
   return (
@@ -227,7 +211,6 @@ export function PickSheet({ pick, onClose, onMap }: { pick: Pick; onClose: () =>
         {pick.walkHe}. זו הצעה בלבד, התוכנית לא משתנה.
       </p>
       {pick.warnHe && <p className="sheet-reminder">{pick.warnHe}</p>}
-      {pick.order && <OrderCard order={pick.order} />}
       <Facts facts={pick.facts} source="ממדריכי אוכל וביקורות" />
       {pick.approx && <p className="sheet-source">המיקום במפה משוער לפי הכתובת.</p>}
     </Sheet>

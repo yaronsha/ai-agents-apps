@@ -3,7 +3,7 @@
 // stops: nothing in the plan moves for them. The one exception is Khao Soi Khun Yai, which took the
 // place of the plan's generic khao soi lunch on 24.11 (stop "khao-soi"; its facts live in PLACE_FACTS).
 // Facts gathered on 2026-11-20 from food guides, Tripadvisor, Wanderlog and Yaron's Google Maps
-// screenshot, not from the places themselves. Guides disagree on hours; the text says so. The worker's
+// screenshot, not from the places themselves. No dish recommendations (Yaron's call, 2026-11-20). Guides disagree on hours; the text says so. The worker's
 // place check also looks up the picks that are not stops, on their day (worker/src/places.ts).
 import type { LatLng } from "./types";
 import type { PlaceFacts } from "./place-facts";
@@ -33,8 +33,6 @@ export interface Pick extends LatLng {
   walkHe: string;
   /** A known limit, shown in red on the card ("פתוח עד 14:00"). */
   warnHe?: string;
-  /** What to order, in Thai script to show at the counter, and its meaning. */
-  order?: { th: string; he: string };
   /** The pin is placed from the address, not checked on a map yet. */
   approx: boolean;
   facts: PlaceFacts;
@@ -49,8 +47,7 @@ export const PICKS: Pick[] = [
     nameEn: "Sanmai Ramen Nimman",
     date: "2026-11-22",
     at: "2026-11-22T13:00",
-    teaserHe: "ראמן יפני, מרק טונקוטסו בסגנון האקאטה",
-    tipHe: "המנה המוכרת במקום: ראמן טונקוטסו בסגנון האקאטה.",
+    teaserHe: "מסעדת ראמן יפנית",
     walkHe: "בנימן סוי 11, כמה דקות הליכה מקניון MAYA",
     warnHe: "לפי אחד המדריכים סגור בימי שני, לכן הוא מוצע ליום ראשון 22.11.",
     lat: 18.7975,
@@ -72,10 +69,8 @@ export const PICKS: Pick[] = [
     nameTh: "บะหมี่เจ๊หัว สาขาเชียงใหม่",
     date: "2026-12-02",
     at: "2026-12-02T13:15",
-    teaserHe: "נודלס סיניים, כופתאות ולחמניות מאודות",
-    tipHe: "לפי ביקורות בגוגל מפות, כדאי להזמין את המנטו המטוגן עם חלב מרוכז.",
+    teaserHe: "מסעדת נודלס סינית",
     walkHe: "ברחוב צ'אנג קלאן, כ-15 דקות הליכה דרומה מהבזאר",
-    order: { th: "หมั่นโถวทอด นมข้น", he: "מנטו מטוגן עם חלב מרוכז" },
     lat: 18.7745,
     lng: 99.0002,
     approx: true,
@@ -97,7 +92,6 @@ export const PICKS: Pick[] = [
     tipHe: "מקום פשוט באוהל פתוח, בלי מזגן.",
     walkHe: "86/1 Chang Khlan Rd, כ-8 דקות הליכה מהבזאר",
     warnHe: "פתוח רק בערב.",
-    order: { th: "ไข่ตุ๋นเกาหลี", he: "ביצה מאודה קוריאנית (גיירן צ'ים)" },
     lat: 18.78,
     lng: 99.0004,
     approx: true,
@@ -119,7 +113,6 @@ export const PICKS: Pick[] = [
     tipHe: "לפי מדריכי אוכל, בצהריים יש לרוב תור.",
     walkHe: "כ-10 דקות הליכה מוואט צ'די לואנג, ליד החומה הצפונית",
     warnHe: "פתוח רק עד 14:00, ולפעמים נגמר מוקדם. כדאי להגיע עד 12:00.",
-    order: { th: "ข้าวซอยไก่", he: "קאו סוי עוף" },
     lat: 18.7946,
     lng: 98.986,
     approx: true,
