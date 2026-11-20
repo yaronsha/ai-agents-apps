@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { dayOrDefault, googleMapsDirections, hhmm, placeInfo, placeOf, thDate, type Drive, type LatLng, type Lodging, type Reminder, type Stop, type StopForecast } from "@trip/shared";
+import { dayOrDefault, googleMapsDirections, hhmm, pickForStop, picksFor, placeInfo, placeOf, thDate, type Drive, type LatLng, type Lodging, type Pick, type Reminder, type Stop, type StopForecast } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../live";
 import { ago, dayLabel, shortDay, statusText } from "../format";
@@ -7,7 +7,7 @@ import { Icon } from "../icons";
 import { useInstallPrompt } from "../installPrompt";
 import { InstallPrompt } from "./InstallPrompt";
 import { PushPrompt } from "./PushPrompt";
-import { LodgingSheet, PlanBSheet, StopSheet } from "./Sheets";
+import { LodgingSheet, PickBadge, PickSheet, PickWords, PlanBSheet, StopSheet } from "./Sheets";
 
 function Forecast({ f }: { f?: StopForecast }) {
   if (!f || f.tempMax === null) return null;
@@ -23,10 +23,12 @@ function Forecast({ f }: { f?: StopForecast }) {
 
 function StopRow({ stop, f, open }: { stop: Stop; f?: StopForecast; open: () => void }) {
   const info = placeInfo(stop.id);
+  const pick = pickForStop(stop.id);
   return (
-    <li className="tl-row">
+    <li className={`tl-row ${pick ? "pick" : ""}`}>
       <time className="time">{hhmm(stop.start)}</time>
       <div className="tl-body">
+        {pick && <PickBadge />}
         <button className="stop-name" onClick={open}>
           {stop.nameHe}
           <Icon name="chevron" size={16} />
@@ -39,7 +41,36 @@ function StopRow({ stop, f, open }: { stop: Stop; f?: StopForecast; open: () => 
             ניווט
           </a>
         </div>
+        {pick?.warnHe && <div className="pick-warn">{pick.warnHe}</div>}
         {stop.noteHe && <div className="note">{stop.noteHe}</div>}
+      </div>
+    </li>
+  );
+}
+
+/** A restaurant Yaron recommends, beside the plan: a card in the timeline that changes nothing in it. */
+function PickRow({ pick, open }: { pick: Pick; open: () => void }) {
+  return (
+    <li className="tl-row pick">
+      <time className="time">{hhmm(pick.at)}</time>
+      <div className="tl-body">
+        <div className="pick-card">
+          <PickBadge />
+          <button className="stop-name" onClick={open}>
+            {pick.nameHe}
+            <Icon name="chevron" size={16} />
+          </button>
+          <div className="stop-teaser">{pick.teaserHe}</div>
+          <PickWords pick={pick} />
+          <div className="stop-meta">
+            <span>{pick.walkHe}</span>
+            <a className="nav-link" href={googleMapsDirections(pick)} target="_blank" rel="noreferrer">
+              <Icon name="nav" size={14} />
+              ניווט
+            </a>
+          </div>
+          {pick.warnHe && <div className="pick-warn">{pick.warnHe}</div>}
+        </div>
       </div>
     </li>
   );
@@ -104,7 +135,7 @@ export function eveningReminders(stops: Stop[], reminders: Reminder[]): Reminder
   return reminders.filter((r) => r.at > last);
 }
 
-type Open = { kind: "stop"; stop: Stop } | { kind: "lodging"; lodging: Lodging } | { kind: "planB" } | null;
+type Open = { kind: "stop"; stop: Stop } | { kind: "pick"; pick: Pick } | { kind: "lodging"; lodging: Lodging } | { kind: "planB" } | null;
 
 export function Today({
   date,
@@ -148,6 +179,9 @@ export function Today({
       el: <StopRow key={s.id} stop={s} f={live.state?.forecasts[s.id]} open={() => setOpen({ kind: "stop", stop: s })} />,
     })),
     ...evening.map((r) => ({ at: r.at, el: <ReminderRow key={r.id} reminder={r} /> })),
+    ...picksFor(day.date)
+      .filter((p) => !p.stopId)
+      .map((p) => ({ at: p.at, el: <PickRow key={p.id} pick={p} open={() => setOpen({ kind: "pick", pick: p })} /> })),
   ].sort((a, b) => a.at.localeCompare(b.at));
 
   return (
@@ -195,6 +229,7 @@ export function Today({
       {open?.kind === "stop" && (
         <StopSheet stop={open.stop} date={date} reminders={remindersBefore(day.stops, day.reminders, open.stop)} onClose={close} onMap={showOnMap(open.stop)} />
       )}
+      {open?.kind === "pick" && <PickSheet pick={open.pick} onClose={close} onMap={showOnMap(open.pick)} />}
       {open?.kind === "lodging" && <LodgingSheet lodging={open.lodging} reminders={evening} onClose={close} onMap={showOnMap(open.lodging)} />}
       {open?.kind === "planB" && <PlanBSheet date={date} planB={day.planB} onClose={close} onReplan={openReplan} />}
     </>

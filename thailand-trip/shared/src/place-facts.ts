@@ -93,6 +93,16 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
     notesHe: ["כתפיים וברכיים מכוסות. חולצים נעליים לפני האולם."],
     checked: CHECKED,
   },
+  "khao-soi": {
+    nameHe: "קאו סוי קון יאי",
+    hours: { open: "10:00", close: "14:00" },
+    hoursHe: "10:00-14:00, ולפעמים נגמר לפני",
+    closedOn: [0],
+    feeHe: "כ-40-60 באט לקערה",
+    payHe: "לא ברור אם מקבלים כרטיס. כדאי מזומן בשטרות קטנים.",
+    notesHe: ["כתובת: סמטת Sri Poom 8, בתוך החומה הצפונית של העיר העתיקה."],
+    checked: "2026-11-20",
+  },
   "lantern-festival": {
     feeHe: "כרטיסים 4,880-15,880 באט לפי סוג, כולל הסעה, ארוחה ושני פנסים.",
     notesHe: [

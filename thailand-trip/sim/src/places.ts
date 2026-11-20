@@ -16,7 +16,7 @@ const QUERY: Record<string, string | null> = {
   "old-city-temples": "Wat Phra Singh",
   "lantern-festival": "CAD Cultural Center Mae On",
   "pai-loy-krathong": null,
-  "khao-soi": null,
+  "khao-soi": "Khao Soi Khun Yai",
   "kok-river-lunch": null,
   "akha-kitchen": null,
   // Pins placed from descriptions, not checked on a map yet (2026-10-16, 2026-10-30). Remove once checked.

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { dayOrDefault, hhmm, hospitals, placeOf, publicTrip, googleMapsDirections, type LatLng, type Stop } from "@trip/shared";
+import { dayOrDefault, hhmm, hospitals, PICKS, placeOf, publicTrip, googleMapsDirections, type LatLng, type Pick, type Stop } from "@trip/shared";
 import { useTrip } from "../tripContext";
 import type { Live } from "../live";
 import { dayLabel, severityText, shortDay } from "../format";
 import { GROUPS, worstOf } from "../categories";
 import { Icon } from "../icons";
-import { StopSheet } from "./Sheets";
+import { PickSheet, StopSheet } from "./Sheets";
 
 /** Popup HTML is built from strings; names and notes go in escaped so no data can inject markup. */
 const esc = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -34,6 +34,9 @@ export function MapView({
   const map = useRef<L.Map | null>(null);
   const layers = useRef<L.LayerGroup | null>(null);
   const [showHospitals, setShowHospitals] = useState(false);
+  const [showPicks, setShowPicks] = useState(true);
+  const [pick, setPick] = useState<Pick | null>(null);
+  const pendingPopup = useRef<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
   const me = useRef<L.CircleMarker | null>(null);
   const sheet = useRef<HTMLDivElement>(null);
@@ -134,7 +137,40 @@ export function MapView({
           .addTo(g),
       );
     }
-  }, [date, showHospitals, setDate, trip]);
+
+    // A pick that is also a plan stop is shown by the stop's own pin (its popup and card carry the
+    // badge), so its warning ring stays visible.
+    if (showPicks) {
+      PICKS.filter((p) => !p.stopId).forEach((p) => {
+        const marker = L.marker([p.lat, p.lng], {
+          icon: L.divIcon({ className: "", html: '<div class="pin-pick">♥</div>', iconSize: [24, 24], iconAnchor: [12, 12] }),
+          title: `${p.nameHe}, ההמלצה של ירון`,
+          zIndexOffset: 1500,
+        })
+          .bindPopup(
+            `<b>${esc(p.nameHe)}</b><br><small>ההמלצה של ירון · ${shortDay(p.date)} ${hhmm(p.at)}</small>${p.yaronHe ? `<br>״${esc(p.yaronHe)}״ (ירון)` : ""}<br><a href="${esc(googleMapsDirections(p))}" target="_blank" rel="noopener">ניווט</a><br><button class="popup-more">עוד על המקום</button>`,
+          )
+          .on("popupopen", (e) =>
+            e.popup.getElement()?.querySelector(".popup-more")?.addEventListener("click", () => {
+              m.closePopup();
+              setPick(p);
+            }),
+          )
+          .addTo(g);
+        // "על המפה" in a pick's card flies here and opens this popup.
+        pins.current.set(p.id, marker);
+      });
+    }
+    // "על המפה" asked for a pick while the hearts were off: the layer came back on, now open its popup.
+    const want = pendingPopup.current;
+    if (want) {
+      pendingPopup.current = null;
+      for (const marker of pins.current.values()) {
+        const ll = marker.getLatLng();
+        if (ll.lat === want.lat && ll.lng === want.lng) marker.openPopup();
+      }
+    }
+  }, [date, showHospitals, showPicks, setDate, trip]);
 
   // A state refresh only moves the warning rings.
   useEffect(() => {
@@ -172,6 +208,11 @@ export function MapView({
     if (!m || !flyTo || flown.current === flyTo) return;
     flown.current = flyTo;
     m.setView([flyTo.lat, flyTo.lng], Math.max(m.getZoom(), 14));
+    if (!showPicks && PICKS.some((p) => !p.stopId && p.lat === flyTo.lat && p.lng === flyTo.lng)) {
+      pendingPopup.current = flyTo;
+      setShowPicks(true);
+      return;
+    }
     for (const marker of pins.current.values()) {
       const ll = marker.getLatLng();
       if (ll.lat === flyTo.lat && ll.lng === flyTo.lng) marker.openPopup();
@@ -212,6 +253,10 @@ export function MapView({
         <button className={showHospitals ? "on" : ""} aria-pressed={showHospitals} onClick={() => setShowHospitals((v) => !v)}>
           <Icon name="hospital" size={18} />
           בתי חולים
+        </button>
+        <button className={showPicks ? "on pick" : "pick"} aria-pressed={showPicks} onClick={() => setShowPicks((v) => !v)}>
+          <Icon name="heart" size={18} />
+          ההמלצות של ירון
         </button>
         <button onClick={fitDay}>
           <Icon name="fit" size={18} />
@@ -264,6 +309,7 @@ export function MapView({
       </section>
       )}
       {place && <StopSheet stop={place.stop} date={place.date} onClose={() => setPlace(null)} />}
+      {pick && <PickSheet pick={pick} onClose={() => setPick(null)} />}
     </div>
   );
 }

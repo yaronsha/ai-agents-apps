@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { googleMapsDirections, hhmm, placeFacts, placeInfo, thDate, type PlaceFacts, type LatLng, type Lodging, type Reminder, type Stop } from "@trip/shared";
+import { googleMapsDirections, hhmm, pickForStop, placeFacts, placeInfo, thDate, type Pick, type PlaceFacts, type LatLng, type Lodging, type Reminder, type Stop } from "@trip/shared";
 import { shortDay } from "../format";
 import { Icon } from "../icons";
 
@@ -67,7 +67,7 @@ function Reminders({ reminders }: { reminders: Reminder[] }) {
 const WEEKDAYS_HE = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"];
 
 /** Hours, fees, payment and local rules, as gathered before the trip, with the date they were checked. */
-function Facts({ facts }: { facts: PlaceFacts }) {
+function Facts({ facts, source = "ממדריכי טיולים וחדשות" }: { facts: PlaceFacts; source?: string }) {
   const hours = facts.hoursHe ?? (facts.hours && `${facts.hours.open}-${facts.hours.close}`);
   const rows: Array<[string, string | undefined]> = [
     ["שעות", hours && (facts.hours?.lastEntry && !facts.hoursHe ? `${hours} (כניסה אחרונה ${facts.hours.lastEntry})` : hours)],
@@ -97,7 +97,7 @@ function Facts({ facts }: { facts: PlaceFacts }) {
         </ul>
       )}
       <p className="sheet-source">
-        נבדק ב-{`${Number(d)}.${Number(m)}.${y}`} ממדריכי טיולים וחדשות, ולא מול המקום עצמו.
+        נבדק ב-{`${Number(d)}.${Number(m)}.${y}`} {source}, ולא מול המקום עצמו.
         {facts.officialUrls?.map((u) => (
           <span key={u}>
             {" "}
@@ -127,8 +127,10 @@ export function StopSheet({
 }) {
   const info = placeInfo(stop.id);
   const facts = placeFacts(stop.id);
+  const pick = pickForStop(stop.id);
   return (
     <Sheet label={stop.nameHe} onClose={onClose} actions={<PlaceActions at={stop} onMap={onMap} />}>
+      {pick && <PickBadge />}
       <h2>{stop.nameHe}</h2>
       <p className="sheet-alt">
         <span lang="en">{stop.nameEn}</span>
@@ -139,6 +141,7 @@ export function StopSheet({
           </>
         )}
       </p>
+      {pick && <PickWords pick={pick} />}
       {info && <p className="sheet-lede">{info.aboutHe}</p>}
       <p className="sheet-plan">
         <strong>
@@ -157,7 +160,59 @@ export function StopSheet({
           </ul>
         </>
       )}
-      {facts && <Facts facts={facts} />}
+      {facts && <Facts facts={facts} source={pick ? "ממדריכי אוכל וביקורות" : undefined} />}
+    </Sheet>
+  );
+}
+
+export function PickBadge() {
+  return (
+    <span className="pick-badge">
+      <Icon name="heart" size={13} />
+      ההמלצה של ירון
+    </span>
+  );
+}
+
+/** Yaron's own words as his quote (only when he wrote them), then a tip that names its source. */
+export function PickWords({ pick }: { pick: Pick }) {
+  return (
+    <>
+      {pick.yaronHe && (
+        <blockquote className="pick-quote">
+          ״{pick.yaronHe}״<cite>ירון</cite>
+        </blockquote>
+      )}
+      {pick.tipHe && <p className="pick-tip">{pick.tipHe}</p>}
+    </>
+  );
+}
+
+/** A restaurant Yaron recommends, suggested beside the plan. */
+export function PickSheet({ pick, onClose, onMap }: { pick: Pick; onClose: () => void; onMap?: () => void }) {
+  return (
+    <Sheet label={pick.nameHe} onClose={onClose} actions={<PlaceActions at={pick} onMap={onMap} />}>
+      <PickBadge />
+      <h2>{pick.nameHe}</h2>
+      <p className="sheet-alt">
+        <span lang="en">{pick.nameEn}</span>
+        {pick.nameTh && (
+          <>
+            {" · "}
+            <bdi lang="th">{pick.nameTh}</bdi>
+          </>
+        )}
+      </p>
+      <PickWords pick={pick} />
+      <p className="sheet-plan">
+        <strong>
+          {when(pick.date)} בסביבות <bdi dir="ltr">{hhmm(pick.at)}</bdi>.
+        </strong>{" "}
+        {pick.walkHe}. זו הצעה בלבד, התוכנית לא משתנה.
+      </p>
+      {pick.warnHe && <p className="sheet-reminder">{pick.warnHe}</p>}
+      <Facts facts={pick.facts} source="ממדריכי אוכל וביקורות" />
+      {pick.approx && <p className="sheet-source">המיקום במפה משוער לפי הכתובת.</p>}
     </Sheet>
   );
 }
