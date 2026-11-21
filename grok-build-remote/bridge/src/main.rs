@@ -143,7 +143,11 @@ async fn serve(
         opts.log_prompts,
         opts.auto_review,
     ));
-    let mode = if opts.auto_review { "auto-review" } else { "ask" };
+    let mode = if opts.auto_review {
+        "auto-review"
+    } else {
+        "ask"
+    };
     let detail = format!("{listen}, new sessions: {mode}");
     state.audit.log("-", "start", &detail);
     tracing::info!(
