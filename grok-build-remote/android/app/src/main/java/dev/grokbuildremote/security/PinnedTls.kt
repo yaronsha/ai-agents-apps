@@ -6,8 +6,10 @@ import java.security.PrivateKey
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.KeyManager
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLEngine
+import javax.net.ssl.TrustManager
 import javax.net.ssl.X509ExtendedKeyManager
 import javax.net.ssl.X509TrustManager
 import okhttp3.ConnectionSpec
@@ -23,7 +25,7 @@ object PinnedTls {
     fun client(bridgeFingerprint: String): OkHttpClient {
         val trust = PinnedTrustManager(bridgeFingerprint)
         val ctx = SSLContext.getInstance("TLS")
-        ctx.init(arrayOf(KeystoreKeyManager), arrayOf(trust), null)
+        ctx.init(arrayOf<KeyManager>(KeystoreKeyManager), arrayOf<TrustManager>(trust), null)
         val spec = ConnectionSpec.Builder(ConnectionSpec.RESTRICTED_TLS)
             .tlsVersions(TlsVersion.TLS_1_3)
             .build()
