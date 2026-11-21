@@ -20,7 +20,9 @@
     <string>--listen</string>
     <string>TAILSCALE_IP:7443</string>
     <string>--grok-bin</string>
-    <string>/Users/YOUR_USER/.local/bin/grok</string>
+    <string>/Users/YOUR_USER/.grok/bin/grok</string>
+    <!-- Sessions started from the phone run in auto-review; remove to be asked about every call. -->
+    <string>--auto-review</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

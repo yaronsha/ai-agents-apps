@@ -46,13 +46,15 @@ impl SessionHub {
     }
 
     /// Start an agent and create a new session in `cwd`.
-    pub async fn create(grok_bin: &PathBuf, cwd: &str, model: Option<&str>) -> Result<Arc<Self>> {
+    pub async fn create(
+        grok_bin: &PathBuf,
+        cwd: &str,
+        model: Option<&str>,
+        auto_review: bool,
+    ) -> Result<Arc<Self>> {
         let (agent, events) = Agent::spawn(grok_bin)?;
         agent.initialize().await?;
-        let mut params = json!({"cwd": cwd, "mcpServers": []});
-        if let Some(m) = model {
-            params["modelId"] = Value::String(m.to_string());
-        }
+        let params = new_session_params(cwd, model, auto_review);
         // Notifications that arrive before we know the session id are buffered by the channel.
         let result = agent.request("session/new", params).await?;
         let sid = result
@@ -127,5 +129,34 @@ impl SessionHub {
 
     pub fn forget_interaction(&self, key: &str) {
         self.interactions.lock().unwrap().remove(key);
+    }
+}
+
+/// Parameters for `session/new`. With `auto_review`, the session runs in Grok Build's
+/// auto-review mode (`_meta.autoMode`): its reviewer lets routine calls through and asks about
+/// the rest. The bridge never sends `yoloMode` (always-approve).
+pub fn new_session_params(cwd: &str, model: Option<&str>, auto_review: bool) -> Value {
+    let mut params = json!({"cwd": cwd, "mcpServers": []});
+    if let Some(m) = model {
+        params["modelId"] = Value::String(m.to_string());
+    }
+    if auto_review {
+        params["_meta"] = json!({"autoMode": true});
+    }
+    params
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_session_asks_unless_auto_review() {
+        let ask = new_session_params("/p", None, false);
+        assert_eq!(ask, json!({"cwd": "/p", "mcpServers": []}));
+        let auto = new_session_params("/p", Some("grok-4.7"), true);
+        assert_eq!(auto["_meta"], json!({"autoMode": true}));
+        assert_eq!(auto["modelId"], "grok-4.7");
+        assert!(!auto.to_string().contains("yolo"));
     }
 }

@@ -30,6 +30,9 @@ enum Cmd {
         /// Also write prompt text to the audit log (off by default)
         #[arg(long)]
         log_prompts: bool,
+        /// Start the sessions the phone opens in Grok Build's auto-review mode (never always-approve)
+        #[arg(long)]
+        auto_review: bool,
         /// Allow listening on all interfaces (0.0.0.0 / ::). Don't.
         #[arg(long)]
         i_know_what_im_doing: bool,
@@ -81,8 +84,16 @@ async fn main() -> Result<()> {
             listen,
             grok_bin,
             log_prompts,
+            auto_review,
             i_know_what_im_doing,
-        } => serve(paths, listen, grok_bin, log_prompts, i_know_what_im_doing).await,
+        } => {
+            let opts = ServeOptions {
+                log_prompts,
+                auto_review,
+                any_interface: i_know_what_im_doing,
+            };
+            serve(paths, listen, grok_bin, opts).await
+        }
         Cmd::Pair { addr } => pair(paths, addr).await,
         Cmd::Devices { action } => devices(paths, action),
         Cmd::Stop => stop(paths),
@@ -99,14 +110,19 @@ async fn main() -> Result<()> {
     }
 }
 
+struct ServeOptions {
+    log_prompts: bool,
+    auto_review: bool,
+    any_interface: bool,
+}
+
 async fn serve(
     paths: Paths,
     listen: SocketAddr,
     grok_bin: PathBuf,
-    log_prompts: bool,
-    any_interface: bool,
+    opts: ServeOptions,
 ) -> Result<()> {
-    if listen.ip().is_unspecified() && !any_interface {
+    if listen.ip().is_unspecified() && !opts.any_interface {
         bail!(
             "refusing to listen on {listen}: that exposes the bridge to every network this Mac is on. \
              Use the Mac's Tailscale address (`tailscale ip -4`)."
@@ -124,9 +140,12 @@ async fn serve(
         id.fingerprint(),
         grok_bin,
         grok_version.clone(),
-        log_prompts,
+        opts.log_prompts,
+        opts.auto_review,
     ));
-    state.audit.log("-", "start", &listen.to_string());
+    let mode = if opts.auto_review { "auto-review" } else { "ask" };
+    let detail = format!("{listen}, new sessions: {mode}");
+    state.audit.log("-", "start", &detail);
     tracing::info!(
         "gbr listening on {listen} (grok {grok_version}); bridge fingerprint {}",
         tls::display_fingerprint(&id.fingerprint())

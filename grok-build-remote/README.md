@@ -62,9 +62,11 @@ a different attacker:
 3. **One-time pairing.** `gbr pair` shows a QR code with a token that works once and expires after 5 minutes. Both
    screens then show a 6-digit code derived from both keys, and the phone is only added when you type `y` on the Mac.
    A swapped QR code or a leaked token shows a different code.
-4. **The phone can't widen permissions.** The bridge never turns on Grok Build's auto-approve (`yolo`/`auto` modes).
-   It forwards only `session/prompt`, `session/cancel`, `session/set_model`, `session/set_mode` (auto-approve modes
-   refused) and answers to permission requests the agent actually asked, and only with a one-time allow or reject:
+4. **The phone can't widen permissions.** The bridge never turns on Grok Build's always-approve (`yolo`). If you start
+   `gbr serve --auto-review`, sessions started from the phone run in Grok's auto-review mode, so calls its reviewer
+   doesn't approve still come to you; otherwise they start in ask mode. The phone itself can only switch a session to a
+   stricter mode. It forwards only `session/prompt`, `session/cancel`, `session/set_model`, `session/set_mode`
+   (auto-approve modes refused) and answers to permission requests the agent actually asked, and only with a one-time allow or reject:
    options that are remembered ("for this session", "never allow") or that turn on always-approve stay in the
    terminal, whatever kind Grok gives them. The phone can't send `initialize`,
    `session/load` or `session/new` itself, and can't touch a session it isn't attached to. Your Grok Build
@@ -106,8 +108,14 @@ window keeps its session to itself.
 ```bash
 cd grok-build-remote/bridge
 cargo install --path .            # puts gbr in ~/.cargo/bin
-gbr serve --listen "$(tailscale ip -4):7443" --grok-bin "$(which grok)"
+gbr serve --listen "$(tailscale ip -4):7443" --grok-bin "$(which grok)" --auto-review
 ```
+
+`--auto-review` starts the sessions you open from the phone in Grok Build's auto-review mode, like a Grok window:
+routine calls run on their own, and the phone asks you about the rest. Leave it out to be asked about every call.
+Sessions you open in the terminal keep their own mode (set it with `[ui] permission_mode = "auto"` in
+`~/.grok/config.toml`, or `Shift+Tab` in the window). If the Grok Build leader restarts, a session started from the
+phone comes back in ask mode.
 
 ### Milestone 0: check live attach first
 

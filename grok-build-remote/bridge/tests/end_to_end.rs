@@ -84,6 +84,7 @@ async fn start_bridge() -> Bridge {
         PathBuf::from(env!("CARGO_BIN_EXE_fake-grok")),
         "fake".into(),
         false,
+        false,
     ));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();

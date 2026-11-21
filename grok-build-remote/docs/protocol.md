@@ -21,7 +21,7 @@ frame is one JSON envelope:
 | `sessions.list` | phone | – | optional ACP `session/list` params |
 | `sessions` | bridge | – | the ACP `session/list` result: `{sessions: [{sessionId, cwd, title?, updatedAt?}]}` |
 | `attach` | phone | yes | `{cwd}` (needed if the bridge doesn't have the session open yet) |
-| `session.new` | phone | – | `{cwd, modelId?}` |
+| `session.new` | phone | – | `{cwd, modelId?}`; the session starts in ask mode, or in auto-review under `gbr serve --auto-review` |
 | `attached` | bridge | yes | – |
 | `detach` | phone | yes | – |
 | `acp` | both | yes | a raw ACP message as a string; bridge → phone also carries `seq` |

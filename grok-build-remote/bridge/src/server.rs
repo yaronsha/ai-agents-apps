@@ -37,6 +37,8 @@ pub struct State {
     pub grok_bin: PathBuf,
     pub grok_version: String,
     pub log_prompts: bool,
+    /// Open the sessions the phone starts in Grok Build's auto-review mode.
+    pub auto_review: bool,
     pub audit: Audit,
     hubs: tokio::sync::Mutex<HashMap<String, Arc<SessionHub>>>,
     control: tokio::sync::Mutex<Option<Arc<Agent>>>,
@@ -49,6 +51,7 @@ impl State {
         grok_bin: PathBuf,
         grok_version: String,
         log_prompts: bool,
+        auto_review: bool,
     ) -> Self {
         let audit = Audit::new(paths.audit().to_path_buf());
         Self {
@@ -57,6 +60,7 @@ impl State {
             grok_bin,
             grok_version,
             log_prompts,
+            auto_review,
             audit,
             hubs: Default::default(),
             control: Default::default(),
@@ -99,7 +103,7 @@ impl State {
     }
 
     async fn new_session(&self, cwd: &str, model: Option<&str>) -> Result<Arc<SessionHub>> {
-        let hub = SessionHub::create(&self.grok_bin, cwd, model).await?;
+        let hub = SessionHub::create(&self.grok_bin, cwd, model, self.auto_review).await?;
         self.hubs.lock().await.insert(hub.sid.clone(), hub.clone());
         Ok(hub)
     }
