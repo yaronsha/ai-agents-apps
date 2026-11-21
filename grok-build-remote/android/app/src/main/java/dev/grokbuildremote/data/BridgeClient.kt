@@ -170,7 +170,7 @@ class BridgeClient(private val store: PairingStore, private val scope: Coroutine
             Types.ATTACHED -> env.sid?.let { sid ->
                 _attached.update { it + sid }
                 val newCwd = pendingNewCwd
-                if (sid !in wanted && newCwd != null) {
+                if (!wanted.containsKey(sid) && newCwd != null) {
                     pendingNewCwd = null
                     wanted[sid] = newCwd
                     _opened.tryEmit(SessionInfo(sid, newCwd, "New session", null))
