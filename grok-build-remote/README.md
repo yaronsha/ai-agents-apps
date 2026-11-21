@@ -3,8 +3,8 @@
 Control [Grok Build](https://github.com/xai-org/grok-build) sessions running on your Mac from a native Android app.
 You see the same live session as the terminal, send prompts (typed or dictated), approve or reject tool calls, and stop the agent.
 
-**Status: first draft.** The bridge is tested end to end against a fake `grok`. The Android app compiles only in CI, which
-isn't enabled yet (see [Build the APK](#build-the-apk)), and nothing has run against real Grok Build yet. Start with
+**Status: first draft.** The bridge is tested end to end against a fake `grok`. The Android app builds in CI (see
+[Build the APK](#build-the-apk)) but hasn't been run on a phone, and nothing has run against real Grok Build yet. Start with
 [Milestone 0](#milestone-0-check-live-attach-first).
 
 ## How it works
@@ -38,7 +38,7 @@ Layout:
 | `bridge/` | `gbr`, the Mac daemon (Rust). `cargo test` runs unit tests and end-to-end tests against `fake-grok`. |
 | `android/` | The app (Kotlin, Jetpack Compose, minSdk 29). |
 | `docs/protocol.md` | The phone ⇄ bridge protocol. |
-| `ci/grok-build-remote-ci.yml` | CI workflow, to be copied into `.github/workflows/`. |
+| `.github/workflows/grok-build-remote-ci.yml` (repo root) | CI: bridge tests on Linux and macOS, Android unit tests and debug APK. |
 
 ## Security model
 
@@ -115,13 +115,10 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.grokbuildremote.gbr.
 
 ## Build the APK
 
-CI builds a debug APK on every pull request that touches this folder, once the workflow is enabled. The session that
-wrote this couldn't push workflow files, so do this once:
+CI builds a debug APK on every pull request that touches this folder:
 
-1. Copy `grok-build-remote/ci/grok-build-remote-ci.yml` to `.github/workflows/grok-build-remote-ci.yml`
-   (on GitHub: open the file → copy contents → *Add file* in `.github/workflows/`).
-2. Open the PR's **Checks** tab → *grok-build-remote CI* → **Artifacts** → `grok-build-remote-debug-apk`.
-3. On the phone: allow installs from your browser or Files app, open the APK.
+1. Open the PR's **Checks** tab → *grok-build-remote CI* → **Artifacts** → `grok-build-remote-debug-apk`.
+2. On the phone: allow installs from your browser or Files app, open the APK.
 
 Or build locally with Android Studio (open `grok-build-remote/android`) or `./gradlew assembleDebug`.
 
