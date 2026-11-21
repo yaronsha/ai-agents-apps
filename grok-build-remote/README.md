@@ -56,7 +56,9 @@ a different attacker:
    A swapped QR code or a leaked token shows a different code.
 4. **The phone can't widen permissions.** The bridge never turns on Grok Build's auto-approve (`yolo`/`auto` modes).
    It forwards only `session/prompt`, `session/cancel`, `session/set_model`, `session/set_mode` (auto-approve modes
-   refused) and answers to permission requests the agent actually asked. The phone can't send `initialize`,
+   refused) and answers to permission requests the agent actually asked, and only with a one-time allow or reject:
+   options that are remembered ("for this session", "never allow") or that turn on always-approve stay in the
+   terminal, whatever kind Grok gives them. The phone can't send `initialize`,
    `session/load` or `session/new` itself, and can't touch a session it isn't attached to. Your Grok Build
    `--allow` / `--deny` / `--sandbox` rules still apply. On the phone, approving a command or a file change needs a
    fingerprint (or screen lock). Dictated text is only ever a prompt.

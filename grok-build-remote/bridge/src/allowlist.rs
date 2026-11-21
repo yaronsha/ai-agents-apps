@@ -7,7 +7,7 @@
 //! that, with auto-approve off), never switch to an auto-approve mode, and never touch a session
 //! it isn't attached to.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 
@@ -28,6 +28,30 @@ const PHONE_METHODS: &[&str] = &[
 
 /// Mode ids containing any of these are treated as auto-approve modes and refused.
 const UNSAFE_MODE_WORDS: &[&str] = &["yolo", "auto", "always", "bypass", "dangerous", "skip"];
+
+/// Permission options the phone may pick: one-off answers only. "Allow for this session",
+/// "never allow" and similar remembered choices stay in the terminal.
+const PHONE_OPTION_KINDS: &[&str] = &["allow_once", "reject_once"];
+
+/// Options whose id or name contains any of these are refused even with a one-off kind: Grok
+/// offers "Yes, and don't ask again for anything (always-approve mode)" with kind `allow_once`.
+const UNSAFE_OPTION_WORDS: &[&str] = &[
+    "always",
+    "auto",
+    "yolo",
+    "bypass",
+    "don't ask",
+    "dont ask",
+    "don\u{2019}t ask",
+    "never ask",
+];
+
+/// The only top-level fields an answer may carry.
+const ANSWER_FIELDS: &[&str] = &["jsonrpc", "id", "result", "error"];
+
+/// Pending agent → client interaction requests: request id key → option ids the phone may pick
+/// (empty for interactions the phone can't answer yet, such as ask-user questions).
+pub type PendingInteractions = HashMap<String, HashSet<String>>;
 
 /// Bridge-originated request ids use this prefix; the phone may not reuse it.
 pub const BRIDGE_ID_PREFIX: &str = "gbr-";
@@ -53,10 +77,63 @@ pub fn is_interaction_request(msg: &Value) -> bool {
             .is_some_and(|m| INTERACTION_METHODS.contains(&m))
 }
 
+/// Whether the phone may pick this permission option (see `PHONE_OPTION_KINDS`).
+pub fn is_phone_option(option: &Value) -> bool {
+    let field = |k: &str| option.get(k).and_then(Value::as_str).unwrap_or("");
+    let text = format!("{} {}", field("optionId"), field("name")).to_lowercase();
+    PHONE_OPTION_KINDS.contains(&field("kind"))
+        && !UNSAFE_OPTION_WORDS.iter().any(|w| text.contains(w))
+}
+
+/// The option ids of an interaction request that the phone may answer with.
+pub fn phone_option_ids(request: &Value) -> HashSet<String> {
+    if request.get("method").and_then(Value::as_str) != Some("session/request_permission") {
+        return HashSet::new();
+    }
+    request
+        .pointer("/params/options")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|o| is_phone_option(o))
+        .filter_map(|o| o.get("optionId").and_then(Value::as_str))
+        .map(str::to_string)
+        .collect()
+}
+
+/// An answer's `result` must be exactly `{"outcome":{"outcome":"cancelled"}}` or
+/// `{"outcome":{"outcome":"selected","optionId":<allowed>}}`; no extra fields ride along.
+fn check_answer(result: &Value, allowed: &HashSet<String>) -> Result<(), &'static str> {
+    let result = result.as_object().ok_or("result is not an object")?;
+    if result.len() != 1 {
+        return Err("unexpected fields in answer");
+    }
+    let outcome = result
+        .get("outcome")
+        .and_then(Value::as_object)
+        .ok_or("answer has no outcome")?;
+    let kind = outcome.get("outcome").and_then(Value::as_str);
+    match (kind, outcome.len()) {
+        (Some("cancelled"), 1) => Ok(()),
+        (Some("selected"), 2) => {
+            let option = outcome
+                .get("optionId")
+                .and_then(Value::as_str)
+                .ok_or("answer has no optionId")?;
+            if allowed.contains(option) {
+                Ok(())
+            } else {
+                Err("only allow-once and reject answers can be sent from the phone")
+            }
+        }
+        _ => Err("unsupported answer"),
+    }
+}
+
 pub fn check_phone_message(
     msg: &Value,
     sid: &str,
-    pending_interactions: &HashSet<String>,
+    pending_interactions: &PendingInteractions,
 ) -> Result<Allowed, &'static str> {
     let obj = msg.as_object().ok_or("not a JSON object")?;
     if obj.get("jsonrpc").and_then(Value::as_str) != Some("2.0") {
@@ -95,10 +172,16 @@ pub fn check_phone_message(
     if let Some(id) = obj.get("id") {
         if obj.contains_key("result") || obj.contains_key("error") {
             let key = id_key(id);
-            if pending_interactions.contains(&key) {
-                return Ok(Allowed::InteractionAnswer { id_key: key });
+            let Some(allowed) = pending_interactions.get(&key) else {
+                return Err("answer to a request the agent didn't ask");
+            };
+            if !obj.keys().all(|k| ANSWER_FIELDS.contains(&k.as_str())) {
+                return Err("unexpected fields in answer");
             }
-            return Err("answer to a request the agent didn't ask");
+            if let Some(result) = obj.get("result") {
+                check_answer(result, allowed)?;
+            }
+            return Ok(Allowed::InteractionAnswer { id_key: key });
         }
     }
     Err("malformed message")
@@ -109,8 +192,8 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    fn none() -> HashSet<String> {
-        HashSet::new()
+    fn none() -> PendingInteractions {
+        PendingInteractions::new()
     }
 
     #[test]
@@ -155,10 +238,65 @@ mod tests {
         assert!(check_phone_message(&ok, "s1", &none()).is_ok());
     }
 
+    /// The four options real Grok Build 1.0.89 offered for a file edit.
+    fn grok_edit_request() -> Value {
+        json!({"jsonrpc":"2.0","id":9,"method":"session/request_permission","params":{
+            "sessionId":"s1","toolCall":{"toolCallId":"t1"},"options":[
+            {"optionId":"allow-always","name":"Yes, allow edits in ai-agents-apps/ for this session","kind":"allow_always"},
+            {"optionId":"allow-once","name":"Yes","kind":"allow_once"},
+            {"optionId":"reject-once","name":"No, and tell Grok what to do differently","kind":"reject_once"},
+            {"optionId":"yolo","name":"Yes, and don't ask again for anything (always-approve mode)","kind":"allow_once"},
+            {"optionId":"reject-always","name":"Never allow: rm x","kind":"reject_always"}]}})
+    }
+
+    #[test]
+    fn phone_may_pick_only_one_off_options() {
+        let ids = phone_option_ids(&grok_edit_request());
+        assert_eq!(
+            ids,
+            HashSet::from(["allow-once".to_string(), "reject-once".to_string()])
+        );
+        // The always-approve option is refused by name even with a neutral id.
+        let sneaky = json!({"optionId":"opt3","kind":"allow_once",
+            "name":"Yes, and don\u{2019}t ask again for anything"});
+        assert!(!is_phone_option(&sneaky));
+        // Other interaction kinds can't be answered from the phone.
+        let question = json!({"jsonrpc":"2.0","id":4,"method":"x.ai/ask_user_question",
+            "params":{"options":[{"optionId":"a","kind":"allow_once","name":"A"}]}});
+        assert!(phone_option_ids(&question).is_empty());
+    }
+
+    #[test]
+    fn refuses_widening_answers() {
+        let mut pending = PendingInteractions::new();
+        pending.insert(id_key(&json!(9)), phone_option_ids(&grok_edit_request()));
+        let ok = |m: &Value| check_phone_message(m, "s1", &pending).is_ok();
+        let pick = |id: &str| {
+            let outcome = json!({"outcome":"selected","optionId":id});
+            json!({"jsonrpc":"2.0","id":9,"result":{"outcome":outcome}})
+        };
+
+        assert!(ok(&pick("allow-once")));
+        assert!(ok(&pick("reject-once")));
+        let cancel = json!({"jsonrpc":"2.0","id":9,"result":{"outcome":{"outcome":"cancelled"}}});
+        assert!(ok(&cancel));
+        for id in ["allow-always", "yolo", "reject-always", "made-up"] {
+            assert!(!ok(&pick(id)), "{id}");
+        }
+        let extra = json!({"jsonrpc":"2.0","id":9,"result":{
+            "outcome":{"outcome":"selected","optionId":"allow-once"},"_meta":{"yoloMode":true}}});
+        assert!(!ok(&extra));
+        let extra_top = json!({"jsonrpc":"2.0","id":9,"method_hint":"x",
+            "result":{"outcome":{"outcome":"selected","optionId":"allow-once"}}});
+        assert!(!ok(&extra_top));
+        let error = json!({"jsonrpc":"2.0","id":9,"error":{"code":-32000,"message":"no"}});
+        assert!(ok(&error));
+    }
+
     #[test]
     fn answers_only_pending_interactions() {
-        let mut pending = HashSet::new();
-        pending.insert(id_key(&json!(17)));
+        let mut pending = PendingInteractions::new();
+        pending.insert(id_key(&json!(17)), HashSet::from(["allow".to_string()]));
         let ans = json!({"jsonrpc":"2.0","id":17,"result":{"outcome":{"outcome":"selected","optionId":"allow"}}});
         assert_eq!(
             check_phone_message(&ans, "s1", &pending),

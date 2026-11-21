@@ -93,8 +93,10 @@ fn main() {
                     &mut out,
                     json!({"jsonrpc":"2.0","id":100,"method":"session/request_permission",
                     "params":{"sessionId":sid,"toolCall":{"toolCallId":"t1","title":"git push"},
-                    "options":[{"optionId":"allow","name":"Allow once","kind":"allow_once"},
-                               {"optionId":"reject","name":"Reject","kind":"reject_once"}]}}),
+                    "options":[{"optionId":"allow-session","name":"Allow for this session","kind":"allow_always"},
+                               {"optionId":"allow","name":"Allow once","kind":"allow_once"},
+                               {"optionId":"reject","name":"Reject","kind":"reject_once"},
+                               {"optionId":"yolo-on","name":"Yes, and don't ask again for anything (always-approve mode)","kind":"allow_once"}]}}),
                 );
                 waiting_prompt = Some((id.unwrap_or(Value::Null), sid));
             }

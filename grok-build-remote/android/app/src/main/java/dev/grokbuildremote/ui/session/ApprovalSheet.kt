@@ -104,16 +104,28 @@ fun ApprovalSheet(
                 }
             }
 
-            if (request.options.isEmpty()) {
+            val phoneOptions = request.phoneOptions
+            if (phoneOptions.isEmpty()) {
                 Text(
-                    "This kind of question can't be answered from the phone yet. Answer it in the terminal.",
+                    if (request.isPermission) {
+                        "Answer this one in the terminal: the phone only offers a one-time allow or reject."
+                    } else {
+                        "This kind of question can't be answered from the phone yet. Answer it in the terminal."
+                    },
                     fontSize = 14.sp,
                     color = Palette.Body,
                 )
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("OK") }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    request.options.forEach { option -> OptionButton(request, option) { onAnswer(option) } }
+                    phoneOptions.forEach { option -> OptionButton(request, option) { onAnswer(option) } }
+                }
+                if (phoneOptions.size < request.options.size) {
+                    Text(
+                        "Choices that are remembered or turn on always-approve are only offered in the terminal.",
+                        fontSize = 12.sp,
+                        color = Palette.Muted,
+                    )
                 }
             }
 

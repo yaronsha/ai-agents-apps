@@ -224,6 +224,26 @@ async fn attach_prompt_approve_and_replay() {
     assert_eq!(perm_body["method"], "session/request_permission");
     assert_eq!(perm.seq, Some(4));
 
+    // Remembered or always-approve answers, and extra fields, are refused; the request stays
+    // pending, so the allow-once answer below still goes through.
+    for refused in [
+        json!({"jsonrpc":"2.0","id":perm_body["id"],
+            "result":{"outcome":{"outcome":"selected","optionId":"allow-session"}}}),
+        json!({"jsonrpc":"2.0","id":perm_body["id"],
+            "result":{"outcome":{"outcome":"selected","optionId":"yolo-on"}}}),
+        json!({"jsonrpc":"2.0","id":perm_body["id"],
+            "result":{"outcome":{"outcome":"selected","optionId":"allow"},"_meta":{"yoloMode":true}}}),
+    ] {
+        send(
+            &mut ws,
+            Envelope::new("acp")
+                .with_sid("s1")
+                .with_payload(Value::String(refused.to_string())),
+        )
+        .await;
+        assert_eq!(recv(&mut ws).await.kind, "error", "{refused}");
+    }
+
     let answer = json!({"jsonrpc":"2.0","id":perm_body["id"],
         "result":{"outcome":{"outcome":"selected","optionId":"allow"}}});
     send(

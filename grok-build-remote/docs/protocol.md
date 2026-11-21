@@ -61,4 +61,12 @@ forwards an answer only for a request that is still pending. If the terminal ans
 Any ACP method other than `session/prompt`, `session/cancel`, `session/set_model` and `session/set_mode`;
 `session/set_mode` to an auto-approve mode (`yolo`, `auto`, `always`, `bypass`, …); a `sessionId` other than the
 envelope's `sid`; request ids starting with `gbr-` (reserved for the bridge); answers to requests the agent didn't
-ask. Each refusal is audited and answered with `error refused`.
+ask; answers to anything but `session/request_permission` (ask-user questions, plan exit and MCP elicitation are
+answered in the terminal for now).
+
+A permission answer must be exactly `{"outcome":{"outcome":"selected","optionId":…}}` or
+`{"outcome":{"outcome":"cancelled"}}`, with no other fields, and the option must be one the phone may pick: kind
+`allow_once` or `reject_once`, and an id and name that don't mention `always`, `auto`, `yolo`, `bypass` or "don't
+ask". So `allow_always`, `reject_always`, and Grok's "Yes, and don't ask again for anything (always-approve mode)"
+(kind `allow_once`) are refused. The app hides the same options. Each refusal is audited and answered with
+`error refused`.

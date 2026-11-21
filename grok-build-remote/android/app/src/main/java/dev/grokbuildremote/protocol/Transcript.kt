@@ -29,7 +29,20 @@ data class ToolCall(
 
 data class PlanEntry(val content: String, val status: String)
 data class FileDiff(val path: String, val oldText: String?, val newText: String)
-data class PermissionOption(val optionId: String, val name: String, val kind: String)
+data class PermissionOption(val optionId: String, val name: String, val kind: String) {
+    /**
+     * Whether the phone may pick this option. Mirrors the bridge's allow list (bridge/src/allowlist.rs),
+     * which refuses everything else: one-off answers only, and never an option that turns on
+     * always-approve, whatever its kind (Grok offers that one as `allow_once`).
+     */
+    val phoneAllowed: Boolean
+        get() = kind in PHONE_OPTION_KINDS &&
+            "$optionId $name".lowercase().let { text -> UNSAFE_OPTION_WORDS.none { it in text } }
+}
+
+private val PHONE_OPTION_KINDS = setOf("allow_once", "reject_once")
+private val UNSAFE_OPTION_WORDS =
+    listOf("always", "auto", "yolo", "bypass", "don't ask", "dont ask", "don’t ask", "never ask")
 
 /** A question the agent is waiting on (tool permission, plan approval, …). */
 data class PendingRequest(
@@ -42,6 +55,10 @@ data class PendingRequest(
     val options: List<PermissionOption>,
 ) {
     val isPermission get() = method == "session/request_permission"
+
+    /** The options the phone offers; the rest are answered in the terminal. */
+    val phoneOptions: List<PermissionOption>
+        get() = if (isPermission) options.filter { it.phoneAllowed } else emptyList()
 }
 
 data class SessionState(

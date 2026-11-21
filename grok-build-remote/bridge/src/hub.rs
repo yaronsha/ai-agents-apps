@@ -1,7 +1,6 @@
 //! A session the bridge is following: one agent child, its replay buffer, and the live broadcast
 //! that attached phones subscribe to.
 
-use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -10,7 +9,7 @@ use serde_json::{json, Value};
 use tokio::sync::{broadcast, mpsc};
 
 use crate::agent::Agent;
-use crate::allowlist::{id_key, is_interaction_request};
+use crate::allowlist::{id_key, is_interaction_request, phone_option_ids, PendingInteractions};
 use crate::replay::{Replay, Since, DEFAULT_CAPACITY};
 
 #[derive(Debug, Clone)]
@@ -25,7 +24,7 @@ pub struct SessionHub {
     pub agent: Arc<Agent>,
     replay: Mutex<Replay>,
     tx: broadcast::Sender<HubEvent>,
-    interactions: Mutex<HashSet<String>>,
+    interactions: Mutex<PendingInteractions>,
     closed: Mutex<bool>,
 }
 
@@ -75,7 +74,7 @@ impl SessionHub {
             agent,
             replay: Mutex::new(Replay::new(DEFAULT_CAPACITY)),
             tx,
-            interactions: Mutex::new(HashSet::new()),
+            interactions: Mutex::new(PendingInteractions::new()),
             closed: Mutex::new(false),
         });
         let pump = hub.clone();
@@ -93,7 +92,10 @@ impl SessionHub {
         if let (Some(method), Some(id)) = (msg.get("method").and_then(Value::as_str), msg.get("id"))
         {
             if is_interaction_request(&msg) {
-                self.interactions.lock().unwrap().insert(id_key(id));
+                self.interactions
+                    .lock()
+                    .unwrap()
+                    .insert(id_key(id), phone_option_ids(&msg));
             } else {
                 // fs/*, terminal/* and anything else: we advertised no such capability.
                 tracing::warn!("rejecting agent request {method}");
@@ -119,7 +121,7 @@ impl SessionHub {
         (replay.since(after), rx)
     }
 
-    pub fn pending_interactions(&self) -> HashSet<String> {
+    pub fn pending_interactions(&self) -> PendingInteractions {
         self.interactions.lock().unwrap().clone()
     }
 
