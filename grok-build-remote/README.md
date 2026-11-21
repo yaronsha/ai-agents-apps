@@ -3,29 +3,35 @@
 Control [Grok Build](https://github.com/xai-org/grok-build) sessions running on your Mac from a native Android app.
 You see the same live session as the terminal, send prompts (typed or dictated), approve or reject tool calls, and stop the agent.
 
-**Status: first draft.** The bridge is tested end to end against a fake `grok`. The Android app builds in CI (see
-[Build the APK](#build-the-apk)) but hasn't been run on a phone, and nothing has run against real Grok Build yet. Start with
-[Milestone 0](#milestone-0-check-live-attach-first).
+**Status: first draft.** The bridge is tested end to end against a fake `grok`, and
+[Milestone 0](#milestone-0-check-live-attach-first) passed against real Grok Build 1.0.89: live attach to a session open
+in the terminal, and approvals answered from either side. The Android app builds in CI (see
+[Build the APK](#build-the-apk)) but hasn't been run on a phone yet.
 
 ## How it works
 
 ```
  Android phone                         Mac Mini (your user account)
 ┌──────────────────────┐             ┌─────────────────────────────────────────────────────┐
-│ Grok Build Remote    │  wss + TLS  │ gbr bridge ──► grok agent stdio ──► Grok Build leader│
-│ (Kotlin, Compose)    │◄═══════════►│ (this repo)    (one per session,     (~/.grok/       │
-│ Keystore key         │  mutual,    │  allow list,    ACP JSON-RPC)         leader.sock)   │
-│ pinned bridge cert   │  pinned     │  audit log                                ▲          │
+│ Grok Build Remote    │  wss + TLS  │ gbr bridge ──► grok agent    ──► Grok Build leader   │
+│ (Kotlin, Compose)    │◄═══════════►│ (this repo)    --leader stdio        (~/.grok/       │
+│ Keystore key         │  mutual,    │  allow list,   (one per session,      leader.sock)   │
+│ pinned bridge cert   │  pinned     │  audit log      ACP JSON-RPC)             ▲          │
 └──────────────────────┘             │                                           │          │
-          inside Tailscale (WireGuard)│                         TUI in Terminal ──┘          │
+          inside Tailscale (WireGuard)│               grok --leader in Terminal ──┘          │
                                      └─────────────────────────────────────────────────────┘
 ```
 
-- `grok agent stdio` is Grok Build's documented [ACP](https://agentclientprotocol.com) entry point. It connects to the
-  Grok Build *leader* process, which owns every session on the machine. The TUI is another client of the same leader,
-  so the phone and the terminal see the same session.
+- `grok agent --leader stdio` is Grok Build's documented [ACP](https://agentclientprotocol.com) entry point, joined to
+  the Grok Build *leader* process, which owns the sessions of every client connected to it. A Grok window in the
+  terminal is another client of the same leader **only if it runs in leader mode**, which is off by default: start it
+  with `grok --leader`, or set it once in `~/.grok/config.toml` (see [setup](#2-grok-build-in-leader-mode)). Then the
+  phone and the terminal see the same session. A plain `grok` window runs its session by itself; the phone can still
+  open that session from disk, but won't see it live.
 - The leader sends permission prompts to **every** connected client. The first answer wins, so you can approve on the
-  phone or in the terminal.
+  phone or in the terminal; when the terminal answers, the tool call moves to `in_progress` and the phone closes its
+  sheet. A Grok window starts in *auto-review* mode, which approves routine calls without asking anyone, so only the
+  calls it doesn't approve reach the phone. Switch to ask mode (`Shift+Tab`) to approve each call yourself.
 - Attaching uses ACP `session/load`. The leader replays the history and then streams live updates. Sessions are
   listed with ACP `session/list`.
 - The bridge never uses Grok Build's own cloud relay (`code.grok.com`). Only model inference leaves the Mac, as it
@@ -80,7 +86,20 @@ a different attacker:
 
 Android allows one VPN at a time, so another VPN app on the phone would conflict.
 
-### 2. Bridge on the Mac
+### 2. Grok Build in leader mode
+
+So the sessions you open in the terminal can be followed from the phone, turn on leader mode once in
+`~/.grok/config.toml`:
+
+```toml
+[cli]
+use_leader = true
+```
+
+(or start each window with `grok --leader`). Leader mode is refused when a Grok Build sandbox profile is on; such a
+window keeps its session to itself.
+
+### 3. Bridge on the Mac
 
 ```bash
 cd grok-build-remote/bridge
@@ -90,17 +109,23 @@ gbr serve --listen "$(tailscale ip -4):7443" --grok-bin "$(which grok)"
 
 ### Milestone 0: check live attach first
 
-This is the one real unknown: the multi-client leader is internal to Grok Build, and Grok Build updates itself.
+The multi-client leader is internal to Grok Build, and Grok Build updates itself, so check this again after a Grok
+Build update. **Passed on 2026-11-21 with Grok Build 1.0.89.**
 
-1. Start Grok Build in a project: `grok`. Note the session id (`grok sessions list`).
+1. Start Grok Build in leader mode in a project (`grok`, with `use_leader = true`, or `grok --leader`) and send one
+   prompt. Each new window opens a **new** session; its id is in `~/.grok/active_sessions.json`, or
+   `grok sessions list --all` (a plain `grok sessions list` only shows labelled sessions from the current folder).
 2. In another terminal: `gbr spike --session <id> --cwd <project dir> --grok-bin "$(which grok)"`.
-3. You should see the session history printed. Type something in the TUI: its updates appear in the spike too.
-   Make Grok ask for a permission; the prompt shows in both places, and answering in either one resolves it.
+3. You should see the session history, then `session/load OK`. Prompt in the Grok window: its replies stream into the
+   spike as `session/update` lines.
+4. Press `Shift+Tab` in the Grok window until it is in ask mode, and ask for a file change. The permission prompt shows
+   in both places. Answer it in the spike (type its number): Grok goes ahead. Next time answer it in the Grok window:
+   the spike prints `>>> permission request answered elsewhere`.
 
-If history shows but live updates or the shared prompt don't, the app still works for sessions it opens itself
-(`session/load` from disk), but it won't mirror one that is open in the terminal. Please report what you see.
+If history shows but live updates don't, check that the Grok window runs in leader mode and that the spike has the
+id of the session that window opened.
 
-### 3. Pair the phone
+### 4. Pair the phone
 
 With `gbr serve` running: `gbr pair`, scan the QR code in the app, check the 6-digit code matches, type `y`.
 `gbr devices list` shows paired phones.
@@ -128,7 +153,7 @@ Or build locally with Android Studio (open `grok-build-remote/android`) or `./gr
 
 | Milestone | Scope | State |
 | --- | --- | --- |
-| M0 Spike | Prove live attach and shared approvals with `gbr spike` | Tool ready; needs a run on the Mac |
+| M0 Spike | Prove live attach and shared approvals with `gbr spike` | Passed with Grok Build 1.0.89 (needs leader mode) |
 | M1 Bridge | TLS server, pairing, allow list, replay buffer, audit, launchd | Drafted and tested against fake-grok |
 | M2 App core | Pairing, sessions, live transcript, prompt, Stop | Drafted; not yet compiled |
 | M3 Approvals, dictation, notifications | Approval sheet with fingerprint, dictation, foreground service | Drafted; not yet compiled |
