@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -20,22 +20,30 @@ use crate::allowlist::BRIDGE_ID_PREFIX;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(90);
 
+/// Agent options go between `agent` and the mode name. `--leader` makes the shared-session
+/// design explicit: the agent joins the leader the TUI uses instead of running a private one.
+/// (`--no-auto-update` is a `grok -p` flag only; `agent stdio` rejects it and exits.)
+pub const AGENT_ARGS: [&str; 3] = ["agent", "--leader", "stdio"];
+
 type Pending = Arc<Mutex<HashMap<String, oneshot::Sender<Value>>>>;
 
 pub struct Agent {
     out: mpsc::UnboundedSender<String>,
     pending: Pending,
+    /// Set once grok's stdout has closed; no response can arrive after that.
+    closed: Arc<AtomicBool>,
     next_id: AtomicU64,
     child: tokio::sync::Mutex<Child>,
 }
 
 impl Agent {
-    /// Spawn `<grok_bin> agent stdio --no-auto-update`. No shell is involved; the argument list
-    /// is fixed. Returns the agent and the stream of everything it sends that is not a response
-    /// to a bridge request (notifications, agent→client requests, responses to phone requests).
+    /// Spawn `<grok_bin> agent --leader stdio`. No shell is involved; the argument list is fixed
+    /// (`AGENT_ARGS`). Returns the agent and the stream of everything it sends that is not a
+    /// response to a bridge request (notifications, agent→client requests, responses to phone
+    /// requests).
     pub fn spawn(grok_bin: &PathBuf) -> Result<(Arc<Agent>, mpsc::UnboundedReceiver<Value>)> {
         let mut child = Command::new(grok_bin)
-            .args(["agent", "stdio", "--no-auto-update"])
+            .args(AGENT_ARGS)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -65,7 +73,9 @@ impl Agent {
         });
 
         // Reader: route responses to bridge requests, forward everything else.
+        let closed = Arc::new(AtomicBool::new(false));
         let reader_pending = pending.clone();
+        let reader_closed = closed.clone();
         tokio::spawn(async move {
             let mut lines = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = lines.next_line().await {
@@ -95,6 +105,11 @@ impl Agent {
                     break;
                 }
             }
+            // grok exited (or closed stdout): fail every waiting request now instead of letting
+            // each one sit out REQUEST_TIMEOUT. Dropping the senders makes `request` return
+            // "grok exited". The flag is set first so a request racing with this sees it.
+            reader_closed.store(true, Ordering::SeqCst);
+            reader_pending.lock().unwrap().clear();
         });
 
         tokio::spawn(async move {
@@ -107,6 +122,7 @@ impl Agent {
         let agent = Arc::new(Agent {
             out: out_tx,
             pending,
+            closed,
             next_id: AtomicU64::new(1),
             child: tokio::sync::Mutex::new(child),
         });
@@ -121,6 +137,10 @@ impl Agent {
         );
         let (tx, rx) = oneshot::channel();
         self.pending.lock().unwrap().insert(id.clone(), tx);
+        if self.closed.load(Ordering::SeqCst) {
+            self.pending.lock().unwrap().remove(&id);
+            bail!("{method}: grok exited");
+        }
         let msg = json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params});
         self.send_raw(msg.to_string())?;
         let resp = tokio::time::timeout(REQUEST_TIMEOUT, rx)
@@ -171,5 +191,23 @@ pub async fn grok_version(grok_bin: &PathBuf) -> String {
     match Command::new(grok_bin).arg("version").output().await {
         Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_string(),
         _ => "unknown".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A grok that exits at once (as real grok does on a bad argument) must fail the pending
+    /// request right away, not after REQUEST_TIMEOUT.
+    #[tokio::test]
+    async fn request_fails_fast_when_grok_exits() {
+        let (agent, _events) = Agent::spawn(&PathBuf::from("false")).unwrap();
+        let started = std::time::Instant::now();
+        let err = agent.initialize().await.unwrap_err();
+        assert!(err.to_string().contains("grok exited"), "{err:#}");
+        assert!(started.elapsed() < Duration::from_secs(10));
+        // A request sent after the exit was noticed fails too.
+        assert!(agent.initialize().await.is_err());
     }
 }

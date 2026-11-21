@@ -20,6 +20,12 @@ fn main() {
         println!("fake-grok 0.0.0");
         return;
     }
+    // Like real grok, refuse an argument list it doesn't know (agent options go between `agent`
+    // and the mode name), so the tests catch a wrong command line.
+    if args[1..] != gbr::agent::AGENT_ARGS {
+        eprintln!("error: unexpected arguments {:?}", &args[1..]);
+        std::process::exit(2);
+    }
     let stdin = std::io::stdin();
     let mut out = std::io::stdout();
     let mut waiting_prompt: Option<(Value, String)> = None;

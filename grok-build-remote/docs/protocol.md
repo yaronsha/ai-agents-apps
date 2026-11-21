@@ -42,7 +42,7 @@ receives only the messages after that. If some were already dropped, `bridge.sta
 **Pair** (unknown client certificate): `pair {token}` → `pairing {code}` → (you type `y` in `gbr pair`) → `paired`.
 An unknown certificate can't send anything else.
 
-**Attach to a session open in the terminal**: `attach` → bridge spawns `grok agent stdio --no-auto-update`, sends ACP
+**Attach to a session open in the terminal**: `attach` → bridge spawns `grok agent --leader stdio`, sends ACP
 `initialize` (no client fs/terminal capabilities) and `session/load` → `attached` → the history as `acp`
 `session/update` notifications → live updates.
 
