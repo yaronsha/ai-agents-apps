@@ -34,8 +34,10 @@ in the terminal, and approvals answered from either side. The Android app builds
   calls it doesn't approve reach the phone. Switch to ask mode (`Shift+Tab`) to approve each call yourself.
 - Attaching uses ACP `session/load`. The leader replays the history and then streams live updates. Sessions are
   listed with ACP `session/list`.
-- The bridge never uses Grok Build's own cloud relay (`code.grok.com`). Only model inference leaves the Mac, as it
-  already does.
+- Grok Build has a remote control of its own through xAI's servers (`/remote` in a Grok window, or
+  `grok agent headless`). In leader mode the leader opens that connection to `code.grok.com` only when one of those is
+  used. The bridge never triggers it, and none of the layers below protect it; your xAI account does. To keep the
+  phone the only remote way in, don't use `/remote` or `grok agent headless` on this Mac.
 
 Layout:
 
