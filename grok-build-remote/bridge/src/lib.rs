@@ -15,4 +15,5 @@ pub mod pairing;
 pub mod replay;
 pub mod server;
 pub mod spike;
+pub mod terminal_prompts;
 pub mod tls;

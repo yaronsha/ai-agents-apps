@@ -2,7 +2,8 @@
 //! that attached phones subscribe to.
 
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use serde_json::{json, Value};
@@ -11,6 +12,7 @@ use tokio::sync::{broadcast, mpsc};
 use crate::agent::Agent;
 use crate::allowlist::{id_key, is_interaction_request, phone_option_ids, PendingInteractions};
 use crate::replay::{Replay, Since, DEFAULT_CAPACITY};
+use crate::terminal_prompts::{grok_home, PromptWatcher};
 
 #[derive(Debug, Clone)]
 pub enum HubEvent {
@@ -42,6 +44,8 @@ impl SessionHub {
             )
             .await
             .context("session/load")?;
+        // Its history is replayed now; from here on, show prompts typed in a Grok window.
+        hub.watch_terminal_prompts(true);
         Ok(hub)
     }
 
@@ -62,7 +66,30 @@ impl SessionHub {
             .and_then(Value::as_str)
             .context("session/new returned no sessionId")?
             .to_string();
-        Ok(Self::start(sid, agent, events))
+        let hub = Self::start(sid, agent, events);
+        hub.watch_terminal_prompts(false);
+        Ok(hub)
+    }
+
+    /// The leader doesn't send other clients the prompt that starts a turn, so read prompts typed
+    /// in a Grok window from Grok's saved history (see `terminal_prompts`).
+    fn watch_terminal_prompts(self: &Arc<Self>, skip_existing: bool) {
+        let Some(home) = grok_home() else { return };
+        let mut watcher = PromptWatcher::new(home, &self.sid, skip_existing);
+        let hub: Weak<Self> = Arc::downgrade(self);
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(Duration::from_millis(400));
+            loop {
+                tick.tick().await;
+                let Some(hub) = hub.upgrade() else { return };
+                if hub.is_closed() {
+                    return;
+                }
+                for update in watcher.poll() {
+                    hub.publish(&update);
+                }
+            }
+        });
     }
 
     fn start(
@@ -105,6 +132,11 @@ impl SessionHub {
                 return;
             }
         }
+        self.publish(&msg);
+    }
+
+    /// Add a message to the replay buffer and send it to attached phones.
+    fn publish(&self, msg: &Value) {
         let text: Arc<str> = Arc::from(msg.to_string());
         // Push and broadcast under the same lock so subscribers see a gapless sequence.
         let mut replay = self.replay.lock().unwrap();

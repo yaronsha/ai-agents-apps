@@ -174,6 +174,11 @@ Or build locally with Android Studio (open `grok-build-remote/android`) or `./gr
 
 ## Known gaps (TODO)
 
+- Grok Build's leader streams a turn's output to every client but not the prompt that started it, so the bridge
+  reads prompts typed in a Grok window from the session's saved history (`~/.grok/sessions/…/chat_history.jsonl`)
+  and shows them on the phone. That file is internal to Grok Build; if an update changes it, the phone shows Grok's
+  replies without the terminal prompt.
+
 - `x.ai/ask_user_question`, `x.ai/exit_plan_mode` and MCP elicitation show "answer in the terminal" on the phone.
 - The phone keeps transcripts in memory only; after the app is killed it reloads from the bridge's buffer.
 - Sessions the bridge has opened stay open until `gbr serve` restarts (no idle reaping yet).

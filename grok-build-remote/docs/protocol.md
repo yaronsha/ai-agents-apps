@@ -38,6 +38,11 @@ per session. A phone that reconnects sends `hello` with the last `seq` it saw pe
 receives only the messages after that. If some were already dropped, `bridge.status replay_gap` comes first.
 Attaching again on the same connection (reopening a session) also continues after the last `seq` the bridge sent.
 
+Besides what the agent sends, the bridge adds one kind of `acp` message: an ACP `session/update`
+`user_message_chunk` for each prompt typed in a Grok window, read from Grok's saved history, because the leader
+doesn't send other clients the prompt that starts a turn. Prompts the phone sent come back this way too; the phone
+drops that echo of its own prompt.
+
 ## Flows
 
 **Pair** (unknown client certificate): `pair {token}` → `pairing {code}` → (you type `y` in `gbr pair`) → `paired`.
