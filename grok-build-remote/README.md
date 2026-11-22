@@ -111,6 +111,9 @@ cargo install --path .            # puts gbr in ~/.cargo/bin
 gbr serve --listen "$(tailscale ip -4):7443" --grok-bin "$(which grok)" --auto-review
 ```
 
+The Mac app doesn't put `tailscale` on your `PATH`; if the shell can't find it, use
+`/Applications/Tailscale.app/Contents/MacOS/Tailscale ip -4` (`gbr pair` looks there by itself).
+
 `--auto-review` starts the sessions you open from the phone in Grok Build's auto-review mode, like a Grok window:
 routine calls run on their own, and the phone asks you about the rest. Leave it out to be asked about every call.
 Sessions you open in the terminal keep their own mode (set it with `[ui] permission_mode = "auto"` in

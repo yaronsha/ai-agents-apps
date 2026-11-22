@@ -249,10 +249,22 @@ async fn pair(paths: Paths, addr: Option<String>) -> Result<()> {
     Ok(())
 }
 
+/// The Tailscale CLI: on `PATH`, or inside the Mac app, which doesn't put it on `PATH`.
+const TAILSCALE_BINS: [&str; 2] = [
+    "tailscale",
+    "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+];
+
 fn tailscale_addr() -> Result<String> {
-    let out = std::process::Command::new("tailscale")
-        .args(["ip", "-4"])
-        .output()?;
+    let out = TAILSCALE_BINS
+        .iter()
+        .find_map(|bin| {
+            std::process::Command::new(bin)
+                .args(["ip", "-4"])
+                .output()
+                .ok()
+        })
+        .context("the tailscale command wasn't found")?;
     if !out.status.success() {
         bail!("`tailscale ip -4` failed");
     }
