@@ -156,6 +156,32 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
             }
         }
 
+        // A dismissed approval is still waiting in Grok: keep a way back to it.
+        val waiting = state.pending
+        if (waiting != null && hiddenRequest == waiting.id.toString()) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Palette.Accent)
+                    .combinedClickable(onClick = { hiddenRequest = null })
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Approval waiting: ${waiting.command ?: waiting.title}",
+                    color = Palette.OnAccent,
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(12.dp))
+                Text("Review", color = Palette.OnAccent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
         HorizontalDivider(color = Palette.Surface2)
         Row(
             Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 14.dp),
