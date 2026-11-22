@@ -91,13 +91,15 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
         if (state.items.isNotEmpty()) listState.animateScrollToItem(state.items.lastIndex)
     }
 
+    // What was in the field when dictation started; dictated text is added after it.
+    var dictationBase by remember { mutableStateOf("") }
+
     val dictationCallback = remember {
         object : Dictation.Callback {
-            override fun onPartial(text: String) { draft = text }
-            override fun onFinal(text: String) {
-                listening = false
-                if (text.isNotBlank()) draft = text
+            override fun onText(text: String) {
+                draft = listOf(dictationBase.trimEnd(), text).filter { it.isNotBlank() }.joinToString(" ")
             }
+            override fun onStopped() { listening = false }
             override fun onError(message: String) {
                 listening = false
                 android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
@@ -110,6 +112,7 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
     }
 
     fun startDictation() {
+        dictationBase = draft
         listening = true
         dictation.start(language, app.store.onlineDictationAllowed(language), dictationCallback)
     }
@@ -189,7 +192,14 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
         ) {
             TextField(
                 value = draft,
-                onValueChange = { draft = it },
+                onValueChange = {
+                    draft = it
+                    // Typing takes over from dictation.
+                    if (listening) {
+                        dictation.stop()
+                        listening = false
+                    }
+                },
                 placeholder = { Text(if (listening) "Listening…" else "Reply to Grok…") },
                 shape = RoundedCornerShape(24.dp),
                 maxLines = 6,
