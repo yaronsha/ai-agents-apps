@@ -200,7 +200,7 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
                         listening = false
                     }
                 },
-                placeholder = { Text(if (listening) "Listening…" else "Reply to Grok…") },
+                placeholder = { Text(if (listening) "Listening… tap the red button to stop" else "Reply to Grok…") },
                 shape = RoundedCornerShape(24.dp),
                 maxLines = 6,
                 colors = TextFieldDefaults.colors(
@@ -216,7 +216,7 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
                         Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(if (listening) Palette.Accent else Color.Transparent)
+                            .background(if (listening) Palette.Recording else Color.Transparent)
                             .semantics { contentDescription = if (listening) "Stop dictation" else "Dictate ($label). Long-press to switch language" }
                             .combinedClickable(
                                 onClick = {
@@ -241,7 +241,12 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Filled.Mic, contentDescription = null, tint = if (listening) Palette.OnAccent else Palette.Muted)
+                        // Recording: a red stop button, so it can't be mistaken for Send.
+                        if (listening) {
+                            Icon(Icons.Filled.Stop, contentDescription = null, tint = Color.White)
+                        } else {
+                            Icon(Icons.Filled.Mic, contentDescription = null, tint = Palette.Muted)
+                        }
                     }
                 },
                 modifier = Modifier.weight(1f),
@@ -255,6 +260,10 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
                     .background(if (canSend) Palette.Accent else Palette.Text)
                     .combinedClickable(onClick = {
                         if (canSend) {
+                            if (listening) {
+                                dictation.stop()
+                                listening = false
+                            }
                             app.bridge.prompt(sid, draft.trim())
                             draft = ""
                         } else if (state.running) {

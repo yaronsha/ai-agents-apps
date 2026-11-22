@@ -59,6 +59,21 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+      # Sign with the fixed key from repository secrets, so each APK installs over the last one.
+      # The key never lives in the repo; without the secrets (forks) the default debug key is used.
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.GBR_ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.GBR_ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/gbr-signing.p12"
+            echo "GBR_KEYSTORE_FILE=$RUNNER_TEMP/gbr-signing.p12" >> "$GITHUB_ENV"
+            echo "::add-mask::$KEYSTORE_PASSWORD"
+            echo "GBR_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          else
+            echo "No signing secrets: using the default debug key."
+          fi
       - run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
       - uses: actions/upload-artifact@v4
         if: always()

@@ -17,7 +17,28 @@ android {
         versionName = "0.1.0"
     }
 
+    // CI signs every build with one fixed key (from repository secrets), so a new APK installs over
+    // the old one and the phone keeps its pairing. Without the secrets (local builds, forks) the
+    // default debug key is used.
+    val ciKeystore = System.getenv("GBR_KEYSTORE_FILE")?.let(::file)?.takeIf { it.exists() }
+    signingConfigs {
+        if (ciKeystore != null) {
+            create("ci") {
+                storeFile = ciKeystore
+                storeType = "pkcs12"
+                storePassword = System.getenv("GBR_KEYSTORE_PASSWORD")
+                keyAlias = "gbr"
+                keyPassword = System.getenv("GBR_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
+        if (ciKeystore != null) {
+            debug {
+                signingConfig = signingConfigs.getByName("ci")
+            }
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

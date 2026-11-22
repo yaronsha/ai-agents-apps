@@ -24,6 +24,8 @@ object Palette {
     val WarnBorder = Color(0xFF5C4618)
     val Good = Color(0xFF4ADE80)
     val Bad = Color(0xFFFCA5A5)
+    /** The mic button while dictating. */
+    val Recording = Color(0xFFDC2626)
     val BadBorder = Color(0xFF5B2A2A)
     val AddBg = Color(0xFF12261A)
     val AddText = Color(0xFFA7F3C0)
