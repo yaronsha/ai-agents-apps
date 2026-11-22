@@ -56,6 +56,12 @@ import dev.grokbuildremote.ui.card
 import dev.grokbuildremote.ui.folderName
 import dev.grokbuildremote.ui.relativeTime
 import dev.grokbuildremote.ui.theme.Palette
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 fun SessionsScreen(app: GrokBuildRemoteApp, onOpen: (SessionInfo) -> Unit, onSettings: () -> Unit) {
@@ -66,6 +72,16 @@ fun SessionsScreen(app: GrokBuildRemoteApp, onOpen: (SessionInfo) -> Unit, onSet
     var query by remember { mutableStateOf("") }
     var folder by remember { mutableStateOf<String?>(null) }
     var showNew by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    // While a refresh you asked for is on its way: the count it started from.
+    var refreshingFrom by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(refreshingFrom) {
+        val from = refreshingFrom ?: return@LaunchedEffect
+        delay(500) // long enough to see that it did something
+        withTimeoutOrNull(10_000) { app.bridge.sessionsReceived.first { it > from } }
+            ?: android.widget.Toast.makeText(context, "No answer from the Mac", android.widget.Toast.LENGTH_SHORT).show()
+        refreshingFrom = null
+    }
 
     // Refresh whenever this list comes into view: opening the app, coming back to it, or back from a session.
     LifecycleResumeEffect(Unit) {
@@ -88,8 +104,19 @@ fun SessionsScreen(app: GrokBuildRemoteApp, onOpen: (SessionInfo) -> Unit, onSet
                 Spacer(Modifier.height(6.dp))
                 ConnectionLine(conn, app.store.addr, onRetry = { app.bridge.connect() })
             }
-            IconButton(onClick = { app.bridge.refreshSessions() }) {
-                Icon(Icons.Filled.Refresh, contentDescription = "Refresh sessions", tint = Palette.Text)
+            IconButton(onClick = {
+                if (refreshingFrom != null) return@IconButton
+                if (app.bridge.refreshSessions()) {
+                    refreshingFrom = app.bridge.sessionsReceived.value
+                } else {
+                    android.widget.Toast.makeText(context, "Not connected to the Mac", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }) {
+                if (refreshingFrom != null) {
+                    CircularProgressIndicator(Modifier.size(20.dp), color = Palette.Text, strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh sessions", tint = Palette.Text)
+                }
             }
             IconButton(onClick = onSettings) {
                 Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Palette.Text)

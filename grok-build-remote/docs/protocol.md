@@ -22,7 +22,7 @@ frame is one JSON envelope:
 | `sessions` | bridge | – | the ACP `session/list` result: `{sessions: [{sessionId, cwd, title?, updatedAt?}]}` |
 | `attach` | phone | yes | `{cwd}` (needed if the bridge doesn't have the session open yet) |
 | `session.new` | phone | – | `{cwd, modelId?}`; the session starts in ask mode, or in auto-review under `gbr serve --auto-review` |
-| `attached` | bridge | yes | – |
+| `attached` | bridge | yes | `{from}`: the replay starts after this `seq`; `0` means the whole history, so the phone starts the transcript over |
 | `detach` | phone | yes | – |
 | `acp` | both | yes | a raw ACP message as a string; bridge → phone also carries `seq` |
 | `bridge.status` | bridge | optional | `{code, message}`: `replay_gap`, `agent_exited` |
@@ -36,6 +36,7 @@ WebSocket ping frames go both ways every 20 s; the bridge drops a connection aft
 Every `acp` message the bridge sends for a session gets the next `seq` (1, 2, 3…). The bridge keeps the last 5,000
 per session. A phone that reconnects sends `hello` with the last `seq` it saw per session, then `attach` again, and
 receives only the messages after that. If some were already dropped, `bridge.status replay_gap` comes first.
+Attaching again on the same connection (reopening a session) also continues after the last `seq` the bridge sent.
 
 ## Flows
 

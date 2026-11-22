@@ -444,21 +444,18 @@ impl Connection {
             .get(&sid)
             .copied()
             .unwrap_or(0);
-        // `attached` first, through the same ordered channel the replay uses.
-        let _ = self
-            .out
-            .send(Envelope::new(kind::ATTACHED).with_sid(sid.clone()));
-        let out = self.out.clone();
-        let forward_hub = hub.clone();
-        let forwarder = tokio::spawn(forward(forward_hub, after, out));
-        if let Some(old) = self
-            .attached
-            .lock()
-            .unwrap()
-            .insert(sid.clone(), Attachment { hub, forwarder })
-        {
+        // Stop the old forwarder first, so nothing of it lands after the new `attached`.
+        if let Some(old) = self.attached.lock().unwrap().remove(&sid) {
             old.forwarder.abort();
         }
+        let out = self.out.clone();
+        let forward_hub = hub.clone();
+        let seen = self.last_seq.clone();
+        let forwarder = tokio::spawn(forward(forward_hub, after, out, seen));
+        self.attached
+            .lock()
+            .unwrap()
+            .insert(sid.clone(), Attachment { hub, forwarder });
         self.state.audit.log(&self.device, "attach", &sid);
         notify_mac(
             "Grok Build Remote",
@@ -518,9 +515,27 @@ impl Connection {
     }
 }
 
-/// Send the replay after `after`, then live events, to one phone.
-async fn forward(hub: Arc<SessionHub>, after: u64, out: mpsc::UnboundedSender<Envelope>) {
+/// Send `attached`, the replay after `after`, then live events, to one phone. Every seq sent is
+/// noted in `seen`, so attaching again on this connection (reopening the session) only sends what
+/// the phone hasn't had. `attached` says where the replay starts: `from: 0` means the whole history,
+/// and the phone starts its transcript over.
+async fn forward(
+    hub: Arc<SessionHub>,
+    after: u64,
+    out: mpsc::UnboundedSender<Envelope>,
+    seen: Arc<Mutex<HashMap<String, u64>>>,
+) {
     let sid = hub.sid.clone();
+    // Beyond the buffer's newest seq: this is a new buffer (the bridge restarted), so start over.
+    let after = if after > hub.last_seq() { 0 } else { after };
+    let _ = out.send(
+        Envelope::new(kind::ATTACHED)
+            .with_sid(sid.clone())
+            .with_payload(json!({ "from": after })),
+    );
+    let note = |seq: u64| {
+        seen.lock().unwrap().insert(sid.clone(), seq);
+    };
     let mut last = after;
     let (since, mut rx) = hub.subscribe_since(after);
     let send_items = |since: Since, last: &mut u64| -> bool {
@@ -540,6 +555,7 @@ async fn forward(hub: Arc<SessionHub>, after: u64, out: mpsc::UnboundedSender<En
                 return false;
             }
             *last = seq;
+            note(seq);
         }
         true
     };
@@ -554,6 +570,7 @@ async fn forward(hub: Arc<SessionHub>, after: u64, out: mpsc::UnboundedSender<En
                         return;
                     }
                     last = seq;
+                    note(seq);
                 }
             }
             Ok(HubEvent::Closed) => {

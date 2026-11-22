@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 /**
  * The phone ⇄ bridge envelope, protocol v1 (see grok-build-remote/docs/protocol.md).
@@ -22,6 +23,9 @@ data class Envelope(
 ) {
     fun payloadString(key: String): String? =
         (payload as? JsonObject)?.get(key)?.jsonPrimitive?.contentOrNull
+
+    fun payloadLong(key: String): Long? =
+        ((payload as? JsonObject)?.get(key) as? JsonPrimitive)?.longOrNull
 
     companion object {
         const val PROTOCOL_VERSION = 1

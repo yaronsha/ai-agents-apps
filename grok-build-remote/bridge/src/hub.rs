@@ -116,6 +116,11 @@ impl SessionHub {
         *self.closed.lock().unwrap()
     }
 
+    /// The newest sequence number in the replay buffer (0 if empty).
+    pub fn last_seq(&self) -> u64 {
+        self.replay.lock().unwrap().last_seq()
+    }
+
     /// Subscribe and get everything after `after` in one consistent step.
     pub fn subscribe_since(&self, after: u64) -> (Since, broadcast::Receiver<HubEvent>) {
         let replay = self.replay.lock().unwrap();

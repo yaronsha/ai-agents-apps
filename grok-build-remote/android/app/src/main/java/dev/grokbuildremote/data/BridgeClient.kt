@@ -55,6 +55,10 @@ class BridgeClient(private val store: PairingStore, private val scope: Coroutine
     private val _sessions = MutableStateFlow<List<SessionInfo>>(emptyList())
     val sessions: StateFlow<List<SessionInfo>> = _sessions.asStateFlow()
 
+    private val _sessionsReceived = MutableStateFlow(0L)
+    /** Goes up each time the Mac sends the list, even when it didn't change. */
+    val sessionsReceived: StateFlow<Long> = _sessionsReceived.asStateFlow()
+
     private val _attached = MutableStateFlow<Set<String>>(emptySet())
     val attached: StateFlow<Set<String>> = _attached.asStateFlow()
 
@@ -166,9 +170,18 @@ class BridgeClient(private val store: PairingStore, private val scope: Coroutine
                 device = env.payloadString("device") ?: "",
                 grokVersion = env.payloadString("grokVersion") ?: "?",
             )
-            Types.SESSIONS -> _sessions.value = parseSessions(env.payload as? JsonObject)
+            Types.SESSIONS -> {
+                _sessions.value = parseSessions(env.payload as? JsonObject)
+                _sessionsReceived.update { it + 1 }
+            }
             Types.ATTACHED -> env.sid?.let { sid ->
                 _attached.update { it + sid }
+                // The whole history follows: start the transcript over instead of adding it twice.
+                if (env.payloadLong("from") == 0L) {
+                    states[sid]?.value = SessionState(sid)
+                    lastSeq.remove(sid)
+                    _needsYou.update { it - sid }
+                }
                 val newCwd = pendingNewCwd
                 if (!wanted.containsKey(sid) && newCwd != null) {
                     pendingNewCwd = null

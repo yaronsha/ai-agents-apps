@@ -184,7 +184,9 @@ async fn attach_prompt_approve_and_replay() {
             .with_payload(json!({"cwd":"/tmp/project"})),
     )
     .await;
-    assert_eq!(recv(&mut ws).await.kind, "attached");
+    let attached = recv(&mut ws).await;
+    assert_eq!(attached.kind, "attached");
+    assert_eq!(attached.payload.unwrap()["from"], 0);
     let first = recv(&mut ws).await;
     assert_eq!((first.kind.as_str(), first.seq), ("acp", Some(1)));
     assert_eq!(
@@ -282,8 +284,22 @@ async fn attach_prompt_approve_and_replay() {
     .await;
     assert_eq!(recv(&mut ws).await.kind, "welcome");
     send(&mut ws, Envelope::new("attach").with_sid("s1")).await;
-    assert_eq!(recv(&mut ws).await.kind, "attached");
-    assert_eq!(recv(&mut ws).await.seq, Some(3));
+    let attached = recv(&mut ws).await;
+    assert_eq!(attached.kind, "attached");
+    assert_eq!(attached.payload.unwrap()["from"], 2);
+    let mut last = recv(&mut ws).await;
+    assert_eq!(last.seq, Some(3));
+    while acp_body(&last)["id"] != 1 {
+        last = recv(&mut ws).await;
+    }
+
+    // Reopening the session on the same connection sends nothing it already sent.
+    send(&mut ws, Envelope::new("attach").with_sid("s1")).await;
+    let attached = recv(&mut ws).await;
+    assert_eq!(attached.kind, "attached");
+    assert_eq!(attached.payload.unwrap()["from"], last.seq.unwrap());
+    send(&mut ws, Envelope::new("ping")).await;
+    assert_eq!(recv(&mut ws).await.kind, "pong");
 }
 
 #[tokio::test]
