@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.grokbuildremote.GrokBuildRemoteApp
 import dev.grokbuildremote.data.Conn
@@ -65,6 +66,12 @@ fun SessionsScreen(app: GrokBuildRemoteApp, onOpen: (SessionInfo) -> Unit, onSet
     var query by remember { mutableStateOf("") }
     var folder by remember { mutableStateOf<String?>(null) }
     var showNew by remember { mutableStateOf(false) }
+
+    // Refresh whenever this list comes into view: opening the app, coming back to it, or back from a session.
+    LifecycleResumeEffect(Unit) {
+        app.bridge.refreshSessions()
+        onPauseOrDispose { }
+    }
 
     val folders = remember(sessions) { sessions.map { folderName(it.cwd) }.filter { it.isNotBlank() }.distinct().take(8) }
     val visible = sessions.filter { s ->
