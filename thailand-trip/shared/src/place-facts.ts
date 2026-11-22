@@ -268,7 +268,6 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
     ],
     checked: CHECKED,
   },
-
 };
 
 export function placeFacts(stopId: string): PlaceFacts | undefined {

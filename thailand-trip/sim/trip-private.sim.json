@@ -5,7 +5,7 @@
       "name": "מלון בצ'אנג מאי",
       "lat": 18.7953,
       "lng": 98.962,
-      "checkIn": "2026-11-22",
+      "checkIn": "2026-11-23",
       "checkOut": "2026-11-25"
     },
     {
@@ -64,7 +64,7 @@
       "number": "SIM102",
       "fromIata": "AUH",
       "toIata": "CNX",
-      "departLocal": "2026-11-21T21:15",
+      "departLocal": "2026-11-22T21:15",
       "departUtcOffset": 4,
       "labelHe": "אבו דאבי - צ'אנג מאי"
     },

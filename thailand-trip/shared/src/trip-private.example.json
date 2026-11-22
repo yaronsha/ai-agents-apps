@@ -1,6 +1,6 @@
 {
   "lodgings": [
-    { "id": "cm1", "name": "מלון בצ'אנג מאי", "lat": 18.7953, "lng": 98.9620, "checkIn": "2026-11-22", "checkOut": "2026-11-25" },
+    { "id": "cm1", "name": "מלון בצ'אנג מאי", "lat": 18.7953, "lng": 98.9620, "checkIn": "2026-11-23", "checkOut": "2026-11-25" },
     { "id": "pai", "name": "מלון בפאי", "lat": 19.3590, "lng": 98.4410, "checkIn": "2026-11-25", "checkOut": "2026-11-27" },
     { "id": "cd", "name": "מלון בצ'אנג דאו", "lat": 19.3660, "lng": 98.9640, "checkIn": "2026-11-27", "checkOut": "2026-11-28" },
     { "id": "dc", "name": "מלון בדוי צ'אנג", "lat": 19.8160, "lng": 99.5620, "checkIn": "2026-11-28", "checkOut": "2026-11-29" },
@@ -9,7 +9,7 @@
   ],
   "flights": [
     { "id": "out-1", "number": null, "fromIata": "TLV", "toIata": "AUH", "departLocal": "2026-11-21T14:00", "departUtcOffset": 2, "labelHe": "תל אביב - אבו דאבי" },
-    { "id": "out-2", "number": null, "fromIata": "AUH", "toIata": "CNX", "departLocal": "2026-11-21T21:15", "departUtcOffset": 4, "labelHe": "אבו דאבי - צ'אנג מאי" },
+    { "id": "out-2", "number": null, "fromIata": "AUH", "toIata": "CNX", "departLocal": "2026-11-22T21:15", "departUtcOffset": 4, "labelHe": "אבו דאבי - צ'אנג מאי" },
     { "id": "ret-1", "number": null, "fromIata": "CNX", "toIata": "AUH", "departLocal": null, "departUtcOffset": 7, "labelHe": "צ'אנג מאי - הביתה" }
   ]
 }
