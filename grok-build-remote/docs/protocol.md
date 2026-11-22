@@ -43,7 +43,7 @@ receives only the messages after that. If some were already dropped, `bridge.sta
 An unknown certificate can't send anything else.
 
 **Attach to a session open in the terminal**: `attach` → bridge spawns `grok agent --leader stdio`, sends ACP
-`initialize` (no client fs/terminal capabilities) and `session/load` → `attached` → the history as `acp`
+`initialize` (no client fs/terminal capabilities; `_meta.clientType: "grok-tui"`, so in auto-review a call Grok's reviewer won't allow is asked instead of failing) and `session/load` → `attached` → the history as `acp`
 `session/update` notifications → live updates.
 
 **Prompt**: phone sends `acp` with `session/prompt` (numeric `id`) → `session/update` stream (`agent_message_chunk`,

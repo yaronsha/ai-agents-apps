@@ -165,25 +165,32 @@ impl Agent {
         let _ = self.send_raw(msg.to_string());
     }
 
-    /// ACP `initialize` with no client file-system or terminal capabilities.
+    /// ACP `initialize`; see [`initialize_params`].
     pub async fn initialize(&self) -> Result<Value> {
-        self.request(
-            "initialize",
-            json!({
-                "protocolVersion": 1,
-                "clientCapabilities": {
-                    "fs": {"readTextFile": false, "writeTextFile": false},
-                    "terminal": false
-                },
-                "clientInfo": {"name": "gbr", "version": env!("CARGO_PKG_VERSION")}
-            }),
-        )
-        .await
+        self.request("initialize", initialize_params()).await
     }
 
     pub async fn kill(&self) {
         let _ = self.child.lock().await.kill().await;
     }
+}
+
+/// `initialize` parameters: no client file-system or terminal capabilities.
+///
+/// `clientType` tells Grok Build a person answers this client's permission prompts. Without it
+/// the client counts as a script (`Generic`), and in auto-review a call the reviewer won't allow
+/// fails instead of being asked on the phone. Grok has no client type for a remote app, so this
+/// uses the type of Grok's own terminal UI (`grok-tui`).
+pub fn initialize_params() -> Value {
+    json!({
+        "protocolVersion": 1,
+        "clientCapabilities": {
+            "fs": {"readTextFile": false, "writeTextFile": false},
+            "terminal": false
+        },
+        "clientInfo": {"name": "gbr", "version": env!("CARGO_PKG_VERSION")},
+        "_meta": {"clientType": "grok-tui"}
+    })
 }
 
 /// `grok version`, or "unknown".
@@ -197,6 +204,13 @@ pub async fn grok_version(grok_bin: &PathBuf) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn initialize_marks_a_person_answering_prompts() {
+        let p = initialize_params();
+        assert_eq!(p["_meta"]["clientType"], "grok-tui");
+        assert_eq!(p["clientCapabilities"]["terminal"], false);
+    }
 
     /// A grok that exits at once (as real grok does on a bad argument) must fail the pending
     /// request right away, not after REQUEST_TIMEOUT.
