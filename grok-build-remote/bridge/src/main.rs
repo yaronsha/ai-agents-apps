@@ -194,13 +194,12 @@ async fn pair(paths: Paths, addr: Option<String>) -> Result<()> {
         fp: id.fingerprint(),
         token,
     })?;
-    let qr = qrcode::QrCode::new(payload.as_bytes())?;
+    // Low error correction is fine on a screen and keeps the code small; half blocks draw two
+    // rows of modules per line, so it fits in a normal terminal window.
+    let qr = qrcode::QrCode::with_error_correction_level(payload.as_bytes(), qrcode::EcLevel::L)?;
     let art = qr
-        .render::<char>()
+        .render::<qrcode::render::unicode::Dense1x2>()
         .quiet_zone(true)
-        .module_dimensions(2, 1)
-        .dark_color('█')
-        .light_color(' ')
         .build();
     println!("{art}");
     println!("Scan this with Grok Build Remote. It works once and expires in 5 minutes.");
