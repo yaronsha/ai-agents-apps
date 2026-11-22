@@ -1,4 +1,4 @@
-// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-11-18).
+// Built from "צפון תאילנד 10.8.docx" (Google Drive, version of 2026-11-22).
 // Coordinates were checked on 2026-10-07 against map listings (AllTrails, Tripadvisor, Waze, Wikipedia,
 // Atlas Obscura, plus codes). `npm run verify:places` re-checks them against OpenStreetMap.
 import type { Day, Trip, TripPrivate } from "./types";
@@ -6,40 +6,27 @@ import type { Day, Trip, TripPrivate } from "./types";
 const days: Day[] = [
   {
     date: "2026-11-22",
-    titleHe: "נחיתה, מנוחה, קניון MAYA ושקיעה בדוי סוטפ",
-    lodgingId: "cm1",
-    stops: [
-      { id: "cnx-arrive", nameHe: "נחיתה בשדה התעופה צ'אנג מאי", nameEn: "Chiang Mai Airport", lat: 18.7668, lng: 98.9626, start: "2026-11-22T06:05", end: "2026-11-22T07:00", outdoor: false },
-      { id: "maya-mall", nameHe: "קניון MAYA: מקלות הליכה מתקפלים", nameEn: "MAYA Lifestyle Shopping Center", lat: 18.8024, lng: 98.9672, start: "2026-11-22T14:45", end: "2026-11-22T15:30", outdoor: false },
-      { id: "doi-suthep", nameHe: "מקדש דוי סוטפ בשקיעה", nameEn: "Wat Phra That Doi Suthep", lat: 18.805, lng: 98.9217, start: "2026-11-22T17:00", end: "2026-11-22T19:30", outdoor: true, noteHe: "עלייה ברכבל, ירידה ברגל ב-306 מדרגות הנאגה." },
-    ],
-    drives: [{ id: "d22-suthep", fromId: "lodging:cm1", toId: "doi-suthep", departAt: "2026-11-22T16:15" }],
-    reminders: [{ id: "r22-suthep", at: "2026-11-22T15:45", textHe: "בעוד חצי שעה יוצאים לדוי סוטפ כדי להספיק את השקיעה." }],
-    planB: [
-      "גשם: לעלות ולרדת ברכבל ולוותר על הירידה במדרגות הנאגה, שחלקלקות ברטיבות.",
-      "מעונן או גשום בשקיעה: לבקר בדוי סוטפ מחר בבוקר ולוותר על השקיעה.",
-    ],
+    titleHe: "בדרך: אבו דאבי וטיסת לילה לצ'אנג מאי",
+    lodgingId: null,
+    stops: [],
+    drives: [],
+    reminders: [],
+    planB: ["הטיסה לצ'אנג מאי מתעכבת או מבוטלת: לפנות לדלפק Etihad ולחברת הביטוח, ולהודיע למלון בצ'אנג מאי על הגעה מאוחרת."],
   },
   {
     date: "2026-11-23",
-    titleHe: "דוי אינתנון: פגודות המלך והמלכה וטרק המפלים",
+    titleHe: "נחיתה, מנוחה, קניון MAYA ושקיעה בדוי סוטפ",
     lodgingId: "cm1",
     stops: [
-      { id: "twin-pagodas", nameHe: "פגודות המלך והמלכה", nameEn: "Naphamethinidon & Naphaphonphumisiri", lat: 18.5529, lng: 98.4798, start: "2026-11-23T09:00", end: "2026-11-23T10:15", outdoor: true, highland: true, noteHe: "קר בבוקר, לפעמים פחות מ-15 מעלות." },
-      { id: "ang-ka", nameHe: "שביל אנג קה ביער הערפל", nameEn: "Ang Ka Nature Trail", lat: 18.5888, lng: 98.4866, start: "2026-11-23T10:15", end: "2026-11-23T10:45", outdoor: true, highland: true },
-      { id: "pha-dok-siew", nameHe: "טרק Pha Dok Siew עם מדריך קארן", nameEn: "Pha Dok Siew Trail", lat: 18.5383, lng: 98.5248, start: "2026-11-23T11:00", end: "2026-11-23T13:00", outdoor: true, highland: true },
-      { id: "mae-klang-luang", nameHe: "צהריים בכפר Mae Klang Luang", nameEn: "Mae Klang Luang village", lat: 18.5275, lng: 98.5337, start: "2026-11-23T13:00", end: "2026-11-23T14:00", outdoor: false },
-      { id: "wachirathan", nameHe: "מפל וצ'יראטאן", nameEn: "Wachirathan Waterfall", lat: 18.5408, lng: 98.5994, start: "2026-11-23T14:15", end: "2026-11-23T14:30", outdoor: true },
-      { id: "old-city-night", nameHe: "סיור לילי בעיר העתיקה", nameEn: "Old City temples by night", lat: 18.7869, lng: 98.9866, start: "2026-11-23T19:30", end: "2026-11-23T21:30", outdoor: true },
+      { id: "cnx-arrive", nameHe: "נחיתה בשדה התעופה צ'אנג מאי", nameEn: "Chiang Mai Airport", lat: 18.7668, lng: 98.9626, start: "2026-11-23T06:05", end: "2026-11-23T07:00", outdoor: false, noteHe: "09:30 הגעה למלון, צ'ק-אין מוקדם וארוחת בוקר. 11:15-13:45 שינה, 14:00 צהריים קלים ליד המלון." },
+      { id: "maya-mall", nameHe: "קניון MAYA: מקלות הליכה מתקפלים", nameEn: "MAYA Lifestyle Shopping Center", lat: 18.8024, lng: 98.9672, start: "2026-11-23T14:45", end: "2026-11-23T15:30", outdoor: false },
+      { id: "doi-suthep", nameHe: "מקדש דוי סוטפ בשקיעה", nameEn: "Wat Phra That Doi Suthep", lat: 18.805, lng: 98.9217, start: "2026-11-23T17:00", end: "2026-11-23T19:30", outdoor: true, noteHe: "עלייה ברכבל, ירידה ברגל ב-306 מדרגות הנאגה." },
     ],
-    drives: [
-      { id: "d23-inthanon", fromId: "lodging:cm1", toId: "twin-pagodas", departAt: "2026-11-23T07:00" },
-      { id: "d23-back", fromId: "wachirathan", toId: "lodging:cm1", departAt: "2026-11-23T14:30" },
-    ],
-    reminders: [{ id: "r23-jacket", at: "2026-11-23T06:15", textHe: "יוצאים ב-07:00 לדוי אינתנון. קר בפסגה, לקחת סווטשרט." }],
+    drives: [{ id: "d23-suthep", fromId: "lodging:cm1", toId: "doi-suthep", departAt: "2026-11-23T16:15" }],
+    reminders: [{ id: "r23-suthep", at: "2026-11-23T15:45", textHe: "בעוד חצי שעה יוצאים לדוי סוטפ כדי להספיק את השקיעה." }],
     planB: [
-      "גשם חזק או ערפל: לוותר על הטרק ולבקר רק בפגודות ובמפל Wachirathan שליד הכביש.",
-      "תחזית גרועה לכל היום: להחליף עם הבוקר של 24.11 (סיור המקדשים בעיר).",
+      "גשם: לעלות ולרדת ברכבל ולוותר על הירידה במדרגות הנאגה, שחלקלקות ברטיבות.",
+      "מעונן או גשום בשקיעה: לבקר בדוי סוטפ מחר בבוקר, לפני סיור המקדשים, ולוותר על השקיעה.",
     ],
   },
   {
@@ -185,25 +172,39 @@ const days: Day[] = [
   },
   {
     date: "2026-12-01",
-    titleHe: "סדנת בישול Akha Kitchen",
-    lodgingId: "cr",
+    titleHe: "סדנת בישול Akha Kitchen וחזרה לצ'אנג מאי",
+    lodgingId: "cm2",
     stops: [
-      { id: "akha-kitchen", nameHe: "סדנת בישול Akha Kitchen", nameEn: "Akha Kitchen", lat: 19.91, lng: 99.84, start: "2026-12-01T09:00", end: "2026-12-01T14:00", outdoor: false, noteHe: "מתחילים בסיור בשוק מקומי עם השפית ג'ארוואן. מיקום משוער, לעדכן לפי נקודת המפגש. אחרי הסדנה: אפשרות למרכז שבטי ההרים (Hilltribe Museum) או לבית הקפה Lalitta Café." },
+      { id: "akha-kitchen", nameHe: "סדנת בישול Akha Kitchen", nameEn: "Akha Kitchen", lat: 19.91, lng: 99.84, start: "2026-12-01T09:00", end: "2026-12-01T14:00", outdoor: false, noteHe: "מתחילים בסיור בשוק מקומי עם השפית ג'ארוואן, ואז מבשלים סא-פי-טונג ועוד 4 מנות. מיקום משוער, לעדכן לפי נקודת המפגש. ב-14:00 נוסעים כ-3 שעות בוואן לצ'אנג מאי." },
     ],
-    drives: [],
-    reminders: [],
-    planB: ["הסדנה בוטלה: שוק הבוקר של צ'יאנג ראי ומוזיאון שבטי ההרים (Hilltribe Museum)."],
+    drives: [{ id: "d01-chiangmai", fromId: "akha-kitchen", toId: "lodging:cm2", departAt: "2026-12-01T14:00" }],
+    reminders: [{ id: "r01-checkout", at: "2026-12-01T07:30", textHe: "היום עוזבים את צ'יאנג ראי. לארוז ולעשות צ'ק-אאוט לפני הסדנה, הסדנה מתחילה ב-09:00." }],
+    planB: ["הסדנה בוטלה: שוק הבוקר של צ'יאנג ראי ומוזיאון שבטי ההרים (Hilltribe Museum), ואז נסיעה לצ'אנג מאי."],
   },
   {
     date: "2026-12-02",
-    titleHe: "חזרה לצ'אנג מאי וקניות אחרונות",
+    titleHe: "דוי אינתנון וארוחת סיום",
     lodgingId: "cm2",
     stops: [
-      { id: "cm-night-bazaar", nameHe: "בזאר צ'אנג מאי, מסאז' וארוחת סיום", nameEn: "Chiang Mai Night Bazaar", lat: 18.7854, lng: 99.0007, start: "2026-12-02T13:00", end: "2026-12-02T21:00", outdoor: true, noteHe: "לארוחת הסיום: Paak Dang Riverside Restaurant (טלפון ‎+66 94 994 9353) או Samsen Villa." },
+      { id: "twin-pagodas", nameHe: "פגודות המלך והמלכה", nameEn: "Naphamethinidon & Naphaphonphumisiri", lat: 18.5529, lng: 98.4798, start: "2026-12-02T09:00", end: "2026-12-02T10:15", outdoor: true, highland: true, noteHe: "קר בבוקר, לפעמים פחות מ-15 מעלות." },
+      { id: "ang-ka", nameHe: "שביל אנג קה ביער הערפל", nameEn: "Ang Ka Nature Trail", lat: 18.5888, lng: 98.4866, start: "2026-12-02T10:15", end: "2026-12-02T10:45", outdoor: true, highland: true },
+      { id: "pha-dok-siew", nameHe: "טרק Pha Dok Siew עם מדריך קארן", nameEn: "Pha Dok Siew Trail", lat: 18.5383, lng: 98.5248, start: "2026-12-02T11:00", end: "2026-12-02T13:00", outdoor: true, highland: true },
+      { id: "mae-klang-luang", nameHe: "צהריים בכפר Mae Klang Luang", nameEn: "Mae Klang Luang village", lat: 18.5275, lng: 98.5337, start: "2026-12-02T13:00", end: "2026-12-02T14:00", outdoor: false },
+      { id: "wachirathan", nameHe: "מפל וצ'יראטאן", nameEn: "Wachirathan Waterfall", lat: 18.5408, lng: 98.5994, start: "2026-12-02T14:15", end: "2026-12-02T14:30", outdoor: true },
+      { id: "farewell-dinner", nameHe: "ארוחת סיום ב-Paak Dang Riverside", nameEn: "Paak Dang Riverside Restaurant", lat: 18.753, lng: 99.003, start: "2026-12-02T19:30", end: "2026-12-02T21:30", outdoor: false, noteHe: "על נהר הפינג. טלפון להזמנה ‎+66 94 994 9353. אפשרות נוספת: Samsen Villa. מיקום משוער, המקורות חלוקים על הכתובת." },
     ],
-    drives: [{ id: "d02-chiangmai", fromId: "lodging:cr", toId: "lodging:cm2", departAt: "2026-12-02T09:00" }],
-    reminders: [{ id: "r02-checkout", at: "2026-12-02T21:00", textHe: "מחר צ'ק-אאוט ב-05:30. לארוז הערב ולכוון שעון מעורר." }],
-    planB: ["גשם: קניוני Maya ו-One Nimman, ומסאז' פרידה."],
+    drives: [
+      { id: "d02-inthanon", fromId: "lodging:cm2", toId: "twin-pagodas", departAt: "2026-12-02T07:00" },
+      { id: "d02-back", fromId: "wachirathan", toId: "lodging:cm2", departAt: "2026-12-02T14:30" },
+    ],
+    reminders: [
+      { id: "r02-jacket", at: "2026-12-02T06:15", textHe: "יוצאים ב-07:00 לדוי אינתנון. קר בפסגה, לקחת סווטשרט." },
+      { id: "r02-checkout", at: "2026-12-02T21:30", textHe: "מחר צ'ק-אאוט ב-05:30. לארוז הערב ולכוון שעון מעורר." },
+    ],
+    planB: [
+      "גשם חזק או ערפל: לוותר על הטרק ולבקר רק בפגודות ובמפל Wachirathan שליד הכביש.",
+      "תחזית גרועה לכל היום: לוותר על דוי אינתנון ולהישאר בצ'אנג מאי: בזאר צ'אנג קלאן, קניוני Maya ו-One Nimman ומסאז' פרידה.",
+    ],
   },
   {
     date: "2026-12-03",

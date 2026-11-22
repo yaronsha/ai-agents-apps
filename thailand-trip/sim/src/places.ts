@@ -12,7 +12,6 @@ export const FLAG_KM = 0.5;
 const QUERY: Record<string, string | null> = {
   "twin-pagodas": "Phra Maha Chedi Naphamethinidon",
   "mae-klang-luang": "Ban Mae Klang Luang",
-  "old-city-night": "Wat Chedi Luang",
   "old-city-temples": "Wat Phra Singh",
   "lantern-festival": "CAD Cultural Center Mae On",
   "pai-loy-krathong": null,
@@ -28,6 +27,7 @@ const QUERY: Record<string, string | null> = {
   "kok-boat": null,
   ruammit: null,
   "pha-soet": null,
+  "farewell-dinner": null,
   "doi-chang-coffee": "Doi Chang Coffee Farm",
 };
 

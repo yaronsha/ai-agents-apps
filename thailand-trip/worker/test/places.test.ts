@@ -58,16 +58,17 @@ describe("place check schedule", () => {
   });
 
   it("also checks Yaron's restaurant picks on their day, and the one that is a stop only once", () => {
+    const dec1 = placeTargets(trip, ["2026-12-01"]);
+    expect(dec1.map((t) => t.stopId)).toEqual(expect.arrayContaining(["pick-sanmai", "pick-bami-jae-hua"]));
     const dec2 = placeTargets(trip, ["2026-12-02"]);
-    expect(dec2.map((t) => t.stopId)).toEqual(expect.arrayContaining(["pick-bami-jae-hua", "pick-soiseoul"]));
-    expect(dec2.find((t) => t.stopId === "pick-soiseoul")).toMatchObject({ start: "2026-12-02T18:30", end: "2026-12-02T19:30" });
+    expect(dec2.find((t) => t.stopId === "pick-soiseoul")).toMatchObject({ start: "2026-12-02T19:30", end: "2026-12-02T20:30" });
     const nov24 = placeTargets(trip, ["2026-11-24"]).map((t) => t.stopId);
     expect(nov24).toContain("khao-soi");
     expect(nov24).not.toContain("pick-khao-soi-khun-yai");
   });
 
   it("skips the airport, which the flight check covers", () => {
-    const ids = placeTargets(trip, ["2026-11-22"]).map((t) => t.stopId);
+    const ids = placeTargets(trip, ["2026-11-23"]).map((t) => t.stopId);
     expect(ids).toContain("doi-suthep");
     expect(ids).not.toContain("cnx-arrive");
   });

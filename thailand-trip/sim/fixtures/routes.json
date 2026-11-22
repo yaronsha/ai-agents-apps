@@ -1,5 +1,5 @@
 {
- "d22-suthep": {
+ "d23-suthep": {
   "routes": [
    {
     "duration": "558s",
@@ -7,7 +7,7 @@
    }
   ]
  },
- "d23-inthanon": {
+ "d02-inthanon": {
   "routes": [
    {
     "duration": "7121s",
@@ -15,7 +15,7 @@
    }
   ]
  },
- "d23-back": {
+ "d02-back": {
   "routes": [
    {
     "duration": "6042s",
@@ -191,7 +191,7 @@
    }
   ]
  },
- "d02-chiangmai": {
+ "d01-chiangmai": {
   "routes": [
    {
     "duration": "19396s",

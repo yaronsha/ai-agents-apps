@@ -268,13 +268,6 @@ export const PLACE_FACTS: Record<string, PlaceFacts> = {
     ],
     checked: CHECKED,
   },
-  "cm-night-bazaar": {
-    nameHe: "שוק הלילה של צ'אנג מאי",
-    hours: { open: "18:00", close: "23:59" },
-    hoursHe: "כל ערב, בערך 18:00 עד חצות",
-    payHe: "רוב הדוכנים מזומן בלבד.",
-    checked: CHECKED,
-  },
 };
 
 export function placeFacts(stopId: string): PlaceFacts | undefined {

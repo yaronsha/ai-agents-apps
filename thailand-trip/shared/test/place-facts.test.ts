@@ -31,8 +31,7 @@ describe("placeAlerts", () => {
     expect(byId("place:pha-soet:closed")).toMatchObject({ date: "2026-11-30", category: "place", severity: "info", digest: true, pushAt: [] });
   });
 
-  it("flags a visit planned before the place opens or past its closing", () => {
-    expect(byId("place:cm-night-bazaar:early")?.titleHe).toContain("18:00");
+  it("flags a visit planned past the place's closing", () => {
     expect(byId("place:doi-suthep:closing")?.bodyHe).toContain("19:30");
   });
 
