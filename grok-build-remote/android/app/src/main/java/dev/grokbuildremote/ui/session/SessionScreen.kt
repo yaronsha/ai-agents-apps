@@ -78,6 +78,8 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
     var draft by remember(sid) { mutableStateOf("") }
     var menuOpen by remember { mutableStateOf(false) }
     var hiddenRequest by remember { mutableStateOf<String?>(null) }
+    var showContext by remember { mutableStateOf(false) }
+    val contexts by app.bridge.contexts.collectAsStateWithLifecycle()
     var listening by remember { mutableStateOf(false) }
     var askOnline by remember { mutableStateOf<String?>(null) }
     var language by remember { mutableStateOf(app.store.dictationLanguage) }
@@ -141,6 +143,10 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
                     Icon(Icons.Filled.MoreVert, contentDescription = "More options", tint = Palette.Text)
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(text = { Text("Context") }, onClick = {
+                        menuOpen = false
+                        if (app.bridge.requestContext(sid)) showContext = true
+                    })
                     DropdownMenuItem(text = { Text("Stop following") }, onClick = {
                         menuOpen = false
                         app.bridge.detach(sid)
@@ -268,7 +274,12 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
                                 dictation.stop()
                                 listening = false
                             }
-                            app.bridge.prompt(sid, draft.trim())
+                            // Grok's terminal draws /context itself; sent as a prompt it does nothing.
+                            if (draft.trim().equals("/context", ignoreCase = true)) {
+                                if (app.bridge.requestContext(sid)) showContext = true
+                            } else {
+                                app.bridge.prompt(sid, draft.trim())
+                            }
                             draft = ""
                         } else if (state.running) {
                             app.bridge.cancel(sid)
@@ -306,6 +317,10 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
             },
             onDismiss = { hiddenRequest = pending.id.toString() },
         )
+    }
+
+    if (showContext) {
+        ContextSheet(context = contexts[sid], onDismiss = { showContext = false })
     }
 
     askOnline?.let { lang ->

@@ -43,6 +43,8 @@ object Types {
     const val ATTACH = "attach"
     const val DETACH = "detach"
     const val ACP = "acp"
+    /** Context window usage for an attached session (request and answer). */
+    const val SESSION_INFO = "session.info"
     const val PING = "ping"
 
     // bridge → phone

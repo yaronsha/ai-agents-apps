@@ -23,8 +23,8 @@ pub struct Envelope {
 }
 
 /// Message types. Phone → bridge: `hello`, `pair`, `sessions.list`, `session.new`, `attach`,
-/// `detach`, `acp`, `ping`. Bridge → phone: `welcome`, `pairing`, `paired`, `sessions`,
-/// `attached`, `acp`, `bridge.status`, `error`, `pong`.
+/// `detach`, `acp`, `session.info`, `ping`. Bridge → phone: `welcome`, `pairing`, `paired`,
+/// `sessions`, `attached`, `acp`, `session.info`, `bridge.status`, `error`, `pong`.
 pub mod kind {
     pub const HELLO: &str = "hello";
     pub const PAIR: &str = "pair";
@@ -33,6 +33,8 @@ pub mod kind {
     pub const ATTACH: &str = "attach";
     pub const DETACH: &str = "detach";
     pub const ACP: &str = "acp";
+    /// Context window usage for an attached session (both directions: request and answer).
+    pub const SESSION_INFO: &str = "session.info";
     pub const PING: &str = "ping";
 
     pub const WELCOME: &str = "welcome";

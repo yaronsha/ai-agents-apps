@@ -101,6 +101,12 @@ fn main() {
                 waiting_prompt = Some((id.unwrap_or(Value::Null), sid));
             }
             Some("session/cancel") => {}
+            Some("_x.ai/session/info") => send(
+                &mut out,
+                json!({"jsonrpc":"2.0","id":id,"result":{"result":{
+                    "sessionId":params["sessionId"],"model":"grok-4.7","turns":3,
+                    "cwd":"/tmp/project","context":{"used":1200,"total":256000,"usagePct":0}}}}),
+            ),
             Some(other) => {
                 if id.is_some() {
                     send(

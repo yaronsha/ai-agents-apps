@@ -414,6 +414,7 @@ impl Connection {
                 }
             }
             kind::ACP => self.acp(&env),
+            kind::SESSION_INFO => self.session_info(&env),
             other => self.reply(Envelope::error("unknown_type", other)),
         }
     }
@@ -461,6 +462,32 @@ impl Connection {
             "Grok Build Remote",
             &format!("{} is now following a Grok Build session", self.device),
         );
+    }
+
+    /// What Grok's `/context` shows, for an attached session. The bridge makes this one read-only
+    /// call itself (the phone can't send it through `acp`) and passes on only the fields below.
+    fn session_info(&self, env: &Envelope) {
+        let Some(sid) = env.sid.clone() else {
+            return self.reply(Envelope::error("bad_request", "session.info needs sid"));
+        };
+        let hub = match self.attached.lock().unwrap().get(&sid) {
+            Some(a) => a.hub.clone(),
+            None => return self.reply(Envelope::error("not_attached", &sid).with_sid(sid)),
+        };
+        let this = self.clone();
+        tokio::spawn(async move {
+            let params = json!({"sessionId": sid});
+            match hub.agent.request(SESSION_INFO_METHOD, params).await {
+                Ok(v) => this.reply(
+                    Envelope::new(kind::SESSION_INFO)
+                        .with_sid(sid)
+                        .with_payload(session_info_fields(&v)),
+                ),
+                Err(e) => this.reply(
+                    Envelope::error("info_failed", &format!("{e:#}")).with_sid(sid),
+                ),
+            }
+        });
     }
 
     fn acp(&self, env: &Envelope) {
@@ -610,4 +637,19 @@ pub fn notify_mac(title: &str, body: &str) {
             ])
             .spawn();
     }
+}
+
+/// Grok Build's own read-only call behind `/context` (not part of ACP, so it may change).
+const SESSION_INFO_METHOD: &str = "_x.ai/session/info";
+
+/// The parts of Grok's session info the phone shows: model, turns and context usage.
+pub fn session_info_fields(result: &Value) -> Value {
+    let info = result.get("result").unwrap_or(result);
+    let mut out = serde_json::Map::new();
+    for key in ["model", "modelDisplayName", "turns", "context"] {
+        if let Some(v) = info.get(key) {
+            out.insert(key.to_string(), v.clone());
+        }
+    }
+    Value::Object(out)
 }

@@ -300,6 +300,20 @@ async fn attach_prompt_approve_and_replay() {
     assert_eq!(attached.payload.unwrap()["from"], last.seq.unwrap());
     send(&mut ws, Envelope::new("ping")).await;
     assert_eq!(recv(&mut ws).await.kind, "pong");
+
+    // Context usage, as Grok's /context shows it; only the fields the phone needs.
+    send(&mut ws, Envelope::new("session.info").with_sid("s1")).await;
+    let info = recv(&mut ws).await;
+    assert_eq!(info.kind, "session.info");
+    assert_eq!(info.sid.as_deref(), Some("s1"));
+    let info = info.payload.unwrap();
+    assert_eq!(info["context"]["used"], 1200);
+    assert_eq!(info["turns"], 3);
+    assert!(info.get("cwd").is_none());
+
+    // Not for a session this phone hasn't opened.
+    send(&mut ws, Envelope::new("session.info").with_sid("other")).await;
+    assert_eq!(recv(&mut ws).await.kind, "error");
 }
 
 #[tokio::test]

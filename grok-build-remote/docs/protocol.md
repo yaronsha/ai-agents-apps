@@ -25,6 +25,7 @@ frame is one JSON envelope:
 | `attached` | bridge | yes | `{from}`: the replay starts after this `seq`; `0` means the whole history, so the phone starts the transcript over |
 | `detach` | phone | yes | – |
 | `acp` | both | yes | a raw ACP message as a string; bridge → phone also carries `seq` |
+| `session.info` | both | yes | phone → bridge: no payload, for an attached session. Bridge → phone: `{model, modelDisplayName, turns, context}`, what Grok's `/context` shows (`context.used`, `total`, `usagePct`, `freeTokens`, token counts by part). The bridge gets it with Grok Build's read-only `_x.ai/session/info` and passes on only those fields; `error info_failed` if Grok can't answer |
 | `bridge.status` | bridge | optional | `{code, message}`: `replay_gap`, `agent_exited` |
 | `error` | bridge | optional | `{code, message}`: `not_paired`, `revoked`, `refused`, `not_attached`, `attach_failed`, … |
 | `ping` / `pong` | phone / bridge | – | – |
@@ -68,7 +69,8 @@ Any ACP method other than `session/prompt`, `session/cancel`, `session/set_model
 `session/set_mode` to an auto-approve mode (`yolo`, `auto`, `always`, `bypass`, …); a `sessionId` other than the
 envelope's `sid`; request ids starting with `gbr-` (reserved for the bridge); answers to requests the agent didn't
 ask; answers to anything but `session/request_permission` (ask-user questions, plan exit and MCP elicitation are
-answered in the terminal for now).
+answered in the terminal for now). The phone can't send `_x.ai/…` methods either: `session.info` is the bridge
+making its one read-only call itself.
 
 A permission answer must be exactly `{"outcome":{"outcome":"selected","optionId":…}}` or
 `{"outcome":{"outcome":"cancelled"}}`, with no other fields, and the option must be one the phone may pick: kind

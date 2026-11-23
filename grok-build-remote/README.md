@@ -69,7 +69,9 @@ a different attacker:
    (auto-approve modes refused) and answers to permission requests the agent actually asked, and only with a one-time allow or reject:
    options that are remembered ("for this session", "never allow") or that turn on always-approve stay in the
    terminal, whatever kind Grok gives them. The phone can't send `initialize`,
-   `session/load` or `session/new` itself, and can't touch a session it isn't attached to. Your Grok Build
+   `session/load` or `session/new` itself, and can't touch a session it isn't attached to. For the phone's Context
+   panel the bridge itself makes one read-only call, Grok Build's `_x.ai/session/info` (what `/context` shows), for an
+   attached session, and sends back only the model, turn count and context usage. Your Grok Build
    `--allow` / `--deny` / `--sandbox` rules still apply. On the phone, approving a command or a file change needs a
    fingerprint (or screen lock). Dictated text is only ever a prompt.
 5. **You can see and stop it.** `~/Library/Logs/gbr/audit.log` records every connection, attach, prompt, approval and

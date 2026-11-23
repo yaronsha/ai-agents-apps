@@ -4,6 +4,7 @@ import android.os.Build
 import dev.grokbuildremote.protocol.Acp
 import dev.grokbuildremote.protocol.Envelope
 import dev.grokbuildremote.protocol.PendingRequest
+import dev.grokbuildremote.protocol.SessionContext
 import dev.grokbuildremote.protocol.SessionState
 import dev.grokbuildremote.protocol.TranscriptReducer
 import dev.grokbuildremote.protocol.Types
@@ -58,6 +59,10 @@ class BridgeClient(private val store: PairingStore, private val scope: Coroutine
     private val _sessionsReceived = MutableStateFlow(0L)
     /** Goes up each time the Mac sends the list, even when it didn't change. */
     val sessionsReceived: StateFlow<Long> = _sessionsReceived.asStateFlow()
+
+    private val _contexts = MutableStateFlow<Map<String, SessionContext>>(emptyMap())
+    /** The latest `/context` numbers per session, once asked for with [requestContext]. */
+    val contexts: StateFlow<Map<String, SessionContext>> = _contexts.asStateFlow()
 
     private val _attached = MutableStateFlow<Set<String>>(emptySet())
     val attached: StateFlow<Set<String>> = _attached.asStateFlow()
@@ -199,6 +204,11 @@ class BridgeClient(private val store: PairingStore, private val scope: Coroutine
                 flow.update { TranscriptReducer.apply(it, msg) }
                 updateNeedsYou(sid, flow.value)
             }
+            Types.SESSION_INFO -> {
+                val sid = env.sid ?: return
+                val ctx = SessionContext.parse(env.payload) ?: return
+                _contexts.update { it + (sid to ctx) }
+            }
             Types.STATUS -> {
                 val code = env.payloadString("code")
                 env.payloadString("message")?.let { _messages.tryEmit(it) }
@@ -230,6 +240,12 @@ class BridgeClient(private val store: PairingStore, private val scope: Coroutine
     }
 
     fun refreshSessions() = send(Envelope(type = Types.SESSIONS_LIST))
+
+    /** Ask the Mac for what Grok's `/context` shows; the answer lands in [contexts]. */
+    fun requestContext(sid: String): Boolean {
+        _contexts.update { it - sid }
+        return send(Envelope(type = Types.SESSION_INFO, sid = sid))
+    }
 
     /** Follow a session. If offline, it's attached as soon as the connection is back. */
     fun attach(sid: String, cwd: String) {
