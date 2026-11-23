@@ -62,6 +62,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.grokbuildremote.GrokBuildRemoteApp
 import dev.grokbuildremote.data.SessionInfo
+import dev.grokbuildremote.protocol.compactRows
 import dev.grokbuildremote.ui.findActivity
 import dev.grokbuildremote.ui.folderName
 import dev.grokbuildremote.ui.requireUserPresence
@@ -86,9 +87,12 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
     LaunchedEffect(sid) { app.bridge.attach(sid, info.cwd) }
     DisposableEffect(Unit) { onDispose { dictation.stop() } }
 
+    // Reads and searches folded into one line each run, like the terminal.
+    val rows = remember(state.items) { compactRows(state.items) }
+
     // Follow the bottom as the transcript grows.
-    LaunchedEffect(state.items.size) {
-        if (state.items.isNotEmpty()) listState.animateScrollToItem(state.items.lastIndex)
+    LaunchedEffect(rows.size, state.items.size) {
+        if (rows.isNotEmpty()) listState.animateScrollToItem(rows.lastIndex)
     }
 
     // What was in the field when dictation started; dictated text is added after it.
@@ -153,7 +157,7 @@ fun SessionScreen(app: GrokBuildRemoteApp, info: SessionInfo, onBack: () -> Unit
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(state.items, key = { it.key }) { TranscriptItem(it) }
+            items(rows, key = { it.key }) { TranscriptRow(it) }
             if (state.items.isEmpty()) {
                 item { Text("Loading the session from your Mac…", color = Palette.Muted, fontSize = 14.sp) }
             }

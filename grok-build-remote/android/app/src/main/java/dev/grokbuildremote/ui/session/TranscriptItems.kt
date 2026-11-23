@@ -40,15 +40,68 @@ import androidx.compose.ui.unit.sp
 import dev.grokbuildremote.protocol.AgentText
 import dev.grokbuildremote.protocol.DiffKind
 import dev.grokbuildremote.protocol.DiffLine
+import dev.grokbuildremote.protocol.ExploreGroup
 import dev.grokbuildremote.protocol.Item
 import dev.grokbuildremote.protocol.LineDiff
 import dev.grokbuildremote.protocol.PlanItem
+import dev.grokbuildremote.protocol.ScreenRow
+import dev.grokbuildremote.protocol.Single
 import dev.grokbuildremote.protocol.Thought
 import dev.grokbuildremote.protocol.ToolCall
 import dev.grokbuildremote.protocol.UserText
 import dev.grokbuildremote.ui.card
 import dev.grokbuildremote.ui.theme.Mono
 import dev.grokbuildremote.ui.theme.Palette
+
+@Composable
+fun TranscriptRow(row: ScreenRow) {
+    when (row) {
+        is Single -> TranscriptItem(row.item)
+        is ExploreGroup -> ExploreRow(row)
+    }
+}
+
+/** Reads and searches in one line, like the terminal; tap for the list (titles only, no file contents). */
+@Composable
+private fun ExploreRow(g: ExploreGroup) {
+    var open by remember(g.key) { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().clickable { open = !open }.padding(vertical = 2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StatusIcon(
+                when {
+                    g.running -> "in_progress"
+                    g.failed > 0 -> "failed"
+                    else -> "completed"
+                },
+            )
+            Spacer(Modifier.width(10.dp))
+            val failed = if (g.failed > 0) " · ${g.failed} failed" else ""
+            Text(
+                "Explored · ${g.summary}$failed ${if (open) "▾" else "▸"}",
+                fontSize = 13.sp,
+                color = Palette.Muted,
+            )
+        }
+        if (open) {
+            g.calls.forEach { t ->
+                Row(Modifier.padding(start = 24.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StatusIcon(t.status)
+                    Spacer(Modifier.width(8.dp))
+                    Text(kindLabel(t.kind), fontSize = 12.sp, color = Palette.Muted)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        t.title,
+                        fontFamily = Mono,
+                        fontSize = 12.sp,
+                        color = Palette.Text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun TranscriptItem(item: Item) {
@@ -186,26 +239,33 @@ private fun ToolCard(t: ToolCall) {
             val lines: List<DiffLine> = computed.flatMap { (d, all) ->
                 (if (computed.size > 1) listOf(DiffLine(DiffKind.SAME, "── ${d.path}")) else emptyList()) + LineDiff.hunks(all)
             }
+            // Output (a command's or a tool's result) stays folded until tapped, like the terminal.
             val output = t.output?.lines().orEmpty().filter { it.isNotBlank() }
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .background(Palette.Code)
-                    .padding(vertical = 6.dp),
-            ) {
-                val shownDiff = if (expanded) lines else lines.take(COLLAPSED_LINES)
-                shownDiff.forEach { DiffRow(it) }
-                val shownOut = if (expanded) output else output.takeLast(4)
-                shownOut.forEach {
-                    Text(it, fontFamily = Mono, fontSize = 11.5.sp, color = Palette.Muted, maxLines = if (expanded) Int.MAX_VALUE else 1,
-                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 12.dp))
+            val shownDiff = if (expanded) lines else lines.take(COLLAPSED_LINES)
+            val shownOut = if (expanded) output else emptyList()
+            if (shownDiff.isNotEmpty() || shownOut.isNotEmpty()) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Palette.Code)
+                        .padding(vertical = 6.dp),
+                ) {
+                    shownDiff.forEach { DiffRow(it) }
+                    shownOut.forEach {
+                        Text(it, fontFamily = Mono, fontSize = 11.5.sp, color = Palette.Muted,
+                            modifier = Modifier.padding(horizontal = 12.dp))
+                    }
                 }
             }
-            val total = lines.size + output.size
-            val collapsed = minOf(lines.size, COLLAPSED_LINES) + minOf(output.size, 4)
-            if (total > collapsed || expanded) {
+            val hiddenDiff = lines.size - shownDiff.size
+            if (hiddenDiff > 0 || output.isNotEmpty() || expanded) {
+                val label = when {
+                    expanded -> "Show less"
+                    lines.isEmpty() -> "Show output · ${output.size} lines"
+                    else -> "Show all ${lines.size + output.size} lines"
+                }
                 Text(
-                    if (expanded) "Show less" else "Show all $total lines",
+                    label,
                     color = Palette.Accent,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
