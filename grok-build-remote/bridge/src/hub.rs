@@ -1,0 +1,199 @@
+//! A session the bridge is following: one agent child, its replay buffer, and the live broadcast
+//! that attached phones subscribe to.
+
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, Weak};
+use std::time::Duration;
+
+use anyhow::{Context, Result};
+use serde_json::{json, Value};
+use tokio::sync::{broadcast, mpsc};
+
+use crate::agent::Agent;
+use crate::allowlist::{id_key, is_interaction_request, phone_option_ids, PendingInteractions};
+use crate::replay::{Replay, Since, DEFAULT_CAPACITY};
+use crate::terminal_prompts::{grok_home, PromptWatcher};
+
+#[derive(Debug, Clone)]
+pub enum HubEvent {
+    Acp(u64, Arc<str>),
+    /// The agent process exited; the session must be re-attached.
+    Closed,
+}
+
+pub struct SessionHub {
+    pub sid: String,
+    pub agent: Arc<Agent>,
+    replay: Mutex<Replay>,
+    tx: broadcast::Sender<HubEvent>,
+    interactions: Mutex<PendingInteractions>,
+    closed: Mutex<bool>,
+}
+
+impl SessionHub {
+    /// Start an agent and attach it to an existing session with `session/load`.
+    pub async fn load(grok_bin: &PathBuf, sid: &str, cwd: &str) -> Result<Arc<Self>> {
+        let (agent, events) = Agent::spawn(grok_bin)?;
+        agent.initialize().await?;
+        let hub = Self::start(sid.to_string(), agent.clone(), events);
+        // The agent replays the history as session/update notifications before answering.
+        agent
+            .request(
+                "session/load",
+                json!({"sessionId": sid, "cwd": cwd, "mcpServers": []}),
+            )
+            .await
+            .context("session/load")?;
+        // Its history is replayed now; from here on, show prompts typed in a Grok window.
+        hub.watch_terminal_prompts(true);
+        Ok(hub)
+    }
+
+    /// Start an agent and create a new session in `cwd`.
+    pub async fn create(
+        grok_bin: &PathBuf,
+        cwd: &str,
+        model: Option<&str>,
+        auto_review: bool,
+    ) -> Result<Arc<Self>> {
+        let (agent, events) = Agent::spawn(grok_bin)?;
+        agent.initialize().await?;
+        let params = new_session_params(cwd, model, auto_review);
+        // Notifications that arrive before we know the session id are buffered by the channel.
+        let result = agent.request("session/new", params).await?;
+        let sid = result
+            .get("sessionId")
+            .and_then(Value::as_str)
+            .context("session/new returned no sessionId")?
+            .to_string();
+        let hub = Self::start(sid, agent, events);
+        hub.watch_terminal_prompts(false);
+        Ok(hub)
+    }
+
+    /// The leader doesn't send other clients the prompt that starts a turn, so read prompts typed
+    /// in a Grok window from Grok's saved history (see `terminal_prompts`).
+    fn watch_terminal_prompts(self: &Arc<Self>, skip_existing: bool) {
+        let Some(home) = grok_home() else { return };
+        let mut watcher = PromptWatcher::new(home, &self.sid, skip_existing);
+        let hub: Weak<Self> = Arc::downgrade(self);
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(Duration::from_millis(400));
+            loop {
+                tick.tick().await;
+                let Some(hub) = hub.upgrade() else { return };
+                if hub.is_closed() {
+                    return;
+                }
+                for update in watcher.poll() {
+                    hub.publish(&update);
+                }
+            }
+        });
+    }
+
+    fn start(
+        sid: String,
+        agent: Arc<Agent>,
+        mut events: mpsc::UnboundedReceiver<Value>,
+    ) -> Arc<Self> {
+        let (tx, _) = broadcast::channel(1024);
+        let hub = Arc::new(Self {
+            sid,
+            agent,
+            replay: Mutex::new(Replay::new(DEFAULT_CAPACITY)),
+            tx,
+            interactions: Mutex::new(PendingInteractions::new()),
+            closed: Mutex::new(false),
+        });
+        let pump = hub.clone();
+        tokio::spawn(async move {
+            while let Some(msg) = events.recv().await {
+                pump.on_agent_message(msg);
+            }
+            *pump.closed.lock().unwrap() = true;
+            let _ = pump.tx.send(HubEvent::Closed);
+        });
+        hub
+    }
+
+    fn on_agent_message(&self, msg: Value) {
+        if let (Some(method), Some(id)) = (msg.get("method").and_then(Value::as_str), msg.get("id"))
+        {
+            if is_interaction_request(&msg) {
+                self.interactions
+                    .lock()
+                    .unwrap()
+                    .insert(id_key(id), phone_option_ids(&msg));
+            } else {
+                // fs/*, terminal/* and anything else: we advertised no such capability.
+                tracing::warn!("rejecting agent request {method}");
+                self.agent.reject_request(id, method);
+                return;
+            }
+        }
+        self.publish(&msg);
+    }
+
+    /// Add a message to the replay buffer and send it to attached phones.
+    fn publish(&self, msg: &Value) {
+        let text: Arc<str> = Arc::from(msg.to_string());
+        // Push and broadcast under the same lock so subscribers see a gapless sequence.
+        let mut replay = self.replay.lock().unwrap();
+        let seq = replay.push(text.clone());
+        let _ = self.tx.send(HubEvent::Acp(seq, text));
+    }
+
+    pub fn is_closed(&self) -> bool {
+        *self.closed.lock().unwrap()
+    }
+
+    /// The newest sequence number in the replay buffer (0 if empty).
+    pub fn last_seq(&self) -> u64 {
+        self.replay.lock().unwrap().last_seq()
+    }
+
+    /// Subscribe and get everything after `after` in one consistent step.
+    pub fn subscribe_since(&self, after: u64) -> (Since, broadcast::Receiver<HubEvent>) {
+        let replay = self.replay.lock().unwrap();
+        let rx = self.tx.subscribe();
+        (replay.since(after), rx)
+    }
+
+    pub fn pending_interactions(&self) -> PendingInteractions {
+        self.interactions.lock().unwrap().clone()
+    }
+
+    pub fn forget_interaction(&self, key: &str) {
+        self.interactions.lock().unwrap().remove(key);
+    }
+}
+
+/// Parameters for `session/new`. With `auto_review`, the session runs in Grok Build's
+/// auto-review mode (`_meta.autoMode`): its reviewer lets routine calls through and asks about
+/// the rest. The bridge never sends `yoloMode` (always-approve).
+pub fn new_session_params(cwd: &str, model: Option<&str>, auto_review: bool) -> Value {
+    let mut params = json!({"cwd": cwd, "mcpServers": []});
+    if let Some(m) = model {
+        params["modelId"] = Value::String(m.to_string());
+    }
+    if auto_review {
+        params["_meta"] = json!({"autoMode": true});
+    }
+    params
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_session_asks_unless_auto_review() {
+        let ask = new_session_params("/p", None, false);
+        assert_eq!(ask, json!({"cwd": "/p", "mcpServers": []}));
+        let auto = new_session_params("/p", Some("grok-4.7"), true);
+        assert_eq!(auto["_meta"], json!({"autoMode": true}));
+        assert_eq!(auto["modelId"], "grok-4.7");
+        assert!(!auto.to_string().contains("yolo"));
+    }
+}

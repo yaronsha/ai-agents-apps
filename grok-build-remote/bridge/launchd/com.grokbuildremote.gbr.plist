@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchAgent for the Grok Build Remote bridge. Runs as YOUR user (never root) while you are logged in.
+
+  Install (see README "Run the bridge at login"):
+    1. Replace YOUR_USER, TAILSCALE_IP and the grok path below.
+    2. cp com.grokbuildremote.gbr.plist ~/Library/LaunchAgents/
+    3. launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.grokbuildremote.gbr.plist
+  Stop: launchctl bootout gui/$(id -u)/com.grokbuildremote.gbr
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.grokbuildremote.gbr</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOUR_USER/.cargo/bin/gbr</string>
+    <string>serve</string>
+    <string>--listen</string>
+    <string>TAILSCALE_IP:7443</string>
+    <string>--grok-bin</string>
+    <string>/Users/YOUR_USER/.grok/bin/grok</string>
+    <!-- Sessions started from the phone run in auto-review; remove to be asked about every call. -->
+    <string>--auto-review</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <!-- Restart if it crashes, e.g. while Tailscale was still coming up at login. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>/Users/YOUR_USER/Library/Logs/gbr/gbr.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOUR_USER/Library/Logs/gbr/gbr.err.log</string>
+</dict>
+</plist>

@@ -1,0 +1,86 @@
+# Checks for grok-build-remote: the Mac bridge (Rust) and the Android app (Kotlin).
+# The Android job also builds an installable debug APK and uploads it as an artifact
+# named "grok-build-remote-debug-apk" (Actions → this run → Artifacts).
+# Nothing here talks to Grok Build or xAI: the bridge tests use the fake-grok helper.
+name: grok-build-remote CI
+
+on:
+  pull_request:
+    paths: ["grok-build-remote/**", ".github/workflows/grok-build-remote-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["grok-build-remote/**", ".github/workflows/grok-build-remote-ci.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: grok-build-remote/bridge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: grok-build-remote/bridge
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - name: Release build (macOS)
+        if: runner.os == 'macOS'
+        run: cargo build --release
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'macOS'
+        with:
+          name: gbr-macos-arm64
+          path: grok-build-remote/bridge/target/release/gbr
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: grok-build-remote/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      # Sign with the fixed key from repository secrets, so each APK installs over the last one.
+      # The key never lives in the repo; without the secrets (forks) the default debug key is used.
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.GBR_ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.GBR_ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/gbr-signing.p12"
+            echo "GBR_KEYSTORE_FILE=$RUNNER_TEMP/gbr-signing.p12" >> "$GITHUB_ENV"
+            echo "::add-mask::$KEYSTORE_PASSWORD"
+            echo "GBR_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          else
+            echo "No signing secrets: using the default debug key."
+          fi
+      - run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-test-reports
+          path: grok-build-remote/android/app/build/reports/tests/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: grok-build-remote-debug-apk
+          path: grok-build-remote/android/app/build/outputs/apk/debug/app-debug.apk
