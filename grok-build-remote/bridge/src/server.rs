@@ -483,9 +483,9 @@ impl Connection {
                         .with_sid(sid)
                         .with_payload(session_info_fields(&v)),
                 ),
-                Err(e) => this.reply(
-                    Envelope::error("info_failed", &format!("{e:#}")).with_sid(sid),
-                ),
+                Err(e) => {
+                    this.reply(Envelope::error("info_failed", &format!("{e:#}")).with_sid(sid))
+                }
             }
         });
     }

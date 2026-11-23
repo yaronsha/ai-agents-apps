@@ -49,6 +49,7 @@ import dev.grokbuildremote.protocol.Single
 import dev.grokbuildremote.protocol.Thought
 import dev.grokbuildremote.protocol.ToolCall
 import dev.grokbuildremote.protocol.UserText
+import dev.grokbuildremote.protocol.shortToolTitle
 import dev.grokbuildremote.ui.card
 import dev.grokbuildremote.ui.theme.Mono
 import dev.grokbuildremote.ui.theme.Palette
@@ -203,25 +204,33 @@ private fun kindLabel(kind: String) = when (kind) {
     else -> "Tool"
 }
 
-private const val COLLAPSED_LINES = 8
 
+/** One line per tool call, like the terminal: diffs and output open on tap. */
 @Composable
 private fun ToolCard(t: ToolCall) {
     val running = t.status == "in_progress"
     val hasBody = t.diffs.isNotEmpty() || !t.output.isNullOrBlank()
+    var expanded by remember(t.key) { mutableStateOf(false) }
     val computed = remember(t.diffs) { t.diffs.map { it to LineDiff.compute(it.oldText, it.newText) } }
+    val label = kindLabel(t.kind)
     Column(
         Modifier
             .fillMaxWidth()
             .card(radius = 12.dp, stroke = if (running) Color(0xFF1E4A63) else Palette.Border),
     ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .then(if (hasBody) Modifier.clickable { expanded = !expanded } else Modifier)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             StatusIcon(t.status)
             Spacer(Modifier.width(10.dp))
-            Text(kindLabel(t.kind), fontSize = 13.sp, color = Palette.Muted)
+            Text(label, fontSize = 13.sp, color = Palette.Muted)
             Spacer(Modifier.width(8.dp))
             Text(
-                t.title,
+                shortToolTitle(t.title, label),
                 fontFamily = Mono,
                 fontSize = 12.sp,
                 color = Palette.Text,
@@ -233,48 +242,24 @@ private fun ToolCard(t: ToolCall) {
             val removed = computed.sumOf { (_, lines) -> lines.count { it.kind == DiffKind.DEL } }
             if (added > 0) Text(" +$added", fontFamily = Mono, fontSize = 12.sp, color = Palette.Good)
             if (removed > 0) Text(" −$removed", fontFamily = Mono, fontSize = 12.sp, color = Palette.Bad)
+            if (hasBody) Text(if (expanded) "  ▾" else "  ▸", fontSize = 12.sp, color = Palette.Muted)
         }
-        if (hasBody) {
-            var expanded by remember(t.key) { mutableStateOf(false) }
+        if (hasBody && expanded) {
             val lines: List<DiffLine> = computed.flatMap { (d, all) ->
-                (if (computed.size > 1) listOf(DiffLine(DiffKind.SAME, "── ${d.path}")) else emptyList()) + LineDiff.hunks(all)
+                listOf(DiffLine(DiffKind.SAME, "── ${d.path}")) + LineDiff.hunks(all)
             }
-            // Output (a command's or a tool's result) stays folded until tapped, like the terminal.
             val output = t.output?.lines().orEmpty().filter { it.isNotBlank() }
-            val shownDiff = if (expanded) lines else lines.take(COLLAPSED_LINES)
-            val shownOut = if (expanded) output else emptyList()
-            if (shownDiff.isNotEmpty() || shownOut.isNotEmpty()) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(Palette.Code)
-                        .padding(vertical = 6.dp),
-                ) {
-                    shownDiff.forEach { DiffRow(it) }
-                    shownOut.forEach {
-                        Text(it, fontFamily = Mono, fontSize = 11.5.sp, color = Palette.Muted,
-                            modifier = Modifier.padding(horizontal = 12.dp))
-                    }
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Palette.Code)
+                    .padding(vertical = 6.dp),
+            ) {
+                lines.forEach { DiffRow(it) }
+                output.forEach {
+                    Text(it, fontFamily = Mono, fontSize = 11.5.sp, color = Palette.Muted,
+                        modifier = Modifier.padding(horizontal = 12.dp))
                 }
-            }
-            val hiddenDiff = lines.size - shownDiff.size
-            if (hiddenDiff > 0 || output.isNotEmpty() || expanded) {
-                val label = when {
-                    expanded -> "Show less"
-                    lines.isEmpty() -> "Show output · ${output.size} lines"
-                    else -> "Show all ${lines.size + output.size} lines"
-                }
-                Text(
-                    label,
-                    color = Palette.Accent,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded }
-                        .padding(vertical = 10.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
             }
         }
     }

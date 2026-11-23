@@ -66,3 +66,15 @@ fun compactRows(items: List<Item>): List<ScreenRow> {
     }
     return rows
 }
+
+/**
+ * A tool title for one line: "Edit `/Users/me/app/src/a.css`" under the label "Edit" becomes
+ * "a.css". Titles that aren't a path are only trimmed.
+ */
+fun shortToolTitle(title: String, label: String): String {
+    var t = title.trim()
+    if (t.startsWith("$label ", ignoreCase = true)) t = t.substring(label.length + 1).trim()
+    t = t.removeSurrounding("`").trim()
+    val looksLikePath = t.startsWith("/") && ' ' !in t
+    return if (looksLikePath) t.trimEnd('/').substringAfterLast('/') else t
+}

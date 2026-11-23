@@ -45,4 +45,11 @@ class CompactRowsTest {
         assertEquals(listOf("i0", "gt1"), rows.map { it.key })
         assertEquals("1 listing, 1 fetch", (rows[1] as ExploreGroup).summary)
     }
+
+    @Test
+    fun toolTitlesAreShortened() {
+        assertEquals("App.css", shortToolTitle("Edit `/Users/me/codex/frontend/src/App.css`", "Edit"))
+        assertEquals("npm test", shortToolTitle("npm test", "Shell"))
+        assertEquals("ls -la /tmp", shortToolTitle("ls -la /tmp", "Shell"))
+    }
 }
